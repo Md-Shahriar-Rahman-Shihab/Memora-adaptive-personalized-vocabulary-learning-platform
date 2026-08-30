@@ -1,0 +1,10 @@
+com\memora\modules\vocabulary\VocabularyControllerIntegrationTest.class
+com\memora\modules\vocabulary\UserWordProgressServiceTest.class
+com\memora\common\exception\GlobalExceptionHandlerTest.class
+com\memora\common\exception\GlobalExceptionHandlerTest$TestValidationDto.class
+com\memora\common\exception\GlobalExceptionHandlerTest$TestExceptionController.class
+com\memora\MemoraApplicationTests.class
+com\memora\common\controller\HealthControllerTest.class
+com\memora\modules\user\AuthIntegrationTest.class
+com\memora\modules\vocabulary\UserWordProgressIntegrationTest.class
+com\memora\modules\vocabulary\VocabularyServiceTest.class
