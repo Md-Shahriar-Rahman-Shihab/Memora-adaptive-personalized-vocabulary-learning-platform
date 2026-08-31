@@ -65,6 +65,9 @@ public class UserWordProgress extends BaseEntity {
     @Column(name = "next_review_at")
     private Instant nextReviewAt;
 
+    @Column(name = "leitner_box", nullable = false)
+    private int leitnerBox = 1;
+
     public UserWordProgress() {
     }
 
@@ -81,6 +84,7 @@ public class UserWordProgress extends BaseEntity {
         this.forgettingRisk = ForgettingRisk.LOW;
         this.lastReviewedAt = null;
         this.nextReviewAt = null;
+        this.leitnerBox = 1;
     }
 
     public User getUser() {
@@ -177,5 +181,13 @@ public class UserWordProgress extends BaseEntity {
 
     public void setNextReviewAt(Instant nextReviewAt) {
         this.nextReviewAt = nextReviewAt;
+    }
+
+    public int getLeitnerBox() {
+        return leitnerBox;
+    }
+
+    public void setLeitnerBox(int leitnerBox) {
+        this.leitnerBox = leitnerBox;
     }
 }

@@ -1,6 +1,11 @@
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\common\controller\HealthControllerTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\common\exception\GlobalExceptionHandlerTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\MemoraApplicationTests.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\memory\LeitnerMemoryStrategyTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\memory\MemoryControllerIntegrationTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\memory\MemoryServiceTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\memory\MemoryStrategyFactoryTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\memory\SM2MemoryStrategyTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\user\AuthIntegrationTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\vocabulary\UserWordProgressIntegrationTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\vocabulary\UserWordProgressServiceTest.java

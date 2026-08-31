@@ -4,201 +4,221 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 
 ---
 
-## 📌 Project Overview
+## 📌 Project Status
 
-Memora is designed to optimize long-term vocabulary acquisition through cognitive memory modeling (Spaced Repetition Systems - SRS), adaptive placement testing, personalized dynamic learning paths, gamification mechanics, and generative AI enrichment.
-
-### Core Capabilities
-1. **Initial Diagnostic Placement**: Assesses baseline vocabulary proficiency (CEFR A1–C2) through an adaptive testing engine.
-2. **Dynamic Learning Roadmaps**: Generates structured, evolving learning paths tailored to learner goals and mastery levels.
-3. **Adaptive Memory Engine (SRS)**: Models the human forgetting curve (SuperMemo SM-2, Leitner, and FSRS algorithms) to predict memory decay and schedule timely revisions.
-4. **Interactive Multi-Modal Quizzes**: Features polymorphic assessment formats (Multiple Choice, Cloze Sentence, Audio/Spelling, and Definition Matching).
-5. **Word-Level Cognitive Analytics**: Tracks retention stability, lapse frequency, response latencies, and mistake patterns.
-6. **Gamification & Engagement**: Rewards consistency via XP systems, streak tracking, achievement badges, and tiered leaderboards.
-7. **AI-Assisted Learning**: Generates contextual example sentences, mnemonic breakdowns, and personalized explanations.
+| Phase | Module | Status | Description |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | **Core Architecture & Scaffolding** | ✅ Completed | BaseEntity auditing, unified `ApiResponse<T>`, global exception handling, health checks. |
+| **Phase 2** | **Security & Identity Management** | ✅ Completed | Stateless JWT authentication, BCrypt password hashing, Spring Security filter chain, `/api/v1/auth/*`, `/api/v1/users/me`. |
+| **Phase 3** | **Vocabulary & Content Catalog** | ✅ Completed | Curated CEFR vocabulary dataset, data seeder, category filtering, `UserWordProgress` entity & progress tracking. |
+| **Phase 4** | **Adaptive Memory SRS Engine** | ✅ Completed | **Strategy Pattern** (`SM2MemoryStrategy`, `LeitnerMemoryStrategy`), **Factory Pattern** (`MemoryStrategyFactory`), incremental latency tracking, mastery scoring, forgetting risk evaluation, `/api/v1/memory/*`. |
+| **Phase 5** | **Quiz & Evaluation Engine** | ⏳ Planned | Polymorphic question models, evaluators, session workflows. |
+| **Phase 6** | **Placement Test & Learning Paths** | ⏳ Planned | Diagnostic assessment and dynamic learning roadmaps. |
+| **Phase 7** | **Gamification & Event Bus** | ⏳ Planned | XP, streaks, badges, leaderboards, Spring event decoupling. |
+| **Phase 8** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
+| **Phase 9** | **React Frontend & UX** | ⏳ Planned | Modern responsive web application with dark mode & micro-animations. |
 
 ---
 
 ## 🛠️ Technology Stack
 
 ### Backend
-* **Language & Runtime**: Java 21 (LTS)
-* **Framework**: Spring Boot 3.x
-* **Core Modules**: Spring Web (REST API), Spring Data JPA, Spring Security (JWT-based Stateless Authentication), Spring Validation
-* **Database**: PostgreSQL
-* **Build Tool**: Apache Maven
+* **Language & Runtime**: Java 20 / Java 21 (LTS)
+* **Framework**: Spring Boot 3.3.4
+* **Core Modules**: Spring Web (REST API), Spring Data JPA, Spring Security (Stateless JWT Authentication), Spring Validation
+* **Database**: PostgreSQL (Production) / H2 In-Memory (Automated Testing)
+* **Build Tool**: Apache Maven (`mvnw` / `mvnw.cmd`)
 * **Architecture**: Layered Clean Architecture (`Controller → Service → Repository → Entity/Domain` with strict DTO boundaries)
 
-### Frontend
-* **Core**: React (TypeScript/JavaScript)
-* **Build Tool**: Vite
-* **Styling**: Tailwind CSS
-* **State & Routing**: React Context / Zustand, React Router DOM
-* **HTTP Client**: Axios (with centralized JWT interceptors)
-
 ---
 
-## 🏗️ High-Level Project Structure
+## 📦 Active Backend Package Architecture (`com.memora`)
 
-```
-memora/
-├── README.md
-├── pom.xml                      # Spring Boot 3.x Maven descriptor (Java 21)
-├── mvnw / mvnw.cmd              # Maven wrapper executables
-└── src/
-    ├── main/
-    │   ├── java/com/memora/     # Backend application codebase
-    │   └── resources/           # Configuration profiles & application.yml
-    └── test/                    # Automated unit & integration test suites
-```
-
----
-
-## 📦 Backend Package Architecture (`com.memora`)
-
-```
+```text
 com.memora/
 ├── MemoraApplication.java
 ├── common/
-│   ├── config/                     # WebConfig, SecurityConfig, SwaggerConfig, AsyncConfig
 │   ├── controller/                 # HealthController (/api/v1/health)
-│   ├── exception/                  # GlobalExceptionHandler, ResourceNotFoundException, ApiException
-│   ├── response/                   # ApiResponse<T>, ErrorDetails, ValidationError
-│   └── domain/                     # BaseEntity (Audit timestamps: createdAt, updatedAt, version)
+│   ├── domain/                     # BaseEntity (Audit timestamps: createdAt, updatedAt, version)
+│   ├── exception/                  # GlobalExceptionHandler, ResourceNotFoundException, BadRequestException, ApiException
+│   └── response/                   # ApiResponse<T>, ErrorDetails, ValidationError
 │
-├── security/                       # Security & JWT infrastructure
+├── security/                       # Security & JWT Infrastructure
+│   ├── jwt/                        # JwtTokenProvider, JwtAuthenticationFilter, JwtAuthenticationEntryPoint
+│   ├── user/                       # CustomUserDetailsService, UserPrincipal
+│   └── SecurityConfig.java         # Stateless security filter chain
+│
 └── modules/
-    ├── user/                       # User profile, preferences, roles
-    ├── vocabulary/                 # Words, definitions, sentences, topics
-    ├── assessment/                 # Placement test & level diagnostics
-    ├── learning/                   # Learning paths, module nodes, lessons
-    ├── memory/                     # Spaced repetition algorithms (SM-2, Leitner, FSRS)
-    ├── quiz/                       # Polymorphic question types & evaluation
-    ├── gamification/               # XP, streaks, badges, leaderboard
-    └── ai/                         # LLM adapters, sentence & mnemonic generation
+    ├── user/                       # Identity & Learner Domain
+    │   ├── domain/                 # Role, VocabularyLevel
+    │   ├── dto/                    # RegistrationRequest, LoginRequest, AuthResponse, UserProfileResponse
+    │   ├── entity/                 # User entity
+    │   ├── repository/             # UserRepository
+    │   └── service/                # UserService, UserServiceImpl
+    │
+    ├── vocabulary/                 # Lexical Catalog & Content
+    │   ├── domain/                 # DifficultyLevel, WordCategory, ForgettingRisk
+    │   ├── dto/                    # VocabularyWordRequest, VocabularyWordResponse, UserWordProgressResponse
+    │   ├── entity/                 # VocabularyWord, UserWordProgress
+    │   ├── repository/             # VocabularyWordRepository, UserWordProgressRepository
+    │   ├── service/                # VocabularyService, UserWordProgressService
+    │   └── config/                 # VocabularyDataSeeder (Initial curated dataset across CEFR levels A1-B2)
+    │
+    └── memory/                     # Spaced Repetition & Retention Engine (Phase 4)
+        ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryInput, MemoryCalculationResult
+        ├── dto/                    # WordReviewRequest, WordReviewResponse, MemoryWordResponse
+        ├── mapper/                 # MemoryMapper
+        ├── service/                # MemoryService, MemoryServiceImpl
+        ├── strategy/               # Strategy Pattern & Factory Pattern
+        │   ├── MemoryAlgorithmStrategy.java   # Base strategy interface
+        │   ├── SM2MemoryStrategy.java         # SuperMemo SM-2 algorithm
+        │   ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system
+        │   └── MemoryStrategyFactory.java     # Strategy resolution factory
+        └── controller/             # MemoryController (/api/v1/memory/*)
 ```
 
 ---
 
-## 🏛️ Domain Entities & Relational Schema
+## 🏛️ Domain Entities & Database Schema
 
 ```mermaid
 erDiagram
-    User ||--|| UserProfile : "has"
-    User ||--o{ LearningPath : "owns"
-    User ||--o{ UserWordProgress : "tracks"
-    User ||--|| UserStreak : "maintains"
-    User ||--o{ UserAchievement : "unlocks"
-    User ||--o{ QuizSubmission : "submits"
+    User ||--o{ UserWordProgress : "tracks retention"
+    VocabularyWord ||--o{ UserWordProgress : "referenced in"
     
-    Word ||--o{ Definition : "has many"
-    Word ||--o{ ExampleSentence : "has many"
-    Word }o--o{ Topic : "belongs to"
-    Word ||--o{ UserWordProgress : "referenced in"
-    
-    LearningPath ||--o{ ModuleNode : "contains"
-    ModuleNode ||--o{ Lesson : "contains"
-    Lesson }o--o{ Word : "teaches"
-    
-    UserWordProgress ||--o{ ReviewLog : "records history"
-    
-    Quiz ||--o{ Question : "contains"
-    Quiz ||--o{ QuizSubmission : "receives"
-    QuizSubmission ||--o{ QuestionAttempt : "composed of"
-    Question ||--o{ QuestionAttempt : "answered in"
-    
-    Achievement ||--o{ UserAchievement : "awarded as"
+    User {
+        bigint id PK
+        varchar name
+        varchar email UK
+        varchar password_hash
+        varchar current_level
+        int xp
+        int streak
+        varchar role
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    VocabularyWord {
+        bigint id PK
+        varchar word UK
+        varchar meaning
+        text definition
+        varchar pronunciation
+        text example_sentence
+        varchar difficulty_level
+        varchar category
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    UserWordProgress {
+        bigint id PK
+        bigint user_id FK
+        bigint vocabulary_word_id FK
+        int total_attempts
+        int correct_attempts
+        int incorrect_attempts
+        double average_response_time
+        int consecutive_correct
+        int consecutive_incorrect
+        double mastery_score
+        varchar forgetting_risk
+        int leitner_box
+        timestamp last_reviewed_at
+        timestamp next_review_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
 ```
 
 ---
 
-## 🧬 OOP Principles & Design Patterns
+## 🧬 OOP Principles & Design Patterns Implemented
 
-### 1. Object-Oriented Principles Applied
-* **Encapsulation**: Strict private fields, validated mutators, immutable DTO records, and protected domain invariants.
-* **Abstraction**: High-level service contracts (`MemoryAlgorithmStrategy`, `AiLanguageModelAdapter`, `QuestionEvaluatorStrategy`) hiding complex mathematical calculations and external API interactions.
-* **Inheritance & Polymorphism**: Polymorphic `Question` hierarchy mapped using JPA `@Inheritance(strategy = InheritanceType.JOINED)`, dynamically grading different question types without `instanceof` checks.
-* **SOLID Compliance**:
-  * *Single Responsibility (SRP)*: Memory scheduling, quiz grading, gamification calculations, and AI generation reside in dedicated, isolated services.
-  * *Open/Closed (OCP)*: New memory algorithms (e.g., FSRS) or question types can be integrated by adding new strategy implementations without altering existing code.
-  * *Liskov Substitution (LSP)*: All question and memory strategy subtypes are completely interchangeable through their base interfaces.
-  * *Interface Segregation (ISP)*: Small, focused interfaces for scoring, scheduling, and notifications.
-  * *Dependency Inversion (DIP)*: Core services depend strictly on abstract strategy and repository interfaces.
+### 1. Strategy Pattern & Polymorphism (Memory Engine)
+* **`MemoryAlgorithmStrategy`**: Defines the abstraction for calculating spaced repetition schedules and retention decay.
+* **`SM2MemoryStrategy`**: Implements SuperMemo SM-2 algorithm, adjusting intervals based on consecutive correct streaks, accuracy, and response speed modifiers.
+* **`LeitnerMemoryStrategy`**: Implements a 5-box Leitner system with box promotions/demotions and exponential review schedules.
+* **Decoupled Value Objects**: `MemoryInput` and `MemoryCalculationResult` completely isolate mathematical calculations from JPA entity details.
 
-### 2. Design Patterns
+### 2. Factory Pattern & Dependency Inversion
+* **`MemoryStrategyFactory`**: Automatically aggregates all `MemoryAlgorithmStrategy` Spring beans into an unmodifiable map indexed by `MemoryAlgorithmType`.
+* **Zero `instanceof` Checks**: `MemoryServiceImpl` delegates purely through the strategy abstraction without conditional branching.
 
-| Pattern | Type | Application in Memora | Justification |
-| :--- | :--- | :--- | :--- |
-| **Strategy** | Behavioral | `MemoryAlgorithmStrategy` (SM-2, Leitner, FSRS), `QuestionEvaluatorStrategy` | Allows runtime switching of spaced repetition algorithms and assessment grading logic based on user settings or experiment criteria. |
-| **Factory Method / Abstract Factory** | Creational | `QuestionFactory`, `QuizBuilder` | Encapsulates the instantiation of diverse, complex question variants from database records or AI-generated prompts. |
-| **Observer (Event-Driven)** | Behavioral | Spring `@EventListener` & `ApplicationEventPublisher` | Decouples core quiz/lesson completion workflows from side-effects (XP calculation, streak incrementing, badge checks, audit logging). |
-| **Template Method** | Behavioral | `AbstractSessionWorkflow` | Standardizes the multi-step evaluation sequence (Validate → Calculate Score → Update SRS Memory → Publish Events → Build DTO). |
-| **State** | Behavioral | `WordMasteryState` (`New`, `Learning`, `Reviewing`, `Mastered`) | Models word transition mechanics throughout the user's learning lifecycle. |
-| **Adapter / Bridge** | Structural | `AiLanguageModelAdapter` | Unifies various AI provider backends (OpenAI, Anthropic, Ollama, DeepSeek) behind a standardized interface. |
-| **Builder** | Creational | `QuizConfigurationBuilder` | Constructs flexible, multi-parameter quiz requests (e.g., 60% weak words, 20% due words, 20% new words). |
+### 3. Encapsulation & Single Responsibility
+* **Controller**: Handles HTTP request parsing, payload validation, and responses.
+* **Service**: Orchestrates authentication context, entity state transitions, incremental metrics, and persistence.
+* **Strategy**: Encapsulates spaced repetition mathematics and forgetting curve modeling.
+* **Repository**: Handles database interactions with indexed queries (`user_id + next_review_at`, `user_id + forgetting_risk`).
 
 ---
 
-## 🌐 REST API Module Overview
+## 🌐 Implemented REST API Endpoints
 
-All endpoints follow standard RESTful conventions, leverage HTTP response codes, and return standardized envelopes: `ApiResponse<T>`.
-
-### 1. Authentication & User Management
+### 1. Authentication (`/api/v1/auth`)
 * `POST /api/v1/auth/register` — Register a new learner account
 * `POST /api/v1/auth/login` — Authenticate and retrieve JWT token
-* `GET  /api/v1/users/me` — Retrieve active learner profile, goals, and stats
-* `PUT  /api/v1/users/me/settings` — Update preferences (daily goal, default SRS algorithm, notifications)
 
-### 2. Diagnostic Placement Assessment
-* `POST /api/v1/placement/start` — Initialize a placement test session
-* `GET  /api/v1/placement/session/{id}/next` — Fetch next adaptive diagnostic question
-* `POST /api/v1/placement/session/{id}/submit` — Submit placement responses and determine baseline CEFR level
+### 2. User Profile (`/api/v1/users`)
+* `GET  /api/v1/users/me` — Retrieve active learner profile and stats (Requires JWT)
 
-### 3. Vocabulary Catalog & Topics
-* `GET  /api/v1/words` — Search/filter vocabulary by CEFR level, topic, or search term
-* `GET  /api/v1/words/{id}` — Get word definition, audio URL, examples, and user memory status
-* `GET  /api/v1/topics` — List all curated topic categories
+### 3. Vocabulary Catalog (`/api/v1/vocabulary`)
+* `GET  /api/v1/vocabulary` — List all vocabulary words (Public)
+* `GET  /api/v1/vocabulary/{id}` — Get word definition and metadata (Public)
+* `GET  /api/v1/vocabulary/search?query=...` — Search vocabulary by keyword (Public)
+* `GET  /api/v1/vocabulary/level/{level}` — Filter by CEFR difficulty level (`A1`–`C2`) (Public)
+* `GET  /api/v1/vocabulary/category/{category}` — Filter by topic category (Public)
+* `POST /api/v1/vocabulary` — Create a new vocabulary word (Admin/Authenticated)
 
-### 4. Adaptive Learning Paths & Lessons
-* `GET  /api/v1/learning-paths/current` — Retrieve active learning roadmap and unlocked module nodes
-* `POST /api/v1/learning-paths/generate` — Regenerate/recalibrate path based on updated proficiency
-* `GET  /api/v1/lessons/{id}` — Fetch lesson vocabulary and instructional content
-* `POST /api/v1/lessons/{id}/complete` — Submit lesson completion and transition word mastery states
+### 4. User Word Progress (`/api/v1/progress`)
+* `GET  /api/v1/progress/words` — List all progress records for authenticated user
+* `GET  /api/v1/progress/words/{wordId}` — Get progress for a specific word
+* `POST /api/v1/progress/words/{wordId}/init` — Initialize progress tracking for a word
+* `GET  /api/v1/progress/weak` — Retrieve learner's weak words
+* `GET  /api/v1/progress/review` — Retrieve words due for review
 
-### 5. Memory & Spaced Repetition (SRS) Engine
-* `GET  /api/v1/memory/daily-queue` — Fetch today's due revision items (weak words + scheduled repetitions)
-* `GET  /api/v1/memory/stats` — Retrieve memory retention metrics, forgetting curve data, and mastered word counts
-* `POST /api/v1/memory/review` — Submit SRS review grading (`AGAIN`, `HARD`, `GOOD`, `EASY`) with response latency
-* `GET  /api/v1/memory/weak-words` — List high-decay / frequently lapsed vocabulary items
-
-### 6. Interactive Quizzes & Assessments
-* `POST /api/v1/quizzes/generate` — Generate dynamic practice quizzes (SRS Review, Topic Drill, Speed Quiz)
-* `GET  /api/v1/quizzes/{id}` — Fetch quiz content with polymorphic question DTOs
-* `POST /api/v1/quizzes/{id}/submit` — Submit answers, calculate score, evaluate performance, and log analytics
-
-### 7. Gamification & Community
-* `GET  /api/v1/gamification/dashboard` — Retrieve total XP, current streak, active badges, and rank
-* `GET  /api/v1/gamification/leaderboard` — View weekly/all-time leaderboards
-* `GET  /api/v1/gamification/achievements` — List all badges with user unlock timestamps
-
-### 8. AI-Powered Content Generation
-* `POST /api/v1/ai/explain-word` — Request an AI mnemonic explanation and contextual breakdown
-* `POST /api/v1/ai/generate-examples` — Generate dynamic CEFR-calibrated example sentences
+### 5. Adaptive Memory Engine (`/api/v1/memory`)
+* `POST /api/v1/memory/review` — Record learner review attempt and calculate next review schedule
+* `GET  /api/v1/memory/due` — Retrieve vocabulary words due for spaced repetition review (`nextReviewAt <= now`)
+* `GET  /api/v1/memory/weak` — Retrieve learner's weakest words ranked by forgetting risk and mastery score
 
 ---
 
-## 🚀 Step-by-Step Implementation Roadmap
+## 📝 Example Memory Review API Usage
 
-```mermaid
-flowchart TD
-    P1[Phase 1: Project Scaffolding & Core Foundation] --> P2[Phase 2: Security & Identity Management]
-    P2 --> P3[Phase 3: Vocabulary & Content Domain]
-    P3 --> P4[Phase 4: Adaptive Memory SRS Engine]
-    P4 --> P5[Phase 5: Quiz & Evaluation Engine]
-    P5 --> P6[Phase 6: Placement Test & Adaptive Learning Path]
-    P6 --> P7[Phase 7: Gamification & Event Bus]
-    P7 --> P8[Phase 8: AI Provider Integration]
-    P8 --> P9[Phase 9: React + Vite Frontend & UX Polish]
+### Request: `POST /api/v1/memory/review`
+**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
+**Body**:
+```json
+{
+  "vocabularyWordId": 1,
+  "correct": true,
+  "responseTimeMs": 1800,
+  "algorithm": "SM2"
+}
+```
+
+### Response:
+```json
+{
+  "success": true,
+  "message": "Review recorded and memory schedule updated successfully",
+  "data": {
+    "wordId": 1,
+    "word": "serendipity",
+    "correct": true,
+    "masteryScore": 76.5,
+    "forgettingRisk": "LOW",
+    "nextReviewAt": "2026-09-03T12:30:00Z",
+    "reviewIntervalDays": 3,
+    "algorithm": "SM2"
+  },
+  "timestamp": "2026-08-31T12:30:00Z"
+}
 ```
 
 ---
@@ -206,65 +226,26 @@ flowchart TD
 ## 💻 Getting Started (Backend)
 
 ### 1. Prerequisites
-* **Java**: JDK 21 or higher installed (`java -version`)
-* **Database**: PostgreSQL 14+ running locally or in Docker
-* **Build Tool**: Maven 3.9+ (or use the provided Maven Wrapper `./mvnw` / `.\mvnw.cmd`)
+* **Java**: JDK 20 or 21 installed (`java -version`)
+* **Database**: PostgreSQL 14+ (or runs seamlessly on H2 in-memory for testing)
+* **Build Tool**: Maven Wrapper (`.\mvnw.cmd` on Windows, `./mvnw` on Linux/macOS)
 
-### 2. PostgreSQL Configuration
-Create a database in PostgreSQL:
-```sql
-CREATE DATABASE memora_db;
-```
-
-Configure your credentials using environment variables:
-| Variable | Description | Default Value |
-| :--- | :--- | :--- |
-| `DB_URL` | PostgreSQL JDBC connection URL | `jdbc:postgresql://localhost:5432/memora_db` |
-| `DB_USERNAME` | PostgreSQL database user | `postgres` |
-| `DB_PASSWORD` | PostgreSQL user password | `postgres` |
-| `SERVER_PORT` | Application HTTP port | `8080` |
-| `JPA_DDL_AUTO` | Hibernate schema management | `update` |
-| `SHOW_SQL` | Print formatted SQL statements | `true` |
-
-Alternatively, export them in your terminal before launching:
+### 2. Build & Run Application
 ```powershell
-# Windows PowerShell
-$env:DB_URL="jdbc:postgresql://localhost:5432/memora_db"
-$env:DB_USERNAME="postgres"
-$env:DB_PASSWORD="your_password"
-```
-
-### 3. Build & Run Application
-```bash
-# Clean and compile
+# Compile and package
 .\mvnw.cmd clean package
 
 # Run Spring Boot backend
 .\mvnw.cmd spring-boot:run
 ```
 
-### 4. Running Automated Tests
-```bash
-# Run unit & integration test suite (uses self-contained H2 in-memory DB)
-.\mvnw.cmd test
+### 3. Running Automated Tests
+```powershell
+# Run the complete test suite (65 tests across all modules)
+.\mvnw.cmd clean test
 ```
 
-### 5. Health Check Verification
-Once the backend is running, verify the health status:
+### 4. Health Check Verification
 ```bash
 curl -X GET http://localhost:8080/api/v1/health
-```
-Response:
-```json
-{
-  "success": true,
-  "message": "Memora backend is running normally",
-  "data": {
-    "status": "UP",
-    "service": "Memora Backend Platform",
-    "version": "1.0.0",
-    "timestamp": "2026-08-31T01:22:00Z"
-  },
-  "timestamp": "2026-08-31T01:22:00Z"
-}
 ```

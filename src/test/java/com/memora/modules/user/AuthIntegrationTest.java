@@ -37,6 +37,9 @@ class AuthIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private com.memora.modules.vocabulary.repository.UserWordProgressRepository userWordProgressRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -44,6 +47,7 @@ class AuthIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        userWordProgressRepository.deleteAll();
         userRepository.deleteAll();
     }
 
