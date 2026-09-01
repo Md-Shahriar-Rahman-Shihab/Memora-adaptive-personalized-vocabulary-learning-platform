@@ -1,0 +1,283 @@
+package com.memora.modules.quiz.service;
+
+import com.memora.common.exception.ResourceNotFoundException;
+import com.memora.modules.memory.domain.MemoryAlgorithmType;
+import com.memora.modules.memory.dto.WordReviewRequest;
+import com.memora.modules.memory.dto.WordReviewResponse;
+import com.memora.modules.memory.service.MemoryService;
+import com.memora.modules.quiz.domain.QuestionType;
+import com.memora.modules.quiz.dto.*;
+import com.memora.modules.quiz.entity.*;
+import com.memora.modules.quiz.factory.QuestionEvaluatorFactory;
+import com.memora.modules.quiz.factory.QuestionFactory;
+import com.memora.modules.quiz.repository.QuestionAttemptRepository;
+import com.memora.modules.quiz.repository.QuestionRepository;
+import com.memora.modules.quiz.repository.QuizAttemptRepository;
+import com.memora.modules.quiz.repository.QuizRepository;
+import com.memora.modules.quiz.strategy.QuestionEvaluatorStrategy;
+import com.memora.modules.user.entity.User;
+import com.memora.modules.user.repository.UserRepository;
+import com.memora.modules.vocabulary.domain.DifficultyLevel;
+import com.memora.modules.vocabulary.entity.VocabularyWord;
+import com.memora.modules.vocabulary.repository.VocabularyWordRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Service implementation orchestrating the complete Quiz workflow.
+ * Encapsulates object creation via {@link QuestionFactory}, evaluation via {@link QuestionEvaluatorFactory},
+ * and memory retention synchronization via {@link MemoryService}.
+ */
+@Service
+@Transactional(readOnly = true)
+public class QuizServiceImpl implements QuizService {
+
+    private final QuizRepository quizRepository;
+    private final QuestionRepository questionRepository;
+    private final QuizAttemptRepository quizAttemptRepository;
+    private final QuestionAttemptRepository questionAttemptRepository;
+    private final UserRepository userRepository;
+    private final VocabularyWordRepository vocabularyWordRepository;
+    private final QuestionFactory questionFactory;
+    private final QuestionEvaluatorFactory evaluatorFactory;
+    private final MemoryService memoryService;
+
+    public QuizServiceImpl(QuizRepository quizRepository,
+                           QuestionRepository questionRepository,
+                           QuizAttemptRepository quizAttemptRepository,
+                           QuestionAttemptRepository questionAttemptRepository,
+                           UserRepository userRepository,
+                           VocabularyWordRepository vocabularyWordRepository,
+                           QuestionFactory questionFactory,
+                           QuestionEvaluatorFactory evaluatorFactory,
+                           MemoryService memoryService) {
+        this.quizRepository = quizRepository;
+        this.questionRepository = questionRepository;
+        this.quizAttemptRepository = quizAttemptRepository;
+        this.questionAttemptRepository = questionAttemptRepository;
+        this.userRepository = userRepository;
+        this.vocabularyWordRepository = vocabularyWordRepository;
+        this.questionFactory = questionFactory;
+        this.evaluatorFactory = evaluatorFactory;
+        this.memoryService = memoryService;
+    }
+
+    @Override
+    @Transactional
+    public QuizResponse generateQuiz(QuizGenerationRequest request) {
+        DifficultyLevel level = (request != null && request.getDifficultyLevel() != null)
+                ? request.getDifficultyLevel() : DifficultyLevel.A1;
+        int count = (request != null && request.getQuestionCount() != null)
+                ? request.getQuestionCount() : 5;
+
+        List<QuestionType> allowedTypes = (request != null && request.getQuestionTypes() != null && !request.getQuestionTypes().isEmpty())
+                ? request.getQuestionTypes() : List.of(QuestionType.values());
+
+        List<VocabularyWord> words = vocabularyWordRepository.findByDifficultyLevel(level);
+        if (words.isEmpty()) {
+            words = vocabularyWordRepository.findAll();
+        }
+        if (words.isEmpty()) {
+            throw new ResourceNotFoundException("No vocabulary words available to generate a quiz.");
+        }
+
+        List<VocabularyWord> candidateWords = new ArrayList<>(words);
+        Collections.shuffle(candidateWords);
+        int selectedCount = Math.min(count, candidateWords.size());
+        List<VocabularyWord> selectedWords = candidateWords.subList(0, selectedCount);
+
+        String title = String.format("%s Vocabulary Practice Quiz", level.name());
+        Quiz quiz = new Quiz(title, level, selectedCount);
+
+        for (int i = 0; i < selectedWords.size(); i++) {
+            VocabularyWord word = selectedWords.get(i);
+            QuestionType type = allowedTypes.get(i % allowedTypes.size());
+            Question question = questionFactory.createQuestion(type, word, candidateWords);
+            quiz.addQuestion(question);
+        }
+
+        Quiz savedQuiz = quizRepository.save(quiz);
+        return mapToQuizResponse(savedQuiz);
+    }
+
+    @Override
+    @Transactional
+    public QuizResponse startQuiz(String userEmail, Long quizId) {
+        User user = findUserByEmail(userEmail);
+        Quiz quiz = findQuizById(quizId);
+
+        QuizAttempt attempt = quizAttemptRepository.findActiveAttempt(quizId, user.getId())
+                .orElseGet(() -> {
+                    QuizAttempt newAttempt = new QuizAttempt(user, quiz, quiz.getQuestions().size());
+                    return quizAttemptRepository.save(newAttempt);
+                });
+
+        return mapToQuizResponse(quiz);
+    }
+
+    @Override
+    public QuizResponse getQuiz(Long quizId) {
+        Quiz quiz = findQuizById(quizId);
+        return mapToQuizResponse(quiz);
+    }
+
+    @Override
+    @Transactional
+    public AnswerResponse submitAnswer(String userEmail, Long quizId, Long questionId, AnswerSubmissionRequest request) {
+        User user = findUserByEmail(userEmail);
+        Quiz quiz = findQuizById(quizId);
+
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found with ID: " + questionId));
+
+        if (question.getQuiz() == null || !question.getQuiz().getId().equals(quizId)) {
+            throw new IllegalArgumentException("Question ID " + questionId + " does not belong to quiz ID " + quizId);
+        }
+
+        QuizAttempt quizAttempt = quizAttemptRepository.findActiveAttempt(quizId, user.getId())
+                .orElseGet(() -> {
+                    QuizAttempt newAttempt = new QuizAttempt(user, quiz, quiz.getQuestions().size());
+                    return quizAttemptRepository.save(newAttempt);
+                });
+
+        QuestionEvaluatorStrategy evaluator = evaluatorFactory.getEvaluator(question.getQuestionType());
+        EvaluationResult evaluationResult = evaluator.evaluate(question, request.getAnswer());
+
+        QuestionAttempt questionAttempt = new QuestionAttempt(
+                quizAttempt,
+                question,
+                request.getAnswer(),
+                evaluationResult.isCorrect(),
+                evaluationResult.getScore(),
+                request.getResponseTimeMs()
+        );
+        questionAttemptRepository.save(questionAttempt);
+        quizAttempt.addQuestionAttempt(questionAttempt);
+        quizAttemptRepository.save(quizAttempt);
+
+        long safeResponseTime = Math.max(1L, request.getResponseTimeMs());
+        WordReviewRequest reviewRequest = new WordReviewRequest(
+                question.getVocabularyWord().getId(),
+                evaluationResult.isCorrect(),
+                safeResponseTime,
+                MemoryAlgorithmType.SM2
+        );
+        WordReviewResponse reviewResponse = memoryService.recordReview(userEmail, reviewRequest);
+
+        return new AnswerResponse(
+                evaluationResult.isCorrect(),
+                evaluationResult.getScore(),
+                evaluationResult.getFeedback(),
+                reviewResponse.getMasteryScore(),
+                reviewResponse.getForgettingRisk(),
+                reviewResponse.getNextReviewAt()
+        );
+    }
+
+    @Override
+    @Transactional
+    public QuizResultResponse completeQuiz(String userEmail, Long quizId) {
+        User user = findUserByEmail(userEmail);
+        Quiz quiz = findQuizById(quizId);
+
+        QuizAttempt attempt = quizAttemptRepository.findActiveAttempt(quizId, user.getId())
+                .orElseGet(() -> {
+                    List<QuizAttempt> attempts = quizAttemptRepository.findLatestAttemptsForQuiz(quizId, user.getId());
+                    if (attempts.isEmpty()) {
+                        throw new ResourceNotFoundException("No quiz attempt found for quiz ID: " + quizId);
+                    }
+                    return attempts.get(0);
+                });
+
+        if (attempt.getCompletedAt() == null) {
+            attempt.setCompletedAt(Instant.now());
+            quizAttemptRepository.save(attempt);
+        }
+
+        double percentage = attempt.getTotalQuestions() > 0
+                ? ((double) attempt.getCorrectAnswers() / attempt.getTotalQuestions()) * 100.0
+                : 0.0;
+
+        return new QuizResultResponse(
+                quizId,
+                attempt.getTotalQuestions(),
+                attempt.getCorrectAnswers(),
+                attempt.getTotalScore(),
+                Math.round(percentage * 100.0) / 100.0
+        );
+    }
+
+    @Override
+    public QuizResultResponse getQuizResult(String userEmail, Long quizId) {
+        User user = findUserByEmail(userEmail);
+        List<QuizAttempt> attempts = quizAttemptRepository.findLatestAttemptsForQuiz(quizId, user.getId());
+        if (attempts.isEmpty()) {
+            throw new ResourceNotFoundException("No quiz attempts found for quiz ID: " + quizId);
+        }
+
+        QuizAttempt attempt = attempts.get(0);
+        double percentage = attempt.getTotalQuestions() > 0
+                ? ((double) attempt.getCorrectAnswers() / attempt.getTotalQuestions()) * 100.0
+                : 0.0;
+
+        return new QuizResultResponse(
+                quizId,
+                attempt.getTotalQuestions(),
+                attempt.getCorrectAnswers(),
+                attempt.getTotalScore(),
+                Math.round(percentage * 100.0) / 100.0
+        );
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    }
+
+    private Quiz findQuizById(Long id) {
+        return quizRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found with ID: " + id));
+    }
+
+    private QuizResponse mapToQuizResponse(Quiz quiz) {
+        List<QuestionResponse> questionResponses = new ArrayList<>();
+        if (quiz.getQuestions() != null) {
+            for (Question q : quiz.getQuestions()) {
+                questionResponses.add(mapToQuestionResponse(q));
+            }
+        }
+        return new QuizResponse(
+                quiz.getId(),
+                quiz.getTitle(),
+                quiz.getDifficultyLevel(),
+                quiz.getQuestionCount(),
+                questionResponses
+        );
+    }
+
+    private QuestionResponse mapToQuestionResponse(Question question) {
+        String sentence = null;
+        List<String> options = null;
+
+        if (question instanceof MultipleChoiceQuestion mcq) {
+            options = mcq.getOptions();
+        } else if (question instanceof FillInTheBlankQuestion fib) {
+            sentence = fib.getSentence();
+        }
+
+        return new QuestionResponse(
+                question.getId(),
+                question.getQuestionType(),
+                question.getVocabularyWord() != null ? question.getVocabularyWord().getWord() : null,
+                question.getQuestionText(),
+                sentence,
+                options,
+                question.getPoints()
+        );
+    }
+}

@@ -12,7 +12,7 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 2** | **Security & Identity Management** | ✅ Completed | Stateless JWT authentication, BCrypt password hashing, Spring Security filter chain, `/api/v1/auth/*`, `/api/v1/users/me`. |
 | **Phase 3** | **Vocabulary & Content Catalog** | ✅ Completed | Curated CEFR vocabulary dataset, data seeder, category filtering, `UserWordProgress` entity & progress tracking. |
 | **Phase 4** | **Adaptive Memory SRS Engine** | ✅ Completed | **Strategy Pattern** (`SM2MemoryStrategy`, `LeitnerMemoryStrategy`), **Factory Pattern** (`MemoryStrategyFactory`), incremental latency tracking, mastery scoring, forgetting risk evaluation, `/api/v1/memory/*`. |
-| **Phase 5** | **Quiz & Evaluation Engine** | ⏳ Planned | Polymorphic question models, evaluators, session workflows. |
+| **Phase 5** | **Quiz & Evaluation Engine** | ✅ Completed | **Polymorphic Question Models** (`MultipleChoiceQuestion`, `TranslationQuestion`, `FillInTheBlankQuestion`), **Factory Pattern** (`QuestionFactory`), **Strategy Pattern** (`QuestionEvaluatorStrategy`, `QuestionEvaluatorFactory`), attempt history, Memory Engine integration, `/api/v1/quizzes/*`. |
 | **Phase 6** | **Placement Test & Learning Paths** | ⏳ Planned | Diagnostic assessment and dynamic learning roadmaps. |
 | **Phase 7** | **Gamification & Event Bus** | ⏳ Planned | XP, streaks, badges, leaderboards, Spring event decoupling. |
 | **Phase 8** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
@@ -64,17 +64,40 @@ com.memora/
     │   ├── service/                # VocabularyService, UserWordProgressService
     │   └── config/                 # VocabularyDataSeeder (Initial curated dataset across CEFR levels A1-B2)
     │
-    └── memory/                     # Spaced Repetition & Retention Engine (Phase 4)
-        ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryInput, MemoryCalculationResult
-        ├── dto/                    # WordReviewRequest, WordReviewResponse, MemoryWordResponse
-        ├── mapper/                 # MemoryMapper
-        ├── service/                # MemoryService, MemoryServiceImpl
-        ├── strategy/               # Strategy Pattern & Factory Pattern
-        │   ├── MemoryAlgorithmStrategy.java   # Base strategy interface
-        │   ├── SM2MemoryStrategy.java         # SuperMemo SM-2 algorithm
-        │   ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system
-        │   └── MemoryStrategyFactory.java     # Strategy resolution factory
-        └── controller/             # MemoryController (/api/v1/memory/*)
+    ├── memory/                     # Spaced Repetition & Retention Engine (Phase 4)
+    │   ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryInput, MemoryCalculationResult
+    │   ├── dto/                    # WordReviewRequest, WordReviewResponse, MemoryWordResponse
+    │   ├── mapper/                 # MemoryMapper
+    │   ├── service/                # MemoryService, MemoryServiceImpl
+    │   ├── strategy/               # Strategy Pattern & Factory Pattern
+    │   │   ├── MemoryAlgorithmStrategy.java   # Base strategy interface
+    │   │   ├── SM2MemoryStrategy.java         # SuperMemo SM-2 algorithm
+    │   │   ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system
+    │   │   └── MemoryStrategyFactory.java     # Strategy resolution factory
+    │   └── controller/             # MemoryController (/api/v1/memory/*)
+    │
+    └── quiz/                       # Quiz & Question Engine (Phase 5)
+        ├── domain/                 # QuestionType (MULTIPLE_CHOICE, TRANSLATION, FILL_IN_THE_BLANK)
+        ├── dto/                    # QuizGenerationRequest, QuizResponse, QuestionResponse, AnswerSubmissionRequest, AnswerResponse, QuizResultResponse, EvaluationResult
+        ├── entity/                 # Polymorphic Question entities & Historical Attempts
+        │   ├── Question.java (abstract base entity)
+        │   ├── MultipleChoiceQuestion.java
+        │   ├── TranslationQuestion.java
+        │   ├── FillInTheBlankQuestion.java
+        │   ├── Quiz.java
+        │   ├── QuizAttempt.java
+        │   └── QuestionAttempt.java
+        ├── factory/                # Factory Pattern implementations
+        │   ├── QuestionFactory.java           # Instantiates polymorphic Question subtypes
+        │   └── QuestionEvaluatorFactory.java  # Resolves QuestionEvaluatorStrategy by QuestionType
+        ├── repository/             # QuizRepository, QuestionRepository, QuizAttemptRepository, QuestionAttemptRepository
+        ├── service/                # QuizService, QuizServiceImpl (orchestration & memory integration)
+        ├── strategy/               # Strategy Pattern for polymorphic answer evaluation
+        │   ├── QuestionEvaluatorStrategy.java # Evaluator contract
+        │   ├── MultipleChoiceEvaluator.java
+        │   ├── TranslationEvaluator.java
+        │   └── FillInTheBlankEvaluator.java
+        └── controller/             # QuizController (/api/v1/quizzes/*)
 ```
 
 ---
@@ -86,6 +109,16 @@ erDiagram
     User ||--o{ UserWordProgress : "tracks retention"
     VocabularyWord ||--o{ UserWordProgress : "referenced in"
     
+    User ||--o{ QuizAttempt : "attempts"
+    Quiz ||--o{ QuizAttempt : "attempted in"
+    QuizAttempt ||--o{ QuestionAttempt : "contains"
+    Quiz ||--o{ Question : "consists of"
+    VocabularyWord ||--o{ Question : "evaluates"
+    
+    Question ||--|{ MultipleChoiceQuestion : "is subtype"
+    Question ||--|{ TranslationQuestion : "is subtype"
+    Question ||--|{ FillInTheBlankQuestion : "is subtype"
+
     User {
         bigint id PK
         varchar name
@@ -133,27 +166,99 @@ erDiagram
         timestamp updated_at
         bigint version
     }
+
+    Quiz {
+        bigint id PK
+        varchar title
+        varchar difficulty_level
+        int question_count
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    Question {
+        bigint id PK
+        bigint quiz_id FK
+        bigint vocabulary_word_id FK
+        varchar question_type
+        int points
+        text question_text
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    MultipleChoiceQuestion {
+        bigint id PK
+        varchar correct_option
+    }
+
+    TranslationQuestion {
+        bigint id PK
+        varchar expected_answer
+    }
+
+    FillInTheBlankQuestion {
+        bigint id PK
+        text sentence
+        varchar expected_answer
+    }
+
+    QuizAttempt {
+        bigint id PK
+        bigint user_id FK
+        bigint quiz_id FK
+        int total_score
+        int correct_answers
+        int total_questions
+        timestamp started_at
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    QuestionAttempt {
+        bigint id PK
+        bigint quiz_attempt_id FK
+        bigint question_id FK
+        text user_answer
+        boolean is_correct
+        int score
+        bigint response_time_ms
+        timestamp answered_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
 ```
 
 ---
 
 ## 🧬 OOP Principles & Design Patterns Implemented
 
-### 1. Strategy Pattern & Polymorphism (Memory Engine)
-* **`MemoryAlgorithmStrategy`**: Defines the abstraction for calculating spaced repetition schedules and retention decay.
-* **`SM2MemoryStrategy`**: Implements SuperMemo SM-2 algorithm, adjusting intervals based on consecutive correct streaks, accuracy, and response speed modifiers.
-* **`LeitnerMemoryStrategy`**: Implements a 5-box Leitner system with box promotions/demotions and exponential review schedules.
-* **Decoupled Value Objects**: `MemoryInput` and `MemoryCalculationResult` completely isolate mathematical calculations from JPA entity details.
+### 1. Polymorphism & Abstraction (Question Hierarchy)
+* **`Question` Abstract Base Entity**: Unifies common question state (`vocabularyWord`, `points`, `questionType`, `questionText`, `quiz`) and prevents incomplete direct instantiation.
+* **Concrete Subtypes**:
+  * `MultipleChoiceQuestion`: Encapsulates options list (`@ElementCollection`) and `correctOption`.
+  * `TranslationQuestion`: Encapsulates `expectedAnswer`.
+  * `FillInTheBlankQuestion`: Encapsulates sentence structure with blank marker (`___`) and `expectedAnswer`.
 
-### 2. Factory Pattern & Dependency Inversion
-* **`MemoryStrategyFactory`**: Automatically aggregates all `MemoryAlgorithmStrategy` Spring beans into an unmodifiable map indexed by `MemoryAlgorithmType`.
-* **Zero `instanceof` Checks**: `MemoryServiceImpl` delegates purely through the strategy abstraction without conditional branching.
+### 2. Strategy Pattern (Polymorphic Question Evaluation)
+* **`QuestionEvaluatorStrategy`**: Interface defining `evaluate(Question, String)` returning `EvaluationResult`.
+* **Concrete Evaluators**: `MultipleChoiceEvaluator`, `TranslationEvaluator`, `FillInTheBlankEvaluator` implement type-specific validation rules, case-insensitivity, whitespace trimming, and feedback explanation.
+* **`QuestionEvaluatorFactory`**: Automatically discovers and maps evaluator strategies by `QuestionType`, eliminating conditional `if-else`/`switch` branching in `QuizService`.
 
-### 3. Encapsulation & Single Responsibility
-* **Controller**: Handles HTTP request parsing, payload validation, and responses.
-* **Service**: Orchestrates authentication context, entity state transitions, incremental metrics, and persistence.
-* **Strategy**: Encapsulates spaced repetition mathematics and forgetting curve modeling.
-* **Repository**: Handles database interactions with indexed queries (`user_id + next_review_at`, `user_id + forgetting_risk`).
+### 3. Factory Pattern (Question Creation)
+* **`QuestionFactory`**: Encapsulates the instantiation of polymorphic `Question` subtypes, generating distractor pool choices for MCQs and sentence blanks for fill-in-the-blank questions.
+
+### 4. Spaced Repetition Strategy & Memory Integration
+* **`MemoryAlgorithmStrategy`** & **`MemoryStrategyFactory`**: Pluggable SM-2 (`SM2MemoryStrategy`) and Leitner (`LeitnerMemoryStrategy`) algorithms.
+* **Quiz → Memory Flow**: Submitting each quiz answer automatically triggers `MemoryService.recordReview(...)` (defaulting to SM-2), instantly updating `UserWordProgress` (mastery score, forgetting risk, next review date) without duplicating memory logic.
+
+### 5. Encapsulation & Historical Persistence
+* Historical learner attempts are permanently preserved in `QuizAttempt` and `QuestionAttempt` (recording latency `responseTimeMs`, points, correctness, and timestamps) without overwriting past performance.
 
 ---
 
@@ -186,38 +291,70 @@ erDiagram
 * `GET  /api/v1/memory/due` — Retrieve vocabulary words due for spaced repetition review (`nextReviewAt <= now`)
 * `GET  /api/v1/memory/weak` — Retrieve learner's weakest words ranked by forgetting risk and mastery score
 
+### 6. Quiz & Question Engine (`/api/v1/quizzes`)
+* `POST /api/v1/quizzes/generate` — Deterministically generate a new quiz from vocabulary pool
+* `POST /api/v1/quizzes/{quizId}/start` — Start or resume a quiz attempt session
+* `POST /api/v1/quizzes/{quizId}/questions/{questionId}/answer` — Submit answer, evaluate, record latency, update memory retention
+* `POST /api/v1/quizzes/{quizId}/complete` — Complete quiz attempt and calculate total score/percentage
+* `GET  /api/v1/quizzes/{quizId}` — Retrieve quiz details and questions (omits correct answers)
+* `GET  /api/v1/quizzes/{quizId}/result` — Retrieve latest attempt score and performance summary
+
 ---
 
-## 📝 Example Memory Review API Usage
+## 📝 Example Quiz Workflow API Usage
 
-### Request: `POST /api/v1/memory/review`
+### 1. Generate Quiz: `POST /api/v1/quizzes/generate`
 **Headers**: `Authorization: Bearer <JWT_TOKEN>`  
 **Body**:
 ```json
 {
-  "vocabularyWordId": 1,
-  "correct": true,
-  "responseTimeMs": 1800,
-  "algorithm": "SM2"
+  "difficultyLevel": "A1",
+  "questionCount": 3
 }
 ```
 
-### Response:
+### 2. Submit Answer: `POST /api/v1/quizzes/1/questions/5/answer`
+**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
+**Body**:
+```json
+{
+  "questionId": 5,
+  "answer": "feeling or showing pleasure or contentment",
+  "responseTimeMs": 1450
+}
+```
+
+**Response**:
 ```json
 {
   "success": true,
-  "message": "Review recorded and memory schedule updated successfully",
+  "message": "Answer evaluated and progress updated",
   "data": {
-    "wordId": 1,
-    "word": "serendipity",
     "correct": true,
-    "masteryScore": 76.5,
+    "score": 10,
+    "feedback": "Correct! Well done.",
+    "masteryScore": 65.0,
     "forgettingRisk": "LOW",
-    "nextReviewAt": "2026-09-03T12:30:00Z",
-    "reviewIntervalDays": 3,
-    "algorithm": "SM2"
+    "nextReviewAt": "2026-09-02T12:00:00Z"
   },
-  "timestamp": "2026-08-31T12:30:00Z"
+  "timestamp": "2026-09-01T12:00:00Z"
+}
+```
+
+### 3. Complete Quiz: `POST /api/v1/quizzes/1/complete`
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Quiz completed successfully",
+  "data": {
+    "quizId": 1,
+    "totalQuestions": 3,
+    "correctAnswers": 3,
+    "totalScore": 30,
+    "percentage": 100.0
+  },
+  "timestamp": "2026-09-01T12:00:00Z"
 }
 ```
 
@@ -241,7 +378,7 @@ erDiagram
 
 ### 3. Running Automated Tests
 ```powershell
-# Run the complete test suite (65 tests across all modules)
+# Run the complete test suite (82 tests across Phase 1–5 modules)
 .\mvnw.cmd clean test
 ```
 
