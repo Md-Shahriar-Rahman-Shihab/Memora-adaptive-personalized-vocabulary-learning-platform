@@ -170,10 +170,44 @@ public class VocabularyDataSeeder implements CommandLineRunner {
                 new VocabularyWord("versatile", "able to adapt or be adapted to many different functions or activities",
                         "Capable of turning with ease from one task or subject to another.", "/ˈvɜː.sə.taɪl/",
                         "Java is a versatile programming language used across cloud and enterprise platforms.",
-                        DifficultyLevel.B2, WordCategory.TECHNOLOGY)
+                        DifficultyLevel.B2, WordCategory.TECHNOLOGY),
+
+                // C1 Level (Effective Operational Proficiency / Advanced)
+                new VocabularyWord("ubiquitous", "present, appearing, or found everywhere",
+                        "Existing or being everywhere at the same time; constantly encountered.", "/juːˈbɪk.wɪ.təs/",
+                        "Smartphones have become ubiquitous in contemporary daily life.",
+                        DifficultyLevel.C1, WordCategory.TECHNOLOGY),
+                new VocabularyWord("meticulous", "showing great attention to detail; very careful and precise",
+                        "Taking or showing extreme care about minute details; precise and thorough.", "/məˈtɪk.jə.ləs/",
+                        "The laboratory technician performed a meticulous inspection of the specimen.",
+                        DifficultyLevel.C1, WordCategory.ACADEMIC),
+                new VocabularyWord("ephemeral", "lasting for a very short time; transitory",
+                        "Lasting a very short time; brief and fleeting.", "/ɪˈfem.ər.əl/",
+                        "The beauty of the cherry blossoms is poetic yet ephemeral.",
+                        DifficultyLevel.C1, WordCategory.GENERAL),
+                new VocabularyWord("candid", "truthful and straightforward; frank",
+                        "Direct, honest, and straightforward without disguise.", "/ˈkæn.dɪd/",
+                        "The CEO shared a candid assessment of the company's financial quarterly challenges.",
+                        DifficultyLevel.C1, WordCategory.BUSINESS),
+                new VocabularyWord("scrutinize", "examine or inspect closely and thoroughly",
+                        "To examine in detail with careful or critical attention.", "/ˈskruː.tɪ.naɪz/",
+                        "The audit committee will thoroughly scrutinize the proposed acquisitions.",
+                        DifficultyLevel.C1, WordCategory.BUSINESS),
+                new VocabularyWord("paradigm", "a typical example or pattern of something; a model",
+                        "A distinct set of concepts or thought patterns in a scientific discipline.", "/ˈpær.ə.daɪm/",
+                        "Cloud architecture represents a fundamental paradigm shift in enterprise computing.",
+                        DifficultyLevel.C1, WordCategory.TECHNOLOGY),
+                new VocabularyWord("benevolent", "well meaning and kindly; charitable",
+                        "Characterized by or expressing goodwill or kindly feelings.", "/bəˈnev.əl.ənt/",
+                        "A benevolent donor provided scholarships for dozens of underprivileged scholars.",
+                        DifficultyLevel.C1, WordCategory.GENERAL),
+                new VocabularyWord("aesthetic", "concerned with beauty or the appreciation of beauty",
+                        "Relating to the philosophy of art, taste, and visual harmony.", "/esˈθet.ɪk/",
+                        "The minimalist architectural design prioritizes clean lines and modern aesthetic values.",
+                        DifficultyLevel.C1, WordCategory.ACADEMIC)
         );
 
         vocabularyWordRepository.saveAll(initialWords);
-        log.info("Successfully seeded {} vocabulary words across CEFR levels A1, A2, B1, B2.", initialWords.size());
+        log.info("Successfully seeded {} vocabulary words across CEFR levels A1, A2, B1, B2, C1.", initialWords.size());
     }
 }

@@ -13,10 +13,11 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 3** | **Vocabulary & Content Catalog** | ✅ Completed | Curated CEFR vocabulary dataset, data seeder, category filtering, `UserWordProgress` entity & progress tracking. |
 | **Phase 4** | **Adaptive Memory SRS Engine** | ✅ Completed | **Strategy Pattern** (`SM2MemoryStrategy`, `LeitnerMemoryStrategy`), **Factory Pattern** (`MemoryStrategyFactory`), incremental latency tracking, mastery scoring, forgetting risk evaluation, `/api/v1/memory/*`. |
 | **Phase 5** | **Quiz & Evaluation Engine** | ✅ Completed | **Polymorphic Question Models** (`MultipleChoiceQuestion`, `TranslationQuestion`, `FillInTheBlankQuestion`), **Factory Pattern** (`QuestionFactory`), **Strategy Pattern** (`QuestionEvaluatorStrategy`, `QuestionEvaluatorFactory`), attempt history, Memory Engine integration, `/api/v1/quizzes/*`. |
-| **Phase 6** | **Placement Test & Learning Paths** | ⏳ Planned | Diagnostic assessment and dynamic learning roadmaps. |
-| **Phase 7** | **Gamification & Event Bus** | ⏳ Planned | XP, streaks, badges, leaderboards, Spring event decoupling. |
-| **Phase 8** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
-| **Phase 9** | **React Frontend & UX** | ⏳ Planned | Modern responsive web application with dark mode & micro-animations. |
+| **Phase 6** | **Assessment & Placement Engine** | ✅ Completed | 20-question multi-tier CEFR diagnostic assessment (`A1`–`C1`), **Strategy Pattern** (`PlacementAlgorithmStrategy`, `DefaultPlacementStrategy`, `PlacementStrategyFactory`), explainable confidence score calculation (0–100), response latency tracking, diagnostic attempt history, memory isolation, `/api/v1/assessments/*`. |
+| **Phase 7** | **Adaptive Learning Path** | ⏳ Planned | Personalized learning roadmaps, weak-area remediation, and dynamic curriculum. |
+| **Phase 8** | **Gamification & Event Bus** | ⏳ Planned | XP, streaks, badges, leaderboards, Spring event decoupling. |
+| **Phase 9** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
+| **Phase 10** | **React Frontend & UX** | ⏳ Planned | Modern responsive web application with dark mode & micro-animations. |
 
 ---
 
@@ -76,28 +77,43 @@ com.memora/
     │   │   └── MemoryStrategyFactory.java     # Strategy resolution factory
     │   └── controller/             # MemoryController (/api/v1/memory/*)
     │
-    └── quiz/                       # Quiz & Question Engine (Phase 5)
-        ├── domain/                 # QuestionType (MULTIPLE_CHOICE, TRANSLATION, FILL_IN_THE_BLANK)
-        ├── dto/                    # QuizGenerationRequest, QuizResponse, QuestionResponse, AnswerSubmissionRequest, AnswerResponse, QuizResultResponse, EvaluationResult
-        ├── entity/                 # Polymorphic Question entities & Historical Attempts
-        │   ├── Question.java (abstract base entity)
-        │   ├── MultipleChoiceQuestion.java
-        │   ├── TranslationQuestion.java
-        │   ├── FillInTheBlankQuestion.java
-        │   ├── Quiz.java
-        │   ├── QuizAttempt.java
-        │   └── QuestionAttempt.java
-        ├── factory/                # Factory Pattern implementations
-        │   ├── QuestionFactory.java           # Instantiates polymorphic Question subtypes
-        │   └── QuestionEvaluatorFactory.java  # Resolves QuestionEvaluatorStrategy by QuestionType
-        ├── repository/             # QuizRepository, QuestionRepository, QuizAttemptRepository, QuestionAttemptRepository
-        ├── service/                # QuizService, QuizServiceImpl (orchestration & memory integration)
-        ├── strategy/               # Strategy Pattern for polymorphic answer evaluation
-        │   ├── QuestionEvaluatorStrategy.java # Evaluator contract
-        │   ├── MultipleChoiceEvaluator.java
-        │   ├── TranslationEvaluator.java
-        │   └── FillInTheBlankEvaluator.java
-        └── controller/             # QuizController (/api/v1/quizzes/*)
+    ├── quiz/                       # Quiz & Question Engine (Phase 5)
+    │   ├── domain/                 # QuestionType (MULTIPLE_CHOICE, TRANSLATION, FILL_IN_THE_BLANK)
+    │   ├── dto/                    # QuizGenerationRequest, QuizResponse, QuestionResponse, AnswerSubmissionRequest, AnswerResponse, QuizResultResponse, EvaluationResult
+    │   ├── entity/                 # Polymorphic Question entities & Historical Attempts
+    │   │   ├── Question.java (abstract base entity)
+    │   │   ├── MultipleChoiceQuestion.java
+    │   │   ├── TranslationQuestion.java
+    │   │   ├── FillInTheBlankQuestion.java
+    │   │   ├── Quiz.java
+    │   │   ├── QuizAttempt.java
+    │   │   └── QuestionAttempt.java
+    │   ├── factory/                # Factory Pattern implementations
+    │   │   ├── QuestionFactory.java           # Instantiates polymorphic Question subtypes
+    │   │   └── QuestionEvaluatorFactory.java  # Resolves QuestionEvaluatorStrategy by QuestionType
+    │   ├── repository/             # QuizRepository, QuestionRepository, QuizAttemptRepository, QuestionAttemptRepository
+    │   ├── service/                # QuizService, QuizServiceImpl (orchestration & memory integration)
+    │   ├── strategy/               # Strategy Pattern for polymorphic answer evaluation
+    │   │   ├── QuestionEvaluatorStrategy.java # Evaluator contract
+    │   │   ├── MultipleChoiceEvaluator.java
+    │   │   ├── TranslationEvaluator.java
+    │   │   └── FillInTheBlankEvaluator.java
+    │   └── controller/             # QuizController (/api/v1/quizzes/*)
+    │
+    └── assessment/                 # Assessment & Diagnostic Placement Engine (Phase 6)
+        ├── domain/                 # AssessmentStatus, AssessmentPerformance, PlacementResult
+        ├── dto/                    # AssessmentStartResponse, AssessmentDetailResponse, AssessmentQuestionResponse, AssessmentAnswerRequest, AssessmentAnswerResponse, PlacementResultResponse
+        ├── entity/                 # Diagnostic entities
+        │   ├── Assessment.java                # Assessment session & final level estimation
+        │   ├── AssessmentQuestion.java        # Question presentation order & CEFR level mapping
+        │   └── AssessmentAnswer.java          # Learner response, correctness, & response latency
+        ├── factory/                # PlacementStrategyFactory
+        ├── repository/             # AssessmentRepository, AssessmentQuestionRepository, AssessmentAnswerRepository
+        ├── service/                # AssessmentService, AssessmentServiceImpl, AssessmentQuestionGenerator
+        ├── strategy/               # Strategy Pattern for CEFR placement algorithms
+        │   ├── PlacementAlgorithmStrategy.java
+        │   └── DefaultPlacementStrategy.java  # Deterministic CEFR proficiency estimation & confidence score
+        └── controller/             # AssessmentController (/api/v1/assessments/*)
 ```
 
 ---
@@ -118,6 +134,12 @@ erDiagram
     Question ||--|{ MultipleChoiceQuestion : "is subtype"
     Question ||--|{ TranslationQuestion : "is subtype"
     Question ||--|{ FillInTheBlankQuestion : "is subtype"
+
+    User ||--o{ Assessment : "takes diagnostic"
+    Assessment ||--o{ AssessmentQuestion : "contains (20 Qs across A1-C1)"
+    Assessment ||--o{ AssessmentAnswer : "records answers"
+    Question ||--o{ AssessmentQuestion : "referenced in"
+    AssessmentQuestion ||--o{ AssessmentAnswer : "evaluated in"
 
     User {
         bigint id PK
@@ -232,6 +254,48 @@ erDiagram
         timestamp updated_at
         bigint version
     }
+
+    Assessment {
+        bigint id PK
+        bigint user_id FK
+        varchar status
+        timestamp started_at
+        timestamp completed_at
+        varchar estimated_level
+        double confidence_score
+        int total_questions
+        int correct_answers
+        int score
+        double accuracy
+        text level_performance_json
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    AssessmentQuestion {
+        bigint id PK
+        bigint assessment_id FK
+        bigint question_id FK
+        varchar difficulty_level
+        int order_index
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    AssessmentAnswer {
+        bigint id PK
+        bigint assessment_id FK
+        bigint assessment_question_id FK
+        text user_answer
+        boolean is_correct
+        bigint response_time_ms
+        timestamp answered_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
 ```
 
 ---
@@ -259,6 +323,13 @@ erDiagram
 
 ### 5. Encapsulation & Historical Persistence
 * Historical learner attempts are permanently preserved in `QuizAttempt` and `QuestionAttempt` (recording latency `responseTimeMs`, points, correctness, and timestamps) without overwriting past performance.
+* Similarly, `Assessment`, `AssessmentQuestion`, and `AssessmentAnswer` record full diagnostic histories, allowing learners to re-assess later while preserving historical placement milestones.
+
+### 6. Strategy Pattern & Diagnostic Placement Engine (Phase 6)
+* **`PlacementAlgorithmStrategy`**: Pluggable algorithm contract `calculate(List<AssessmentPerformance>)` producing `PlacementResult`.
+* **`DefaultPlacementStrategy`**: Rule-based deterministic estimation evaluating sequential CEFR mastery thresholds (`A1` → `A2` → `B1` → `B2` → `C1`) at a 75% accuracy threshold. Computes an explainable confidence score (0–100) based on sample completeness, response latency plausibility, boundary separation, and natural language decay consistency.
+* **`PlacementStrategyFactory`**: Dynamically resolves placement strategies without hardcoding score branching in the service layer.
+* **Separation of Concerns & Memory Isolation**: Diagnostic assessment questions isolate testing from spaced repetition retention tracking (`MemoryService` is NOT invoked during diagnostic assessments).
 
 ---
 
@@ -299,62 +370,86 @@ erDiagram
 * `GET  /api/v1/quizzes/{quizId}` — Retrieve quiz details and questions (omits correct answers)
 * `GET  /api/v1/quizzes/{quizId}/result` — Retrieve latest attempt score and performance summary
 
+### 7. Assessment & Placement Engine (`/api/v1/assessments`)
+* `POST /api/v1/assessments/start` — Start a new 20-question diagnostic assessment (4 questions each from A1, A2, B1, B2, C1)
+* `GET  /api/v1/assessments/{assessmentId}` — Retrieve assessment details, progress, and questions without answers
+* `POST /api/v1/assessments/{assessmentId}/questions/{questionId}/answer` — Submit answer and latency for a diagnostic question
+* `POST /api/v1/assessments/{assessmentId}/complete` — Complete assessment, execute placement algorithm, update learner CEFR level
+* `GET  /api/v1/assessments/{assessmentId}/result` — Retrieve placement result, CEFR level estimate, and confidence score
+* `GET  /api/v1/assessments/history` — Retrieve all completed historical placement assessments for the learner
+
 ---
 
-## 📝 Example Quiz Workflow API Usage
+## 📝 Example Assessment Workflow API Usage
 
-### 1. Generate Quiz: `POST /api/v1/quizzes/generate`
+### 1. Start Assessment: `POST /api/v1/assessments/start`
 **Headers**: `Authorization: Bearer <JWT_TOKEN>`  
-**Body**:
-```json
-{
-  "difficultyLevel": "A1",
-  "questionCount": 3
-}
-```
-
-### 2. Submit Answer: `POST /api/v1/quizzes/1/questions/5/answer`
-**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
-**Body**:
-```json
-{
-  "questionId": 5,
-  "answer": "feeling or showing pleasure or contentment",
-  "responseTimeMs": 1450
-}
-```
-
 **Response**:
 ```json
 {
   "success": true,
-  "message": "Answer evaluated and progress updated",
+  "message": "Assessment started successfully",
+  "data": {
+    "assessmentId": 1,
+    "status": "IN_PROGRESS",
+    "totalQuestions": 20,
+    "questions": [
+      {
+        "questionId": 101,
+        "questionType": "MULTIPLE_CHOICE",
+        "questionText": "What is the meaning of 'ubiquitous'?",
+        "options": ["present everywhere", "rare", "slow", "fragile"],
+        "difficultyLevel": "C1"
+      }
+    ]
+  }
+}
+```
+
+### 2. Submit Question Answer: `POST /api/v1/assessments/1/questions/101/answer`
+**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
+**Body**:
+```json
+{
+  "answer": "present everywhere",
+  "responseTimeMs": 1850
+}
+```
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Answer evaluated successfully",
   "data": {
     "correct": true,
-    "score": 10,
     "feedback": "Correct! Well done.",
-    "masteryScore": 65.0,
-    "forgettingRisk": "LOW",
-    "nextReviewAt": "2026-09-02T12:00:00Z"
-  },
-  "timestamp": "2026-09-01T12:00:00Z"
+    "responseTimeMs": 1850
+  }
 }
 ```
 
-### 3. Complete Quiz: `POST /api/v1/quizzes/1/complete`
+### 3. Complete Assessment: `POST /api/v1/assessments/1/complete`
+**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
 **Response**:
 ```json
 {
   "success": true,
-  "message": "Quiz completed successfully",
+  "message": "Assessment completed successfully",
   "data": {
-    "quizId": 1,
-    "totalQuestions": 3,
-    "correctAnswers": 3,
-    "totalScore": 30,
-    "percentage": 100.0
-  },
-  "timestamp": "2026-09-01T12:00:00Z"
+    "assessmentId": 1,
+    "estimatedLevel": "B1",
+    "confidenceScore": 85.0,
+    "totalQuestions": 20,
+    "correctAnswers": 14,
+    "accuracy": 70.0,
+    "levelPerformance": {
+      "A1": 100.0,
+      "A2": 100.0,
+      "B1": 75.0,
+      "B2": 50.0,
+      "C1": 25.0
+    }
+  }
 }
 ```
 
@@ -378,7 +473,7 @@ erDiagram
 
 ### 3. Running Automated Tests
 ```powershell
-# Run the complete test suite (82 tests across Phase 1–5 modules)
+# Run the complete test suite (98 tests across Phase 1–6 modules)
 .\mvnw.cmd clean test
 ```
 
