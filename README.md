@@ -14,7 +14,7 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 4** | **Adaptive Memory SRS Engine** | ✅ Completed | **Strategy Pattern** (`SM2MemoryStrategy`, `LeitnerMemoryStrategy`), **Factory Pattern** (`MemoryStrategyFactory`), incremental latency tracking, mastery scoring, forgetting risk evaluation, `/api/v1/memory/*`. |
 | **Phase 5** | **Quiz & Evaluation Engine** | ✅ Completed | **Polymorphic Question Models** (`MultipleChoiceQuestion`, `TranslationQuestion`, `FillInTheBlankQuestion`), **Factory Pattern** (`QuestionFactory`), **Strategy Pattern** (`QuestionEvaluatorStrategy`, `QuestionEvaluatorFactory`), attempt history, Memory Engine integration, `/api/v1/quizzes/*`. |
 | **Phase 6** | **Assessment & Placement Engine** | ✅ Completed | 20-question multi-tier CEFR diagnostic assessment (`A1`–`C1`), **Strategy Pattern** (`PlacementAlgorithmStrategy`, `DefaultPlacementStrategy`, `PlacementStrategyFactory`), explainable confidence score calculation (0–100), response latency tracking, diagnostic attempt history, memory isolation, `/api/v1/assessments/*`. |
-| **Phase 7** | **Adaptive Learning Path** | ⏳ Planned | Personalized learning roadmaps, weak-area remediation, and dynamic curriculum. |
+| **Phase 7** | **Adaptive Learning Path Engine** | ✅ Completed | Personalized daily curriculum (max 10 items), **Strategy Pattern** (`LearningPathStrategy`, `AdaptiveLearningPathStrategy`), **Factory Pattern** (`LearningPathStrategyFactory`), dynamic review/new word balancing, CEFR stretch words, consolidating quizzes, progress tracking, dynamic regeneration, `/api/v1/learning-path/*`. |
 | **Phase 8** | **Gamification & Event Bus** | ⏳ Planned | XP, streaks, badges, leaderboards, Spring event decoupling. |
 | **Phase 9** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
 | **Phase 10** | **React Frontend & UX** | ⏳ Planned | Modern responsive web application with dark mode & micro-animations. |
@@ -62,18 +62,16 @@ com.memora/
     │   ├── dto/                    # VocabularyWordRequest, VocabularyWordResponse, UserWordProgressResponse
     │   ├── entity/                 # VocabularyWord, UserWordProgress
     │   ├── repository/             # VocabularyWordRepository, UserWordProgressRepository
-    │   ├── service/                # VocabularyService, UserWordProgressService
-    │   └── config/                 # VocabularyDataSeeder (Initial curated dataset across CEFR levels A1-B2)
+    │   └── service/                # VocabularyService, UserWordProgressService
     │
-    ├── memory/                     # Spaced Repetition & Retention Engine (Phase 4)
-    │   ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryInput, MemoryCalculationResult
+    ├── memory/                     # Adaptive Spaced Repetition Engine (Phase 4)
+    │   ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryCalculationResult
     │   ├── dto/                    # WordReviewRequest, WordReviewResponse, MemoryWordResponse
-    │   ├── mapper/                 # MemoryMapper
-    │   ├── service/                # MemoryService, MemoryServiceImpl
-    │   ├── strategy/               # Strategy Pattern & Factory Pattern
-    │   │   ├── MemoryAlgorithmStrategy.java   # Base strategy interface
-    │   │   ├── SM2MemoryStrategy.java         # SuperMemo SM-2 algorithm
-    │   │   ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system
+    │   ├── service/                # MemoryService, MemoryServiceImpl (orchestration layer)
+    │   ├── strategy/               # Strategy Pattern for SRS algorithms
+    │   │   ├── MemoryAlgorithmStrategy.java   # Strategy interface contract
+    │   │   ├── SM2MemoryStrategy.java         # SuperMemo-2 implementation (E-Factor & interval expansion)
+    │   │   ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system implementation
     │   │   └── MemoryStrategyFactory.java     # Strategy resolution factory
     │   └── controller/             # MemoryController (/api/v1/memory/*)
     │
@@ -100,20 +98,32 @@ com.memora/
     │   │   └── FillInTheBlankEvaluator.java
     │   └── controller/             # QuizController (/api/v1/quizzes/*)
     │
-    └── assessment/                 # Assessment & Diagnostic Placement Engine (Phase 6)
-        ├── domain/                 # AssessmentStatus, AssessmentPerformance, PlacementResult
-        ├── dto/                    # AssessmentStartResponse, AssessmentDetailResponse, AssessmentQuestionResponse, AssessmentAnswerRequest, AssessmentAnswerResponse, PlacementResultResponse
-        ├── entity/                 # Diagnostic entities
-        │   ├── Assessment.java                # Assessment session & final level estimation
-        │   ├── AssessmentQuestion.java        # Question presentation order & CEFR level mapping
-        │   └── AssessmentAnswer.java          # Learner response, correctness, & response latency
-        ├── factory/                # PlacementStrategyFactory
-        ├── repository/             # AssessmentRepository, AssessmentQuestionRepository, AssessmentAnswerRepository
-        ├── service/                # AssessmentService, AssessmentServiceImpl, AssessmentQuestionGenerator
-        ├── strategy/               # Strategy Pattern for CEFR placement algorithms
-        │   ├── PlacementAlgorithmStrategy.java
-        │   └── DefaultPlacementStrategy.java  # Deterministic CEFR proficiency estimation & confidence score
-        └── controller/             # AssessmentController (/api/v1/assessments/*)
+    ├── assessment/                 # Assessment & Diagnostic Placement Engine (Phase 6)
+    │   ├── domain/                 # AssessmentStatus, AssessmentPerformance, PlacementResult
+    │   ├── dto/                    # AssessmentStartResponse, AssessmentDetailResponse, AssessmentQuestionResponse, AssessmentAnswerRequest, AssessmentAnswerResponse, PlacementResultResponse
+    │   ├── entity/                 # Diagnostic entities
+    │   │   ├── Assessment.java                # Assessment session & final level estimation
+    │   │   ├── AssessmentQuestion.java        # Question presentation order & CEFR level mapping
+    │   │   └── AssessmentAnswer.java          # Learner response, correctness, & response latency
+    │   ├── factory/                # PlacementStrategyFactory
+    │   ├── repository/             # AssessmentRepository, AssessmentQuestionRepository, AssessmentAnswerRepository
+    │   ├── service/                # AssessmentService, AssessmentServiceImpl, AssessmentQuestionGenerator
+    │   ├── strategy/               # Strategy Pattern for CEFR placement algorithms
+    │   │   ├── PlacementAlgorithmStrategy.java
+    │   │   └── DefaultPlacementStrategy.java  # Deterministic CEFR proficiency estimation & confidence score
+    │   └── controller/             # AssessmentController (/api/v1/assessments/*)
+    │
+    └── learningpath/               # Adaptive Learning Path Engine (Phase 7)
+        ├── domain/                 # LearningPathStatus, LearningItemType, LearningItemStatus, LearningItemPriority, LearningPathStrategyType, VocabularyWordSummary, LearningPathItemCandidate, LearningPathContext, LearningPathResult
+        ├── dto/                    # LearningPathResponse, TodayLearningPathResponse, LearningPathItemResponse, LearningItemCompletionRequest, LearningItemCompletionResponse
+        ├── entity/                 # LearningPath, LearningPathItem
+        ├── factory/                # LearningPathStrategyFactory
+        ├── repository/             # LearningPathRepository, LearningPathItemRepository
+        ├── service/                # LearningPathService, LearningPathServiceImpl
+        ├── strategy/               # Strategy Pattern for curriculum generation
+        │   ├── LearningPathStrategy.java
+        │   └── AdaptiveLearningPathStrategy.java # Dynamic review/new word ratio balancing & stretch word logic
+        └── controller/             # LearningPathController (/api/v1/learning-path/*)
 ```
 
 ---
@@ -140,6 +150,11 @@ erDiagram
     Assessment ||--o{ AssessmentAnswer : "records answers"
     Question ||--o{ AssessmentQuestion : "referenced in"
     AssessmentQuestion ||--o{ AssessmentAnswer : "evaluated in"
+
+    User ||--o{ LearningPath : "enrolled in"
+    LearningPath ||--o{ LearningPathItem : "schedules (daily curriculum)"
+    VocabularyWord ||--o{ LearningPathItem : "studied in"
+    Quiz ||--o{ LearningPathItem : "consolidated in"
 
     User {
         bigint id PK
@@ -173,17 +188,18 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint vocabulary_word_id FK
+        double mastery_score
+        varchar forgetting_risk
         int total_attempts
         int correct_attempts
         int incorrect_attempts
-        double average_response_time
         int consecutive_correct
-        int consecutive_incorrect
-        double mastery_score
-        varchar forgetting_risk
+        double ease_factor
+        int review_interval_days
         int leitner_box
-        timestamp last_reviewed_at
         timestamp next_review_at
+        timestamp last_reviewed_at
+        double average_response_time
         timestamp created_at
         timestamp updated_at
         bigint version
@@ -193,7 +209,7 @@ erDiagram
         bigint id PK
         varchar title
         varchar difficulty_level
-        int question_count
+        int total_questions
         timestamp created_at
         timestamp updated_at
         bigint version
@@ -296,6 +312,36 @@ erDiagram
         timestamp updated_at
         bigint version
     }
+
+    LearningPath {
+        bigint id PK
+        bigint user_id FK
+        varchar status
+        varchar target_level
+        int current_day
+        int total_items
+        int completed_items
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    LearningPathItem {
+        bigint id PK
+        bigint learning_path_id FK
+        bigint vocabulary_word_id FK
+        bigint quiz_id FK
+        varchar item_type
+        varchar priority
+        varchar status
+        timestamp scheduled_at
+        timestamp completed_at
+        int order_index
+        text notes
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
 ```
 
 ---
@@ -330,6 +376,15 @@ erDiagram
 * **`DefaultPlacementStrategy`**: Rule-based deterministic estimation evaluating sequential CEFR mastery thresholds (`A1` → `A2` → `B1` → `B2` → `C1`) at a 75% accuracy threshold. Computes an explainable confidence score (0–100) based on sample completeness, response latency plausibility, boundary separation, and natural language decay consistency.
 * **`PlacementStrategyFactory`**: Dynamically resolves placement strategies without hardcoding score branching in the service layer.
 * **Separation of Concerns & Memory Isolation**: Diagnostic assessment questions isolate testing from spaced repetition retention tracking (`MemoryService` is NOT invoked during diagnostic assessments).
+
+### 7. Strategy & Factory Pattern in Adaptive Learning Path Engine (Phase 7)
+* **`LearningPathStrategy`**: Strategy interface defining `generatePath(LearningPathContext)`.
+* **`AdaptiveLearningPathStrategy`**: Adaptive curriculum generation balancing up to 10 daily items:
+  - Dynamically computes ratio between reviews, new vocabulary, and consolidating quizzes based on live `forgettingRisk`, `masteryScore`, and `dueReviews`.
+  - Introduces advanced "stretch" vocabulary from `targetLevel + 1` when learner demonstrates >= 90% mastery.
+  - Automatically appends a consolidating daily quiz task linked to `QuizService`.
+* **`LearningPathStrategyFactory`**: Resolves learning path strategies via Spring dependency injection without conditional branching or `instanceof` checks.
+* **Dynamic Regeneration**: Pending items can be regenerated on-demand (`POST /api/v1/learning-path/regenerate`) based on real-time memory metrics without deleting completed learning history.
 
 ---
 
@@ -378,77 +433,94 @@ erDiagram
 * `GET  /api/v1/assessments/{assessmentId}/result` — Retrieve placement result, CEFR level estimate, and confidence score
 * `GET  /api/v1/assessments/history` — Retrieve all completed historical placement assessments for the learner
 
+### 8. Adaptive Learning Path Engine (`/api/v1/learning-path`)
+* `POST /api/v1/learning-path/start` — Start or resume the active personalized learning path
+* `GET  /api/v1/learning-path/current` — Retrieve active learning path summary and item status
+* `GET  /api/v1/learning-path/today` — Retrieve today's prioritized learning tasks
+* `POST /api/v1/learning-path/items/{itemId}/start` — Mark a learning path item as in-progress
+* `POST /api/v1/learning-path/items/{itemId}/complete` — Mark an item as completed and trigger Memory Engine review if applicable
+* `POST /api/v1/learning-path/regenerate` — Dynamically regenerate pending items based on latest memory state
+* `GET  /api/v1/learning-path/history` — Retrieve historical learning path records for the learner
+
 ---
 
-## 📝 Example Assessment Workflow API Usage
+## 📝 Example Learning Path Workflow API Usage
 
-### 1. Start Assessment: `POST /api/v1/assessments/start`
+### 1. Start Learning Path: `POST /api/v1/learning-path/start`
 **Headers**: `Authorization: Bearer <JWT_TOKEN>`  
 **Response**:
 ```json
 {
   "success": true,
-  "message": "Assessment started successfully",
+  "message": "Learning path initiated successfully",
   "data": {
-    "assessmentId": 1,
-    "status": "IN_PROGRESS",
-    "totalQuestions": 20,
-    "questions": [
+    "id": 1,
+    "status": "ACTIVE",
+    "targetLevel": "B1",
+    "currentDay": 1,
+    "totalItems": 10,
+    "completedItems": 0,
+    "items": [
       {
-        "questionId": 101,
-        "questionType": "MULTIPLE_CHOICE",
-        "questionText": "What is the meaning of 'ubiquitous'?",
-        "options": ["present everywhere", "rare", "slow", "fragile"],
-        "difficultyLevel": "C1"
+        "id": 1,
+        "type": "REVIEW",
+        "wordId": 4,
+        "word": "meticulous",
+        "meaning": "showing great attention to detail",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "orderIndex": 1,
+        "notes": "Review due (HIGH risk, 45.0% mastery)"
+      },
+      {
+        "id": 2,
+        "type": "NEW_WORD",
+        "wordId": 12,
+        "word": "lucid",
+        "meaning": "expressed clearly; easy to understand",
+        "priority": "MEDIUM",
+        "status": "PENDING",
+        "orderIndex": 2,
+        "notes": "New vocabulary discovery (CEFR B1)"
+      },
+      {
+        "id": 10,
+        "type": "QUIZ",
+        "quizId": 3,
+        "priority": "HIGH",
+        "status": "PENDING",
+        "orderIndex": 10,
+        "notes": "Daily comprehensive retention & diagnostic quiz"
       }
     ]
   }
 }
 ```
 
-### 2. Submit Question Answer: `POST /api/v1/assessments/1/questions/101/answer`
+### 2. Complete a Review Item: `POST /api/v1/learning-path/items/1/complete`
 **Headers**: `Authorization: Bearer <JWT_TOKEN>`  
 **Body**:
 ```json
 {
-  "answer": "present everywhere",
-  "responseTimeMs": 1850
+  "correct": true,
+  "responseTimeMs": 1400,
+  "algorithm": "SM2"
 }
 ```
 **Response**:
 ```json
 {
   "success": true,
-  "message": "Answer evaluated successfully",
+  "message": "Item completed successfully",
   "data": {
-    "correct": true,
-    "feedback": "Correct! Well done.",
-    "responseTimeMs": 1850
-  }
-}
-```
-
-### 3. Complete Assessment: `POST /api/v1/assessments/1/complete`
-**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Assessment completed successfully",
-  "data": {
-    "assessmentId": 1,
-    "estimatedLevel": "B1",
-    "confidenceScore": 85.0,
-    "totalQuestions": 20,
-    "correctAnswers": 14,
-    "accuracy": 70.0,
-    "levelPerformance": {
-      "A1": 100.0,
-      "A2": 100.0,
-      "B1": 75.0,
-      "B2": 50.0,
-      "C1": 25.0
-    }
+    "itemId": 1,
+    "status": "COMPLETED",
+    "itemType": "REVIEW",
+    "completedAt": "2026-09-03T12:00:00Z",
+    "pathCompleted": false,
+    "completedItems": 1,
+    "totalItems": 10,
+    "message": "Learning item completed successfully"
   }
 }
 ```
@@ -473,7 +545,7 @@ erDiagram
 
 ### 3. Running Automated Tests
 ```powershell
-# Run the complete test suite (98 tests across Phase 1–6 modules)
+# Run the complete test suite (111 tests across Phase 1–7 modules)
 .\mvnw.cmd clean test
 ```
 
