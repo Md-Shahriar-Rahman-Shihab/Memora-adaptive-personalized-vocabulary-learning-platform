@@ -25,8 +25,12 @@ import com.memora.modules.user.domain.VocabularyLevel;
 import com.memora.modules.user.entity.User;
 import com.memora.modules.user.repository.UserRepository;
 import com.memora.modules.vocabulary.domain.DifficultyLevel;
+import com.memora.modules.gamification.domain.RewardActivityType;
+import com.memora.modules.gamification.domain.RewardContext;
+import com.memora.modules.gamification.service.GamificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,8 +40,8 @@ import java.util.*;
 
 /**
  * Core implementation of {@link AssessmentService}.
- * Coordinates diagnostic question generation, answer processing, and delegates placement calculation
- * to {@link PlacementAlgorithmStrategy}.
+ * Orchestrates multi-tier question generation, answer collection, and strategy-based CEFR placement.
+ * Completely isolates placement testing from memory SRS progression.
  */
 @Service
 @Transactional(readOnly = true)
@@ -53,6 +57,28 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final QuestionEvaluatorFactory evaluatorFactory;
     private final PlacementStrategyFactory placementStrategyFactory;
     private final ObjectMapper objectMapper;
+    private final GamificationService gamificationService;
+
+    @Autowired
+    public AssessmentServiceImpl(AssessmentRepository assessmentRepository,
+                                 AssessmentQuestionRepository assessmentQuestionRepository,
+                                 AssessmentAnswerRepository assessmentAnswerRepository,
+                                 UserRepository userRepository,
+                                 AssessmentQuestionGenerator questionGenerator,
+                                 QuestionEvaluatorFactory evaluatorFactory,
+                                 PlacementStrategyFactory placementStrategyFactory,
+                                 ObjectMapper objectMapper,
+                                 GamificationService gamificationService) {
+        this.assessmentRepository = assessmentRepository;
+        this.assessmentQuestionRepository = assessmentQuestionRepository;
+        this.assessmentAnswerRepository = assessmentAnswerRepository;
+        this.userRepository = userRepository;
+        this.questionGenerator = questionGenerator;
+        this.evaluatorFactory = evaluatorFactory;
+        this.placementStrategyFactory = placementStrategyFactory;
+        this.objectMapper = objectMapper;
+        this.gamificationService = gamificationService;
+    }
 
     public AssessmentServiceImpl(AssessmentRepository assessmentRepository,
                                  AssessmentQuestionRepository assessmentQuestionRepository,
@@ -62,14 +88,8 @@ public class AssessmentServiceImpl implements AssessmentService {
                                  QuestionEvaluatorFactory evaluatorFactory,
                                  PlacementStrategyFactory placementStrategyFactory,
                                  ObjectMapper objectMapper) {
-        this.assessmentRepository = assessmentRepository;
-        this.assessmentQuestionRepository = assessmentQuestionRepository;
-        this.assessmentAnswerRepository = assessmentAnswerRepository;
-        this.userRepository = userRepository;
-        this.questionGenerator = questionGenerator;
-        this.evaluatorFactory = evaluatorFactory;
-        this.placementStrategyFactory = placementStrategyFactory;
-        this.objectMapper = objectMapper;
+        this(assessmentRepository, assessmentQuestionRepository, assessmentAnswerRepository, userRepository,
+             questionGenerator, evaluatorFactory, placementStrategyFactory, objectMapper, null);
     }
 
     @Override
@@ -242,13 +262,20 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         assessmentRepository.save(assessment);
 
-        // Update user's starting proficiency level
         User user = assessment.getUser();
         try {
             user.setCurrentLevel(VocabularyLevel.valueOf(result.getEstimatedLevel().name()));
             userRepository.save(user);
         } catch (Exception e) {
             log.warn("Could not map DifficultyLevel {} to VocabularyLevel for user {}", result.getEstimatedLevel(), user.getEmail());
+        }
+
+        if (gamificationService != null) {
+            try {
+                gamificationService.recordActivity(user, RewardActivityType.ASSESSMENT, RewardContext.forAssessment(assessment.getId()));
+            } catch (Exception e) {
+                log.warn("Gamification tracking failed for assessment completion: {}", e.getMessage());
+            }
         }
 
         return new PlacementResultResponse(

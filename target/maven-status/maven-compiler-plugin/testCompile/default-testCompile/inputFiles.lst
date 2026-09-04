@@ -5,6 +5,12 @@ E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\assessment\AssessmentQuestionGeneratorTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\assessment\AssessmentServiceTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\assessment\DefaultPlacementStrategyTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\gamification\AchievementRuleEngineTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\gamification\GamificationIntegrationTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\gamification\GamificationServiceTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\gamification\RewardStrategyFactoryTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\gamification\RewardStrategyTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\gamification\StreakServiceTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\learningpath\AdaptiveLearningPathStrategyTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\learningpath\LearningPathControllerIntegrationTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\learningpath\LearningPathServiceTest.java

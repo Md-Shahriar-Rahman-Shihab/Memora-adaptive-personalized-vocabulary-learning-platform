@@ -20,6 +20,12 @@ import com.memora.modules.user.repository.UserRepository;
 import com.memora.modules.vocabulary.domain.DifficultyLevel;
 import com.memora.modules.vocabulary.entity.VocabularyWord;
 import com.memora.modules.vocabulary.repository.VocabularyWordRepository;
+import com.memora.modules.gamification.domain.RewardActivityType;
+import com.memora.modules.gamification.domain.RewardContext;
+import com.memora.modules.gamification.service.GamificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +43,8 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class QuizServiceImpl implements QuizService {
 
+    private static final Logger log = LoggerFactory.getLogger(QuizServiceImpl.class);
+
     private final QuizRepository quizRepository;
     private final QuestionRepository questionRepository;
     private final QuizAttemptRepository quizAttemptRepository;
@@ -46,6 +54,30 @@ public class QuizServiceImpl implements QuizService {
     private final QuestionFactory questionFactory;
     private final QuestionEvaluatorFactory evaluatorFactory;
     private final MemoryService memoryService;
+    private final GamificationService gamificationService;
+
+    @Autowired
+    public QuizServiceImpl(QuizRepository quizRepository,
+                           QuestionRepository questionRepository,
+                           QuizAttemptRepository quizAttemptRepository,
+                           QuestionAttemptRepository questionAttemptRepository,
+                           UserRepository userRepository,
+                           VocabularyWordRepository vocabularyWordRepository,
+                           QuestionFactory questionFactory,
+                           QuestionEvaluatorFactory evaluatorFactory,
+                           MemoryService memoryService,
+                           GamificationService gamificationService) {
+        this.quizRepository = quizRepository;
+        this.questionRepository = questionRepository;
+        this.quizAttemptRepository = quizAttemptRepository;
+        this.questionAttemptRepository = questionAttemptRepository;
+        this.userRepository = userRepository;
+        this.vocabularyWordRepository = vocabularyWordRepository;
+        this.questionFactory = questionFactory;
+        this.evaluatorFactory = evaluatorFactory;
+        this.memoryService = memoryService;
+        this.gamificationService = gamificationService;
+    }
 
     public QuizServiceImpl(QuizRepository quizRepository,
                            QuestionRepository questionRepository,
@@ -56,15 +88,8 @@ public class QuizServiceImpl implements QuizService {
                            QuestionFactory questionFactory,
                            QuestionEvaluatorFactory evaluatorFactory,
                            MemoryService memoryService) {
-        this.quizRepository = quizRepository;
-        this.questionRepository = questionRepository;
-        this.quizAttemptRepository = quizAttemptRepository;
-        this.questionAttemptRepository = questionAttemptRepository;
-        this.userRepository = userRepository;
-        this.vocabularyWordRepository = vocabularyWordRepository;
-        this.questionFactory = questionFactory;
-        this.evaluatorFactory = evaluatorFactory;
-        this.memoryService = memoryService;
+        this(quizRepository, questionRepository, quizAttemptRepository, questionAttemptRepository,
+             userRepository, vocabularyWordRepository, questionFactory, evaluatorFactory, memoryService, null);
     }
 
     @Override
@@ -169,6 +194,15 @@ public class QuizServiceImpl implements QuizService {
         );
         WordReviewResponse reviewResponse = memoryService.recordReview(userEmail, reviewRequest);
 
+        if (gamificationService != null && evaluationResult.isCorrect()) {
+            try {
+                gamificationService.recordActivity(user, RewardActivityType.QUIZ,
+                        RewardContext.forQuizAnswer(questionAttempt.getId(), true));
+            } catch (Exception e) {
+                log.warn("Gamification tracking failed for quiz answer: {}", e.getMessage());
+            }
+        }
+
         return new AnswerResponse(
                 evaluationResult.isCorrect(),
                 evaluationResult.getScore(),
@@ -202,6 +236,16 @@ public class QuizServiceImpl implements QuizService {
         double percentage = attempt.getTotalQuestions() > 0
                 ? ((double) attempt.getCorrectAnswers() / attempt.getTotalQuestions()) * 100.0
                 : 0.0;
+
+        if (gamificationService != null) {
+            try {
+                boolean isPerfect = attempt.getTotalQuestions() > 0 && attempt.getCorrectAnswers() == attempt.getTotalQuestions();
+                gamificationService.recordActivity(user, RewardActivityType.QUIZ,
+                        RewardContext.forQuizCompletion(quizId, attempt.getCorrectAnswers(), attempt.getTotalQuestions(), isPerfect));
+            } catch (Exception e) {
+                log.warn("Gamification tracking failed for quiz completion: {}", e.getMessage());
+            }
+        }
 
         return new QuizResultResponse(
                 quizId,

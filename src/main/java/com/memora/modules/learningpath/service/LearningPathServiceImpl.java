@@ -28,8 +28,12 @@ import com.memora.modules.vocabulary.entity.UserWordProgress;
 import com.memora.modules.vocabulary.entity.VocabularyWord;
 import com.memora.modules.vocabulary.repository.UserWordProgressRepository;
 import com.memora.modules.vocabulary.repository.VocabularyWordRepository;
+import com.memora.modules.gamification.domain.RewardActivityType;
+import com.memora.modules.gamification.domain.RewardContext;
+import com.memora.modules.gamification.service.GamificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +62,32 @@ public class LearningPathServiceImpl implements LearningPathService {
     private final QuizService quizService;
     private final QuizRepository quizRepository;
     private final LearningPathStrategyFactory strategyFactory;
+    private final GamificationService gamificationService;
+
+    @Autowired
+    public LearningPathServiceImpl(LearningPathRepository learningPathRepository,
+                                   LearningPathItemRepository learningPathItemRepository,
+                                   UserRepository userRepository,
+                                   VocabularyWordRepository vocabularyWordRepository,
+                                   UserWordProgressRepository userWordProgressRepository,
+                                   AssessmentRepository assessmentRepository,
+                                   MemoryService memoryService,
+                                   QuizService quizService,
+                                   QuizRepository quizRepository,
+                                   LearningPathStrategyFactory strategyFactory,
+                                   GamificationService gamificationService) {
+        this.learningPathRepository = learningPathRepository;
+        this.learningPathItemRepository = learningPathItemRepository;
+        this.userRepository = userRepository;
+        this.vocabularyWordRepository = vocabularyWordRepository;
+        this.userWordProgressRepository = userWordProgressRepository;
+        this.assessmentRepository = assessmentRepository;
+        this.memoryService = memoryService;
+        this.quizService = quizService;
+        this.quizRepository = quizRepository;
+        this.strategyFactory = strategyFactory;
+        this.gamificationService = gamificationService;
+    }
 
     public LearningPathServiceImpl(LearningPathRepository learningPathRepository,
                                    LearningPathItemRepository learningPathItemRepository,
@@ -69,16 +99,8 @@ public class LearningPathServiceImpl implements LearningPathService {
                                    QuizService quizService,
                                    QuizRepository quizRepository,
                                    LearningPathStrategyFactory strategyFactory) {
-        this.learningPathRepository = learningPathRepository;
-        this.learningPathItemRepository = learningPathItemRepository;
-        this.userRepository = userRepository;
-        this.vocabularyWordRepository = vocabularyWordRepository;
-        this.userWordProgressRepository = userWordProgressRepository;
-        this.assessmentRepository = assessmentRepository;
-        this.memoryService = memoryService;
-        this.quizService = quizService;
-        this.quizRepository = quizRepository;
-        this.strategyFactory = strategyFactory;
+        this(learningPathRepository, learningPathItemRepository, userRepository, vocabularyWordRepository,
+             userWordProgressRepository, assessmentRepository, memoryService, quizService, quizRepository, strategyFactory, null);
     }
 
     @Override
@@ -196,6 +218,23 @@ public class LearningPathServiceImpl implements LearningPathService {
 
         path.incrementCompleted();
         learningPathRepository.save(path);
+
+        if (gamificationService != null) {
+            try {
+                User user = path.getUser();
+                if (item.getItemType() == LearningItemType.REVIEW) {
+                    gamificationService.recordActivity(user, RewardActivityType.REVIEW, RewardContext.forReview(item.getId()));
+                } else if (item.getItemType() == LearningItemType.NEW_WORD) {
+                    gamificationService.recordActivity(user, RewardActivityType.LESSON, RewardContext.forLesson(item.getId()));
+                }
+
+                if (path.getStatus() == LearningPathStatus.COMPLETED) {
+                    gamificationService.recordActivity(user, RewardActivityType.DAILY_PATH, RewardContext.forDailyPath(path.getId()));
+                }
+            } catch (Exception e) {
+                log.warn("Gamification tracking failed for learning path item completion: {}", e.getMessage());
+            }
+        }
 
         return new LearningItemCompletionResponse(
                 item.getId(),

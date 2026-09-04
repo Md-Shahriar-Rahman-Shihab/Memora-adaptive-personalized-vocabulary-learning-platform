@@ -15,7 +15,7 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 5** | **Quiz & Evaluation Engine** | ✅ Completed | **Polymorphic Question Models** (`MultipleChoiceQuestion`, `TranslationQuestion`, `FillInTheBlankQuestion`), **Factory Pattern** (`QuestionFactory`), **Strategy Pattern** (`QuestionEvaluatorStrategy`, `QuestionEvaluatorFactory`), attempt history, Memory Engine integration, `/api/v1/quizzes/*`. |
 | **Phase 6** | **Assessment & Placement Engine** | ✅ Completed | 20-question multi-tier CEFR diagnostic assessment (`A1`–`C1`), **Strategy Pattern** (`PlacementAlgorithmStrategy`, `DefaultPlacementStrategy`, `PlacementStrategyFactory`), explainable confidence score calculation (0–100), response latency tracking, diagnostic attempt history, memory isolation, `/api/v1/assessments/*`. |
 | **Phase 7** | **Adaptive Learning Path Engine** | ✅ Completed | Personalized daily curriculum (max 10 items), **Strategy Pattern** (`LearningPathStrategy`, `AdaptiveLearningPathStrategy`), **Factory Pattern** (`LearningPathStrategyFactory`), dynamic review/new word balancing, CEFR stretch words, consolidating quizzes, progress tracking, dynamic regeneration, `/api/v1/learning-path/*`. |
-| **Phase 8** | **Gamification & Event Bus** | ⏳ Planned | XP, streaks, badges, leaderboards, Spring event decoupling. |
+| **Phase 8** | **Gamification & Learner Profile** | ✅ Completed | Extensible XP reward system via **Strategy & Factory Patterns** (`RewardStrategy`, `RewardStrategyFactory`), calendar-day boundary safe daily streaks (`StreakService`), extensible **Achievement Rule Engine** (`AchievementRule`, `AchievementRuleEngine`) with 10 unlockable badges, immutable XP audit ledger (`XpTransaction`), deterministic privacy-preserving leaderboard, learner profile & stats endpoints (`/api/v1/profile/*`, `/api/v1/leaderboard`, `/api/v1/achievements`). |
 | **Phase 9** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
 | **Phase 10** | **React Frontend & UX** | ⏳ Planned | Modern responsive web application with dark mode & micro-animations. |
 
@@ -53,7 +53,7 @@ com.memora/
     ├── user/                       # Identity & Learner Domain
     │   ├── domain/                 # Role, VocabularyLevel
     │   ├── dto/                    # RegistrationRequest, LoginRequest, AuthResponse, UserProfileResponse
-    │   ├── entity/                 # User entity
+    │   ├── entity/                 # User entity (with cascade mappings to gamification profile & ledger)
     │   ├── repository/             # UserRepository
     │   └── service/                # UserService, UserServiceImpl
     │
@@ -90,7 +90,7 @@ com.memora/
     │   │   ├── QuestionFactory.java           # Instantiates polymorphic Question subtypes
     │   │   └── QuestionEvaluatorFactory.java  # Resolves QuestionEvaluatorStrategy by QuestionType
     │   ├── repository/             # QuizRepository, QuestionRepository, QuizAttemptRepository, QuestionAttemptRepository
-    │   ├── service/                # QuizService, QuizServiceImpl (orchestration & memory integration)
+    │   ├── service/                # QuizService, QuizServiceImpl (orchestration, memory & gamification integration)
     │   ├── strategy/               # Strategy Pattern for polymorphic answer evaluation
     │   │   ├── QuestionEvaluatorStrategy.java # Evaluator contract
     │   │   ├── MultipleChoiceEvaluator.java
@@ -113,17 +113,55 @@ com.memora/
     │   │   └── DefaultPlacementStrategy.java  # Deterministic CEFR proficiency estimation & confidence score
     │   └── controller/             # AssessmentController (/api/v1/assessments/*)
     │
-    └── learningpath/               # Adaptive Learning Path Engine (Phase 7)
-        ├── domain/                 # LearningPathStatus, LearningItemType, LearningItemStatus, LearningItemPriority, LearningPathStrategyType, VocabularyWordSummary, LearningPathItemCandidate, LearningPathContext, LearningPathResult
-        ├── dto/                    # LearningPathResponse, TodayLearningPathResponse, LearningPathItemResponse, LearningItemCompletionRequest, LearningItemCompletionResponse
-        ├── entity/                 # LearningPath, LearningPathItem
-        ├── factory/                # LearningPathStrategyFactory
-        ├── repository/             # LearningPathRepository, LearningPathItemRepository
-        ├── service/                # LearningPathService, LearningPathServiceImpl
-        ├── strategy/               # Strategy Pattern for curriculum generation
-        │   ├── LearningPathStrategy.java
-        │   └── AdaptiveLearningPathStrategy.java # Dynamic review/new word ratio balancing & stretch word logic
-        └── controller/             # LearningPathController (/api/v1/learning-path/*)
+    ├── learningpath/               # Adaptive Learning Path Engine (Phase 7)
+    │   ├── domain/                 # LearningPathStatus, LearningItemType, LearningItemStatus, LearningItemPriority, LearningPathStrategyType, VocabularyWordSummary, LearningPathItemCandidate, LearningPathContext, LearningPathResult
+    │   ├── dto/                    # LearningPathResponse, TodayLearningPathResponse, LearningPathItemResponse, LearningItemCompletionRequest, LearningItemCompletionResponse
+    │   ├── entity/                 # LearningPath, LearningPathItem
+    │   ├── factory/                # LearningPathStrategyFactory
+    │   ├── repository/             # LearningPathRepository, LearningPathItemRepository
+    │   ├── service/                # LearningPathService, LearningPathServiceImpl (orchestration & gamification integration)
+    │   ├── strategy/               # Strategy Pattern for curriculum generation
+    │   │   ├── LearningPathStrategy.java
+    │   │   └── AdaptiveLearningPathStrategy.java # Dynamic review/new word ratio balancing & stretch word logic
+    │   └── controller/             # LearningPathController (/api/v1/learning-path/*)
+    │
+    └── gamification/               # Gamification & Learner Profile (Phase 8)
+        ├── config/                 # AchievementDataSeeder (seeds 10 standard achievements)
+        ├── domain/                 # RewardActivityType, RewardContext, AchievementCode, AchievementEvaluationContext
+        ├── dto/                    # LearnerProfileResponse, LearnerStatsResponse, XpTransactionResponse, UserAchievementResponse, LeaderboardEntryResponse, GamificationActivityResultResponse
+        ├── entity/                 # Gamification & Ledger Entities
+        │   ├── UserGamificationProfile.java   # 1:1 with User; tracks total XP, current/longest streaks, activity counters
+        │   ├── XpTransaction.java             # Immutable audit ledger of all XP grants
+        │   ├── Achievement.java               # Milestone catalog with badge category & XP bonus
+        │   └── UserAchievement.java           # User-achievement join table enforcing unique unlocks
+        ├── factory/                # RewardStrategyFactory (resolves RewardStrategy by RewardActivityType)
+        ├── repository/             # UserGamificationProfileRepository, XpTransactionRepository, AchievementRepository, UserAchievementRepository
+        ├── rule/                   # Extensible Achievement Rule Engine
+        │   ├── AchievementRule.java           # Strategy rule contract
+        │   ├── AchievementRuleEngine.java     # Engine evaluating context against unlocked rules
+        │   ├── FirstLessonAchievementRule.java
+        │   ├── FirstQuizAchievementRule.java
+        │   ├── WordStarterAchievementRule.java
+        │   ├── VocabularyExplorerAchievementRule.java
+        │   ├── CenturyAchievementRule.java
+        │   ├── PerfectScoreAchievementRule.java
+        │   ├── QuizMasterAchievementRule.java
+        │   ├── SevenDayStreakAchievementRule.java
+        │   ├── ThirtyDayStreakAchievementRule.java
+        │   └── MemoryMasterAchievementRule.java
+        ├── service/                # Gamification orchestration & streak services
+        │   ├── StreakService.java / StreakServiceImpl.java
+        │   ├── AchievementService.java / AchievementServiceImpl.java
+        │   └── GamificationService.java / GamificationServiceImpl.java
+        ├── strategy/               # Strategy Pattern for XP reward calculation
+        │   ├── RewardStrategy.java            # Strategy interface contract
+        │   ├── QuizRewardStrategy.java        # Base 10 + 5 per correct + 15 perfect bonus
+        │   ├── LessonRewardStrategy.java      # Base 20 + 2 per item (capped at 50)
+        │   ├── ReviewRewardStrategy.java      # Base 15 + 3 per reviewed word
+        │   ├── DailyPathRewardStrategy.java   # Base 40 + 10 all-mastered bonus
+        │   ├── StreakRewardStrategy.java      # Base 10 + min(streak, 30)*2 bonus
+        │   └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
+        └── controller/             # ProfileController, LeaderboardController, AchievementController
 ```
 
 ---
@@ -156,6 +194,11 @@ erDiagram
     VocabularyWord ||--o{ LearningPathItem : "studied in"
     Quiz ||--o{ LearningPathItem : "consolidated in"
 
+    User ||--|| UserGamificationProfile : "maintains stats & streak"
+    User ||--o{ XpTransaction : "audits XP changes"
+    User ||--o{ UserAchievement : "unlocks"
+    Achievement ||--o{ UserAchievement : "unlocked as"
+
     User {
         bigint id PK
         varchar name
@@ -165,6 +208,60 @@ erDiagram
         int xp
         int streak
         varchar role
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    UserGamificationProfile {
+        bigint id PK
+        bigint user_id FK,UK
+        int total_xp
+        int current_streak
+        int longest_streak
+        date last_activity_date
+        int quizzes_completed
+        int lessons_completed
+        int reviews_completed
+        int assessments_completed
+        int perfect_quizzes_count
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    XpTransaction {
+        bigint id PK
+        bigint user_id FK
+        int xp_earned
+        int resulting_total_xp
+        varchar source_activity
+        varchar source_id
+        varchar description
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    Achievement {
+        bigint id PK
+        varchar code UK
+        varchar title
+        varchar description
+        varchar icon_url
+        int xp_bonus
+        varchar badge_category
+        int order_index
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    UserAchievement {
+        bigint id PK
+        bigint user_id FK
+        bigint achievement_id FK
+        timestamp unlocked_at
         timestamp created_at
         timestamp updated_at
         bigint version
@@ -370,6 +467,7 @@ erDiagram
 ### 5. Encapsulation & Historical Persistence
 * Historical learner attempts are permanently preserved in `QuizAttempt` and `QuestionAttempt` (recording latency `responseTimeMs`, points, correctness, and timestamps) without overwriting past performance.
 * Similarly, `Assessment`, `AssessmentQuestion`, and `AssessmentAnswer` record full diagnostic histories, allowing learners to re-assess later while preserving historical placement milestones.
+* All XP gains are permanently appended to the immutable `XpTransaction` audit ledger.
 
 ### 6. Strategy Pattern & Diagnostic Placement Engine (Phase 6)
 * **`PlacementAlgorithmStrategy`**: Pluggable algorithm contract `calculate(List<AssessmentPerformance>)` producing `PlacementResult`.
@@ -386,6 +484,40 @@ erDiagram
 * **`LearningPathStrategyFactory`**: Resolves learning path strategies via Spring dependency injection without conditional branching or `instanceof` checks.
 * **Dynamic Regeneration**: Pending items can be regenerated on-demand (`POST /api/v1/learning-path/regenerate`) based on real-time memory metrics without deleting completed learning history.
 
+### 8. Strategy & Factory Pattern in Reward & Gamification Engine (Phase 8)
+* **`RewardStrategy`**: Strategy interface defining `calculateXp(RewardContext)` and `supports(RewardActivityType)`.
+* **Concrete Strategies**:
+  * `QuizRewardStrategy`: Base 10 XP + 5 XP per correct answer + 15 XP perfect score bonus.
+  * `LessonRewardStrategy`: Base 20 XP + 2 XP per item completed (capped at 50 XP).
+  * `ReviewRewardStrategy`: Base 15 XP + 3 XP per retained/reviewed word.
+  * `DailyPathRewardStrategy`: Base 40 XP + 10 XP all-mastered bonus.
+  * `StreakRewardStrategy`: Base 10 XP + `min(currentStreak, 30) * 2` XP streak bonus.
+  * `AssessmentRewardStrategy`: Base 50 XP + CEFR level tier bonuses (A1: +10, A2: +20, B1: +35, B2: +50, C1: +75).
+* **`RewardStrategyFactory`**: Injects and maps all `RewardStrategy` beans by `RewardActivityType`, safely resolving calculators without tight coupling.
+
+### 9. Open/Closed Principle & Rule Engine for Milestone Achievements (Phase 8)
+* **`AchievementRule`**: Rule interface defining `evaluate(AchievementEvaluationContext)` and `getAchievementCode()`.
+* **10 Concrete Rules**:
+  * `FirstLessonAchievementRule`: Awarded upon finishing the first lesson.
+  * `FirstQuizAchievementRule`: Awarded upon completing the first quiz.
+  * `WordStarterAchievementRule`: Awarded upon learning 5 words.
+  * `VocabularyExplorerAchievementRule`: Awarded upon learning 25 words.
+  * `CenturyAchievementRule`: Awarded upon learning 100 words.
+  * `PerfectScoreAchievementRule`: Awarded upon achieving a 100% quiz score.
+  * `QuizMasterAchievementRule`: Awarded upon completing 10 quizzes.
+  * `SevenDayStreakAchievementRule`: Awarded upon reaching a 7-day streak.
+  * `ThirtyDayStreakAchievementRule`: Awarded upon reaching a 30-day streak.
+  * `MemoryMasterAchievementRule`: Awarded upon achieving mastery (score >= 80%) on 10 words.
+* **`AchievementRuleEngine`**: Evaluates active rules against the user's latest stats, filtering out previously unlocked badges.
+* **Idempotent Storage**: Unique database constraint on `(user_id, achievement_id)` prevents duplicate unlock entries or duplicate bonus XP rewards.
+
+### 10. Calendar-Safe Daily Learning Streak Engine & Audit Ledger (Phase 8)
+* **`StreakService`**: Uses calendar-day comparison (`LocalDate.now()`) rather than sliding 24-hour clocks:
+  * Consecutive day (`today - 1`): Increments `currentStreak` and updates `longestStreak = max(longestStreak, currentStreak)`.
+  * Same day (`today`): Preserves current streak idempotently across multiple sessions.
+  * Skipped day (`< today - 1`): Resets `currentStreak` to 1.
+* **`XpTransaction` Audit Ledger**: Every XP award records an immutable ledger entry with delta, resulting balance, activity type, source ID, and explanation.
+
 ---
 
 ## 🌐 Implemented REST API Endpoints
@@ -395,7 +527,7 @@ erDiagram
 * `POST /api/v1/auth/login` — Authenticate and retrieve JWT token
 
 ### 2. User Profile (`/api/v1/users`)
-* `GET  /api/v1/users/me` — Retrieve active learner profile and stats (Requires JWT)
+* `GET  /api/v1/users/me` — Retrieve active learner profile and identity (Requires JWT)
 
 ### 3. Vocabulary Catalog (`/api/v1/vocabulary`)
 * `GET  /api/v1/vocabulary` — List all vocabulary words (Public)
@@ -421,7 +553,7 @@ erDiagram
 * `POST /api/v1/quizzes/generate` — Deterministically generate a new quiz from vocabulary pool
 * `POST /api/v1/quizzes/{quizId}/start` — Start or resume a quiz attempt session
 * `POST /api/v1/quizzes/{quizId}/questions/{questionId}/answer` — Submit answer, evaluate, record latency, update memory retention
-* `POST /api/v1/quizzes/{quizId}/complete` — Complete quiz attempt and calculate total score/percentage
+* `POST /api/v1/quizzes/{quizId}/complete` — Complete quiz attempt, calculate score, and award XP/achievements
 * `GET  /api/v1/quizzes/{quizId}` — Retrieve quiz details and questions (omits correct answers)
 * `GET  /api/v1/quizzes/{quizId}/result` — Retrieve latest attempt score and performance summary
 
@@ -429,7 +561,7 @@ erDiagram
 * `POST /api/v1/assessments/start` — Start a new 20-question diagnostic assessment (4 questions each from A1, A2, B1, B2, C1)
 * `GET  /api/v1/assessments/{assessmentId}` — Retrieve assessment details, progress, and questions without answers
 * `POST /api/v1/assessments/{assessmentId}/questions/{questionId}/answer` — Submit answer and latency for a diagnostic question
-* `POST /api/v1/assessments/{assessmentId}/complete` — Complete assessment, execute placement algorithm, update learner CEFR level
+* `POST /api/v1/assessments/{assessmentId}/complete` — Complete assessment, execute placement algorithm, update learner CEFR level, award XP
 * `GET  /api/v1/assessments/{assessmentId}/result` — Retrieve placement result, CEFR level estimate, and confidence score
 * `GET  /api/v1/assessments/history` — Retrieve all completed historical placement assessments for the learner
 
@@ -438,90 +570,116 @@ erDiagram
 * `GET  /api/v1/learning-path/current` — Retrieve active learning path summary and item status
 * `GET  /api/v1/learning-path/today` — Retrieve today's prioritized learning tasks
 * `POST /api/v1/learning-path/items/{itemId}/start` — Mark a learning path item as in-progress
-* `POST /api/v1/learning-path/items/{itemId}/complete` — Mark an item as completed and trigger Memory Engine review if applicable
+* `POST /api/v1/learning-path/items/{itemId}/complete` — Mark an item as completed, trigger Memory Engine review, and award XP
 * `POST /api/v1/learning-path/regenerate` — Dynamically regenerate pending items based on latest memory state
 * `GET  /api/v1/learning-path/history` — Retrieve historical learning path records for the learner
 
+### 9. Learner Profile & Gamification (`/api/v1/profile`)
+* `GET  /api/v1/profile` — Retrieve current learner gamification profile (total XP, level, current/longest streaks, activity counters) (Requires JWT)
+* `GET  /api/v1/profile/xp-history` — Retrieve paginated immutable audit ledger of all XP transactions (`page`, `size`) (Requires JWT)
+* `GET  /api/v1/profile/achievements` — Retrieve all achievements with the user's unlock status and unlock timestamp (Requires JWT)
+* `GET  /api/v1/profile/stats` — Retrieve aggregated learner statistics (vocabulary counts, quiz performance, streaks) (Requires JWT)
+
+### 10. Global Leaderboard (`/api/v1/leaderboard`)
+* `GET  /api/v1/leaderboard?limit=20` — Retrieve deterministic, privacy-preserving leaderboard (Public)
+
+### 11. Achievement Catalog (`/api/v1/achievements`)
+* `GET  /api/v1/achievements` — List full master catalog of all available achievements (Public)
+
 ---
 
-## 📝 Example Learning Path Workflow API Usage
+## 📝 Example API Usage
 
-### 1. Start Learning Path: `POST /api/v1/learning-path/start`
+### 1. Learner Profile: `GET /api/v1/profile`
 **Headers**: `Authorization: Bearer <JWT_TOKEN>`  
 **Response**:
 ```json
 {
   "success": true,
-  "message": "Learning path initiated successfully",
+  "message": "Learner profile retrieved successfully",
   "data": {
-    "id": 1,
-    "status": "ACTIVE",
-    "targetLevel": "B1",
-    "currentDay": 1,
-    "totalItems": 10,
-    "completedItems": 0,
-    "items": [
+    "userId": 1,
+    "fullName": "Jane Doe",
+    "email": "jane@example.com",
+    "totalXp": 385,
+    "level": 3,
+    "currentStreak": 5,
+    "longestStreak": 12,
+    "lastActivityDate": "2026-09-04",
+    "quizzesCompleted": 6,
+    "lessonsCompleted": 10,
+    "reviewsCompleted": 15,
+    "assessmentsCompleted": 1,
+    "perfectQuizzesCount": 2
+  }
+}
+```
+
+### 2. Auditable XP History: `GET /api/v1/profile/xp-history?page=0&size=2`
+**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
+**Response**:
+```json
+{
+  "success": true,
+  "message": "XP history retrieved successfully",
+  "data": {
+    "content": [
       {
-        "id": 1,
-        "type": "REVIEW",
-        "wordId": 4,
-        "word": "meticulous",
-        "meaning": "showing great attention to detail",
-        "priority": "HIGH",
-        "status": "PENDING",
-        "orderIndex": 1,
-        "notes": "Review due (HIGH risk, 45.0% mastery)"
+        "id": 18,
+        "xpEarned": 40,
+        "resultingTotalXp": 385,
+        "sourceActivity": "QUIZ_COMPLETION",
+        "sourceId": "7",
+        "description": "Completed Quiz #7 (Perfect Score)",
+        "createdAt": "2026-09-04T13:20:00"
       },
       {
-        "id": 2,
-        "type": "NEW_WORD",
-        "wordId": 12,
-        "word": "lucid",
-        "meaning": "expressed clearly; easy to understand",
-        "priority": "MEDIUM",
-        "status": "PENDING",
-        "orderIndex": 2,
-        "notes": "New vocabulary discovery (CEFR B1)"
-      },
-      {
-        "id": 10,
-        "type": "QUIZ",
-        "quizId": 3,
-        "priority": "HIGH",
-        "status": "PENDING",
-        "orderIndex": 10,
-        "notes": "Daily comprehensive retention & diagnostic quiz"
+        "id": 17,
+        "xpEarned": 25,
+        "resultingTotalXp": 345,
+        "sourceActivity": "LESSON_COMPLETION",
+        "sourceId": "14",
+        "description": "Completed Stage Item #14",
+        "createdAt": "2026-09-04T12:45:10"
       }
-    ]
+    ],
+    "totalElements": 18,
+    "totalPages": 9,
+    "number": 0,
+    "size": 2
   }
 }
 ```
 
-### 2. Complete a Review Item: `POST /api/v1/learning-path/items/1/complete`
-**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
-**Body**:
-```json
-{
-  "correct": true,
-  "responseTimeMs": 1400,
-  "algorithm": "SM2"
-}
-```
+### 3. Global Leaderboard: `GET /api/v1/leaderboard?limit=3`
 **Response**:
 ```json
 {
   "success": true,
-  "message": "Item completed successfully",
-  "data": {
-    "itemId": 1,
-    "status": "COMPLETED",
-    "itemType": "REVIEW",
-    "completedAt": "2026-09-03T12:00:00Z",
-    "pathCompleted": false,
-    "completedItems": 1,
-    "totalItems": 10,
-    "message": "Learning item completed successfully"
-  }
+  "message": "Leaderboard retrieved successfully",
+  "data": [
+    {
+      "rank": 1,
+      "userId": 4,
+      "displayName": "Alice Smith",
+      "totalXp": 1250,
+      "currentStreak": 14
+    },
+    {
+      "rank": 2,
+      "userId": 1,
+      "displayName": "Jane Doe",
+      "totalXp": 385,
+      "currentStreak": 5
+    },
+    {
+      "rank": 3,
+      "userId": 7,
+      "displayName": "Bob Johnson",
+      "totalXp": 290,
+      "currentStreak": 2
+    }
+  ]
 }
 ```
 
@@ -545,7 +703,7 @@ erDiagram
 
 ### 3. Running Automated Tests
 ```powershell
-# Run the complete test suite (111 tests across Phase 1–7 modules)
+# Run the complete test suite (133 tests across Phase 1–8 modules)
 .\mvnw.cmd clean test
 ```
 

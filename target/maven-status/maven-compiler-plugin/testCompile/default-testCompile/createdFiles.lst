@@ -1,12 +1,16 @@
+com\memora\modules\gamification\RewardStrategyFactoryTest.class
+com\memora\modules\gamification\GamificationIntegrationTest.class
 com\memora\modules\vocabulary\UserWordProgressServiceTest.class
 com\memora\modules\memory\LeitnerMemoryStrategyTest.class
 com\memora\modules\quiz\QuestionEvaluatorFactoryTest.class
 com\memora\common\exception\GlobalExceptionHandlerTest.class
 com\memora\modules\assessment\DefaultPlacementStrategyTest.class
 com\memora\modules\memory\MemoryControllerIntegrationTest.class
+com\memora\modules\gamification\GamificationServiceTest.class
 com\memora\modules\assessment\AssessmentQuestionGeneratorTest.class
 com\memora\modules\memory\MemoryStrategyFactoryTest.class
 com\memora\MemoraApplicationTests.class
+com\memora\modules\gamification\AchievementRuleEngineTest.class
 com\memora\modules\quiz\EvaluatorStrategyTest.class
 com\memora\modules\memory\MemoryServiceTest.class
 com\memora\modules\vocabulary\VocabularyServiceTest.class
@@ -22,7 +26,9 @@ com\memora\modules\user\AuthIntegrationTest.class
 com\memora\modules\learningpath\LearningPathServiceTest.class
 com\memora\modules\learningpath\LearningPathControllerIntegrationTest.class
 com\memora\modules\quiz\QuestionFactoryTest.class
+com\memora\modules\gamification\StreakServiceTest.class
 com\memora\modules\learningpath\AdaptiveLearningPathStrategyTest.class
 com\memora\common\exception\GlobalExceptionHandlerTest$TestExceptionController.class
 com\memora\modules\quiz\QuizControllerIntegrationTest.class
+com\memora\modules\gamification\RewardStrategyTest.class
 com\memora\modules\memory\SM2MemoryStrategyTest.class

@@ -38,6 +38,15 @@ public class User extends BaseEntity {
     @Column(name = "role", nullable = false)
     private Role role;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private com.memora.modules.gamification.entity.UserGamificationProfile gamificationProfile;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<com.memora.modules.gamification.entity.XpTransaction> xpTransactions = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<com.memora.modules.gamification.entity.UserAchievement> userAchievements = new java.util.ArrayList<>();
+
     public User() {
     }
 
