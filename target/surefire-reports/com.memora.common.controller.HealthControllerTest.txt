@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.memora.common.controller.HealthControllerTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.333 s -- in com.memora.common.controller.HealthControllerTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 12.18 s -- in com.memora.common.controller.HealthControllerTest

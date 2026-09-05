@@ -16,8 +16,8 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 6** | **Assessment & Placement Engine** | ✅ Completed | 20-question multi-tier CEFR diagnostic assessment (`A1`–`C1`), **Strategy Pattern** (`PlacementAlgorithmStrategy`, `DefaultPlacementStrategy`, `PlacementStrategyFactory`), explainable confidence score calculation (0–100), response latency tracking, diagnostic attempt history, memory isolation, `/api/v1/assessments/*`. |
 | **Phase 7** | **Adaptive Learning Path Engine** | ✅ Completed | Personalized daily curriculum (max 10 items), **Strategy Pattern** (`LearningPathStrategy`, `AdaptiveLearningPathStrategy`), **Factory Pattern** (`LearningPathStrategyFactory`), dynamic review/new word balancing, CEFR stretch words, consolidating quizzes, progress tracking, dynamic regeneration, `/api/v1/learning-path/*`. |
 | **Phase 8** | **Gamification & Learner Profile** | ✅ Completed | Extensible XP reward system via **Strategy & Factory Patterns** (`RewardStrategy`, `RewardStrategyFactory`), calendar-day boundary safe daily streaks (`StreakService`), extensible **Achievement Rule Engine** (`AchievementRule`, `AchievementRuleEngine`) with 10 unlockable badges, immutable XP audit ledger (`XpTransaction`), deterministic privacy-preserving leaderboard, learner profile & stats endpoints (`/api/v1/profile/*`, `/api/v1/leaderboard`, `/api/v1/achievements`). |
-| **Phase 9** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
-| **Phase 10** | **React Frontend & UX** | ⏳ Planned | Modern responsive web application with dark mode & micro-animations. |
+| **Phase 9** | **React Frontend & Full API Integration** | ✅ Completed | Production React 19 + TypeScript + Vite + Tailwind CSS application matching approved visual design reference, complete REST API integration with Spring Boot backend, interactive 3D Floating Memory Ecosystem, live Memory Map widget, smooth-scrolling navigation with sticky offset, unified Plus Jakarta Sans typography, 20-question CEFR diagnostic placement (A1–C1), adaptive learning path dashboard, SRS flashcards, polymorphic quiz runner, gamification streaks & badges, auditable XP ledger, and global leaderboard. |
+| **Future** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
 
 ---
 
@@ -30,6 +30,14 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 * **Database**: PostgreSQL (Production) / H2 In-Memory (Automated Testing)
 * **Build Tool**: Apache Maven (`mvnw` / `mvnw.cmd`)
 * **Architecture**: Layered Clean Architecture (`Controller → Service → Repository → Entity/Domain` with strict DTO boundaries)
+
+### Frontend
+* **Core & Runtime**: React 19, TypeScript, Vite 6
+* **Styling & Design System**: Tailwind CSS v4, PostCSS, Google Font (*Plus Jakarta Sans* — unified modern typography system)
+* **Routing & State**: React Router DOM v7, React Context API (`AuthContext`, `ToastContext`)
+* **HTTP & API Client**: Axios (with Bearer token interceptor, automated 401 handling, and response unwrap)
+* **Icons & Visuals**: Lucide React (feather-style modern icons), Recharts (data visualizations & retention decay curves)
+* **Design Language**: Warm off-white background (`#FBFBF9`), Memora forest green accents (`#6A8D2F`, `#557224`), dark surface contrast (`#141A14`, `#171F17`), glassmorphism card surfaces, and dynamic micro-animations.
 
 ---
 
@@ -162,6 +170,96 @@ com.memora/
         │   ├── StreakRewardStrategy.java      # Base 10 + min(streak, 30)*2 bonus
         │   └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
         └── controller/             # ProfileController, LeaderboardController, AchievementController
+```
+
+---
+
+## 🎨 Active Frontend Package Architecture (`frontend/src`)
+
+```text
+frontend/
+├── index.html                      # Entry HTML with Google Fonts & root viewport
+├── vite.config.ts                  # Vite + React plugin + /api proxy to Spring Boot (:8080)
+├── tailwind.config.js              # Theme config: colors, typography, border-radius, shadows
+├── postcss.config.js               # PostCSS setup with @tailwindcss/postcss & autoprefixer
+├── package.json                    # Dependencies: React 19, TypeScript, Tailwind, Lucide, Recharts
+└── src/
+    ├── main.tsx                    # Application entry point mounting BrowserRouter & Providers
+    ├── App.tsx                     # Top-level route provider (Toast, Auth)
+    ├── index.css                   # Tailwind base imports, design system tokens, utility classes
+    ├── vite-env.d.ts               # Vite client types & CSS module declarations
+    │
+    ├── types/                      # Complete TypeScript Interfaces matching Backend DTOs
+    │   ├── common.ts               # ApiResponse<T>, PaginatedResponse<T>
+    │   ├── auth.ts                 # AuthResponse, LoginRequest, RegistrationRequest, UserProfile
+    │   ├── vocabulary.ts           # VocabularyWord, UserWordProgress
+    │   ├── memory.ts               # ReviewRequest, ReviewResponse, MemoryStats
+    │   ├── assessment.ts           # AssessmentStart, Question, SubmitAnswer, DiagnosticResult
+    │   ├── learningPath.ts         # LearningPath, LearningItem, CompleteItemResponse
+    │   ├── quiz.ts                 # Quiz, Polymorphic Question, QuizAttempt, EvaluationResult
+    │   └── gamification.ts         # LearnerProfile, XpTransaction, LeaderboardEntry, Achievement
+    │
+    ├── api/                        # Centralized Axios Client & Service Modules
+    │   ├── axios.ts                # Axios instance with JWT Bearer interceptor & 401 handling
+    │   ├── authApi.ts              # /api/v1/auth/*, /api/v1/users/me
+    │   ├── vocabularyApi.ts        # /api/v1/vocabulary/*, /api/v1/progress/words
+    │   ├── memoryApi.ts            # /api/v1/memory/* (due, review, stats)
+    │   ├── assessmentApi.ts        # /api/v1/assessments/* (start, questions, answer, result)
+    │   ├── learningPathApi.ts      # /api/v1/learning-path/* (today, regenerate, complete)
+    │   ├── quizApi.ts              # /api/v1/quizzes/* (generate, start, submit, results)
+    │   ├── profileApi.ts           # /api/v1/profile/* (stats, xp-history)
+    │   ├── achievementApi.ts       # /api/v1/achievements
+    │   └── leaderboardApi.ts       # /api/v1/leaderboard
+    │
+    ├── context/                    # Global React Contexts
+    │   ├── AuthContext.tsx         # User authentication state, token persistence, login/logout
+    │   └── ToastContext.tsx        # Toast notification system (success, error, warning, info)
+    │
+    ├── components/
+    │   ├── ui/                     # Reusable Core UI Components
+    │   │   ├── Button.tsx          # Polymorphic variants: primary, secondary, outline, ghost, danger
+    │   │   ├── Card.tsx            # Styled container card with glassmorphism support
+    │   │   ├── Badge.tsx           # Status & CEFR level indicator chips
+    │   │   ├── ProgressBar.tsx     # Animated progress bar with smooth transition
+    │   │   ├── LoadingSpinner.tsx  # Brand spinner & centered loading overlay
+    │   │   ├── EmptyState.tsx      # Visual empty state with action slot
+    │   │   ├── ErrorState.tsx      # Visual error display with retry trigger
+    │   │   └── Modal.tsx           # Accessible modal dialog with backdrop blur
+    │   │
+    │   ├── layout/                 # Application Layout & Navigation
+    │   │   ├── Navbar.tsx          # Public landing page navigation
+    │   │   ├── TopHeader.tsx       # Authenticated dashboard top navigation with streak & XP badge
+    │   │   ├── Sidebar.tsx         # Collapsible desktop sidebar with active route indicator
+    │   │   ├── MobileNav.tsx       # Bottom mobile tab navigation
+    │   │   └── AppShell.tsx        # Responsive application wrapper (Sidebar + TopHeader + Content)
+    │   │
+    │   └── landing/                # Landing Page Components (matching approved design reference)
+    │       ├── HeroSection.tsx     # Hero banner + 3D floating memory ecosystem cards
+    │       ├── HowItWorksSection.tsx # 4-step learning journey + interactive Memory Map widget
+    │       ├── StatisticsSection.tsx # Live metrics: 12.5K+ learners, 420K+ words, 85% retention
+    │       ├── GamificationSection.tsx # Dark card (#171F17): streak counter, 3D gem, leaderboard
+    │       ├── TrustSection.tsx    # Institutional trust logos (UIU, BRAC, DIU, NSU, IUB)
+    │       ├── FinalCtaSection.tsx # High-conversion CTA banner
+    │       └── Footer.tsx          # Brand footer with navigation & copyright
+    │
+    ├── pages/                      # Application Route Views
+    │   ├── LandingPage.tsx         # Editorial landing page matching design reference
+    │   ├── LoginPage.tsx           # Authentication sign-in with validation & error alerts
+    │   ├── RegisterPage.tsx        # Account registration with auto CEFR onboarding redirect
+    │   ├── DashboardPage.tsx       # Main hub: daily path, streak, XP status, memory stats, quick actions
+    │   ├── AssessmentPage.tsx      # 20-question diagnostic test runner (A1–C1) with latency tracking
+    │   ├── AssessmentResultPage.tsx# CEFR placement result showcase with confidence score
+    │   ├── LearningPathPage.tsx    # Daily curriculum roadmap (/learn-path) with dynamic item completion & regenerate
+    │   ├── ReviewPage.tsx          # Interactive SRS flashcard flip with SuperMemo-2 quality ratings
+    │   ├── QuizPage.tsx            # Polymorphic quiz runner (/quiz, /quiz/:quizId) with instant feedback
+    │   ├── AchievementsPage.tsx    # Unlocked & locked badge gallery with XP progress
+    │   ├── LeaderboardPage.tsx     # Global learner ranking with top-3 podium & privacy display
+    │   ├── ProfilePage.tsx         # User profile, statistics, and paginated XP audit ledger
+    │   └── ProgressPage.tsx        # Retention curves, CEFR distribution, and vocabulary status
+    │
+    └── routes/                     # Application Route Configurations
+        ├── ProtectedRoute.tsx      # Auth guard redirecting unauthenticated users to /login
+        └── AppRoutes.tsx           # Declarative React Router setup with canonical routes (/learn-path, /quiz, /assessment) & aliases
 ```
 
 ---
@@ -711,3 +809,67 @@ erDiagram
 ```bash
 curl -X GET http://localhost:8080/api/v1/health
 ```
+
+---
+
+## 💻 Getting Started (Frontend)
+
+### 1. Prerequisites
+* **Node.js**: Node.js 18+ (tested on Node v20.20.0, `node -v`)
+* **npm**: npm 9+ (tested on npm 11.16.0, `npm -v`)
+* **Backend**: Spring Boot backend running on `http://localhost:8080`
+
+### 2. Installation & Setup
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+```
+
+### 3. Development Server
+```bash
+# Start Vite development server with hot-module replacement
+npm run dev
+```
+The application will be accessible at `http://localhost:5173`.  
+All `/api/*` network requests are automatically proxied to the Spring Boot backend at `http://localhost:8080`.
+
+### 4. Production Build
+```bash
+# Typecheck with tsc and compile optimized bundle with Vite
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+---
+
+## 🌐 End-to-End System Integration Flow
+
+1. **Editorial Landing Page (`/`)**:
+   - Matches the approved visual design: warm background (`#FBFBF9`), unified typography (*Plus Jakarta Sans*), Memora green accents (`#6A8D2F`, `#557224`), 3D Floating Memory Ecosystem with interactive word nodes (`curious`, `explore`, `focus`, `improve`, `achieve`), interactive Memory Map widget, 4-stage learning pipeline, and institutional trust badges.
+   - **Smooth-Scrolling Navigation**: Clicking the Memora brand logo smoothly navigates to the top hero section (`#home`), and nav links (`Home`, `Features`, `How it works`, `About us`) animate smoothly with an 80px offset accounting for the sticky navigation bar.
+2. **Authentication & Placement Onboarding (`/register` & `/login`)**:
+   - Learner registers and is immediately directed to the diagnostic placement assessment (`/assessment`) if their CEFR level is uncalibrated.
+   - Stateless JWT is persisted in `localStorage` and automatically injected into all Axios headers via Bearer token interceptor.
+3. **Diagnostic Assessment & CEFR Placement (`/assessment`, `/assessment/:assessmentId` & `/assessment/result`)**:
+   - Learner answers 20 dynamically presented questions across calibrated CEFR tiers `A1` through `C1` (4 questions per level) with millisecond response latency tracking and zero uncalibrated `C2` claims.
+   - Evaluated by `DefaultPlacementStrategy`, awarding diagnostic XP and placing the learner at their calibrated CEFR level with confidence score and breakdown.
+4. **Adaptive Learning Path Dashboard (`/dashboard` & `/learn-path`)**:
+   - Canonical route `/learn-path` (with `/learning-path`, `/learn`, and `/learning` aliases) renders the daily curriculum (up to 10 balanced items: review words, new words, stretch vocabulary, and consolidating quizzes).
+   - Dynamic item status tracking with instant regeneration capabilities and item completion.
+5. **Memory Engine Spaced Repetition (`/review`)**:
+   - Interactive 3D flip flashcards displaying word details, IPA phonetics, parts of speech, CEFR level, definitions, and contextual examples.
+   - Submits ratings (Again=1, Hard=3, Good=4, Easy=5) to `POST /api/v1/memory/review` using SuperMemo-2 / Leitner algorithms, dynamically recalculating easiness factors and review intervals.
+6. **Polymorphic Quiz Engine (`/quiz` & `/quiz/:quizId`)**:
+   - Accessing `/quiz` automatically generates and starts an active quiz session, while `/quiz/:quizId` loads an existing session.
+   - Presents Multiple Choice, Translation, and Fill-in-the-blank questions with immediate feedback, timer tracking, score breakdown, and XP rewards.
+7. **Gamification, Streaks & Global Leaderboard (`/achievements`, `/leaderboard`, `/profile`, `/progress`)**:
+   - Real-time streak tracking with calendar-day boundary safety.
+   - Visual achievement badges (unlocked vs. locked) with condition criteria and bonus XP.
+   - Global leaderboard with top-3 podium and deterministic ranking.
+   - Profile view with comprehensive learning statistics and paginated, auditable XP transaction ledger.
+   - Progress dashboard visualizing memory retention curves, CEFR vocabulary distribution, and mastery metrics.
