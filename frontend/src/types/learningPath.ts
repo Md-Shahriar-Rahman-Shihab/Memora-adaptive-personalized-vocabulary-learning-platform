@@ -11,6 +11,9 @@ export interface LearningPathItemResponse {
   wordId?: number;
   word?: string;
   meaning?: string;
+  definition?: string;
+  pronunciation?: string;
+  exampleSentence?: string;
   quizId?: number;
   priority: LearningItemPriority;
   status: LearningItemStatus;

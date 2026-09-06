@@ -50,6 +50,10 @@ public class LeaderboardEntryResponse {
         this.xp = xp;
     }
 
+    public int getTotalXp() {
+        return xp;
+    }
+
     public int getCurrentStreak() {
         return currentStreak;
     }

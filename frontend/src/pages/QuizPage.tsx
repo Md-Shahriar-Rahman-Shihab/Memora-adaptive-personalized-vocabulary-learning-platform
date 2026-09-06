@@ -9,6 +9,8 @@ import {
   Flame,
   Award,
   RefreshCw,
+  Trophy,
+  User,
 } from 'lucide-react';
 import { quizApi } from '../api/quizApi';
 import {
@@ -119,6 +121,7 @@ export const QuizPage: React.FC = () => {
 
     try {
       const res = await quizApi.submitAnswer(quiz.id, currentQuestion.id, {
+        questionId: currentQuestion.id,
         answer,
         responseTimeMs: latencyMs,
       });
@@ -151,11 +154,12 @@ export const QuizPage: React.FC = () => {
           setQuizResult(res.data);
           setShowCelebration(true);
           await refreshUser();
+          const earnedXp = (res.data.correctAnswers * 10) + (res.data.correctAnswers === res.data.totalQuestions ? 20 : 0);
           addToast({
             type: 'xp',
             title: 'Quiz Complete! 🎉',
             message: `Scored ${res.data.correctAnswers}/${res.data.totalQuestions} (${Math.round(res.data.percentage)}%)`,
-            xpAmount: 40,
+            xpAmount: earnedXp,
           });
         }
       } catch (err: any) {
@@ -385,7 +389,7 @@ export const QuizPage: React.FC = () => {
                   <span className="text-xs text-memora-text-muted">Score</span>
                 </div>
                 <div>
-                  <span className="text-xl font-bold text-memora-green block">+40 XP</span>
+                  <span className="text-xl font-bold text-memora-green block">+{(quizResult.correctAnswers * 10) + (quizResult.correctAnswers === quizResult.totalQuestions ? 20 : 0)} XP</span>
                   <span className="text-xs text-memora-text-muted">Earned</span>
                 </div>
                 <div>
@@ -396,7 +400,7 @@ export const QuizPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-2 flex flex-col gap-3">
+              <div className="pt-2 space-y-3">
                 <Button
                   variant="primary"
                   size="lg"
@@ -405,11 +409,33 @@ export const QuizPage: React.FC = () => {
                 >
                   Continue Learning Path
                 </Button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onClick={() => navigate('/leaderboard')}
+                    leftIcon={<Trophy className="w-4 h-4 text-amber-500" />}
+                    className="w-full justify-center border-black/[0.08] hover:bg-stone-50"
+                  >
+                    Leaderboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onClick={() => navigate('/profile')}
+                    leftIcon={<User className="w-4 h-4 text-memora-green" />}
+                    className="w-full justify-center border-black/[0.08] hover:bg-stone-50"
+                  >
+                    My Profile
+                  </Button>
+                </div>
+
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="md"
                   onClick={() => navigate('/dashboard')}
-                  className="w-full justify-center"
+                  className="w-full justify-center text-stone-500 hover:text-stone-700"
                 >
                   Back to Dashboard
                 </Button>

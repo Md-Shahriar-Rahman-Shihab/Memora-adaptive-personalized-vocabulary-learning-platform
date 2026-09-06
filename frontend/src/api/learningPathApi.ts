@@ -45,6 +45,11 @@ export const learningPathApi = {
     return res.data;
   },
 
+  advanceToNextDay: async (): Promise<ApiResponse<LearningPathResponse>> => {
+    const res = await apiClient.post<ApiResponse<LearningPathResponse>>('/learning-path/advance');
+    return res.data;
+  },
+
   getPathHistory: async (): Promise<ApiResponse<LearningPathResponse[]>> => {
     const res = await apiClient.get<ApiResponse<LearningPathResponse[]>>('/learning-path/history');
     return res.data;

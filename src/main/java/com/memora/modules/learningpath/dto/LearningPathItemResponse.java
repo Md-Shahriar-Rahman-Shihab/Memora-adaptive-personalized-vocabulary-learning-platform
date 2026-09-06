@@ -25,6 +25,9 @@ public class LearningPathItemResponse {
     private String notes;
     private Instant scheduledAt;
     private Instant completedAt;
+    private String definition;
+    private String pronunciation;
+    private String exampleSentence;
 
     public LearningPathItemResponse() {
     }
@@ -33,6 +36,15 @@ public class LearningPathItemResponse {
                                     String meaning, Long quizId, LearningItemPriority priority,
                                     LearningItemStatus status, int orderIndex, String notes,
                                     Instant scheduledAt, Instant completedAt) {
+        this(id, type, wordId, word, meaning, quizId, priority, status, orderIndex, notes,
+                scheduledAt, completedAt, null, null, null);
+    }
+
+    public LearningPathItemResponse(Long id, LearningItemType type, Long wordId, String word,
+                                    String meaning, Long quizId, LearningItemPriority priority,
+                                    LearningItemStatus status, int orderIndex, String notes,
+                                    Instant scheduledAt, Instant completedAt,
+                                    String definition, String pronunciation, String exampleSentence) {
         this.id = id;
         this.type = type;
         this.wordId = wordId;
@@ -45,6 +57,9 @@ public class LearningPathItemResponse {
         this.notes = notes;
         this.scheduledAt = scheduledAt;
         this.completedAt = completedAt;
+        this.definition = definition;
+        this.pronunciation = pronunciation;
+        this.exampleSentence = exampleSentence;
     }
 
     public Long getId() {
@@ -141,5 +156,29 @@ public class LearningPathItemResponse {
 
     public void setCompletedAt(Instant completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public String getDefinition() {
+        return definition;
+    }
+
+    public void setDefinition(String definition) {
+        this.definition = definition;
+    }
+
+    public String getPronunciation() {
+        return pronunciation;
+    }
+
+    public void setPronunciation(String pronunciation) {
+        this.pronunciation = pronunciation;
+    }
+
+    public String getExampleSentence() {
+        return exampleSentence;
+    }
+
+    public void setExampleSentence(String exampleSentence) {
+        this.exampleSentence = exampleSentence;
     }
 }

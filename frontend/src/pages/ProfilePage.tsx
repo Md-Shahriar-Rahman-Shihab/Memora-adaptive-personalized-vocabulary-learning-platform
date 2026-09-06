@@ -169,28 +169,34 @@ export const ProfilePage: React.FC = () => {
             </div>
           ) : history.length > 0 ? (
             <div className="divide-y divide-black/[0.04]">
-              {history.map((tx) => (
-                <div key={tx.id} className="py-3 flex items-center justify-between gap-4 hover:bg-stone-50/60 rounded-xl px-2 -mx-2 transition-colors">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-memora-dark">{tx.description}</p>
-                    <div className="flex items-center gap-2 text-xs text-memora-text-muted">
-                      <Badge variant="neutral" size="sm">
-                        {tx.sourceActivity.replace(/_/g, ' ')}
-                      </Badge>
-                      <span>• {new Date(tx.createdAt).toLocaleDateString()}</span>
+              {history.map((tx) => {
+                const activityName = (tx.activityType || tx.sourceActivity || 'ACTIVITY').toString().replace(/_/g, ' ');
+                const earned = tx.amount ?? tx.xpEarned ?? 0;
+                const balance = tx.balanceAfter ?? tx.resultingTotalXp ?? 0;
+
+                return (
+                  <div key={tx.id} className="py-3 flex items-center justify-between gap-4 hover:bg-stone-50/60 rounded-xl px-2 -mx-2 transition-colors">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-memora-dark">{tx.description}</p>
+                      <div className="flex items-center gap-2 text-xs text-memora-text-muted">
+                        <Badge variant="neutral" size="sm">
+                          {activityName}
+                        </Badge>
+                        <span>• {new Date(tx.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-black text-memora-green block">
+                        +{earned} XP
+                      </span>
+                      <span className="text-[11px] text-stone-400">
+                        Balance: {balance}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-sm font-black text-memora-green block">
-                      +{tx.xpEarned} XP
-                    </span>
-                    <span className="text-[11px] text-stone-400">
-                      Balance: {tx.resultingTotalXp}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="py-8 text-center text-xs text-memora-text-muted">

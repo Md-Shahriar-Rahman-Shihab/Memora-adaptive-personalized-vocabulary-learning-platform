@@ -82,6 +82,18 @@ public class XpTransactionResponse {
         this.balanceAfter = balanceAfter;
     }
 
+    public int getXpEarned() {
+        return amount;
+    }
+
+    public int getResultingTotalXp() {
+        return balanceAfter;
+    }
+
+    public String getSourceActivity() {
+        return activityType != null ? activityType.name() : null;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

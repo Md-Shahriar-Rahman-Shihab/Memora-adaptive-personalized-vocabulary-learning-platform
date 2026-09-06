@@ -37,9 +37,14 @@ public interface LearningPathService {
     LearningItemCompletionResponse completeItem(String userEmail, Long itemId, LearningItemCompletionRequest request);
 
     /**
-     * Dynamically regenerates remaining pending items based on latest memory retention and quiz performance.
+     * Dynamically regenerates future pending items based on updated retention and performance metrics.
      */
     LearningPathResponse regeneratePath(String userEmail);
+
+    /**
+     * Concludes the current daily learning path and advances to the next day's new learning curriculum.
+     */
+    LearningPathResponse advanceToNextDay(String userEmail);
 
     /**
      * Retrieves historical learning path records for the learner.

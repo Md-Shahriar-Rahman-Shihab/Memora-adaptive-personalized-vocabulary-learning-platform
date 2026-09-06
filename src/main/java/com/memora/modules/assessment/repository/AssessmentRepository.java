@@ -19,5 +19,10 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     List<Assessment> findByUserIdOrderByStartedAtDesc(Long userId);
 
     @Query("SELECT a FROM Assessment a WHERE a.user.id = :userId AND a.status = 'IN_PROGRESS' ORDER BY a.startedAt DESC")
-    Optional<Assessment> findActiveAssessment(@Param("userId") Long userId);
+    List<Assessment> findActiveAssessmentsList(@Param("userId") Long userId);
+
+    default Optional<Assessment> findActiveAssessment(Long userId) {
+        List<Assessment> list = findActiveAssessmentsList(userId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
 }

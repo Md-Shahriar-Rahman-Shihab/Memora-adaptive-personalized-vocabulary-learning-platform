@@ -21,5 +21,10 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
     List<LearningPath> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     @Query("SELECT lp FROM LearningPath lp WHERE lp.user.id = :userId AND lp.status = 'ACTIVE' ORDER BY lp.createdAt DESC")
-    Optional<LearningPath> findActivePathByUserId(@Param("userId") Long userId);
+    List<LearningPath> findActivePathsList(@Param("userId") Long userId);
+
+    default Optional<LearningPath> findActivePathByUserId(Long userId) {
+        List<LearningPath> list = findActivePathsList(userId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
 }

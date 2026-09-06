@@ -51,7 +51,7 @@ export const LeaderboardPage: React.FC = () => {
                   {entries[1].displayName}
                 </h4>
                 <p className="text-xs font-bold text-memora-green mt-0.5">
-                  {entries[1].totalXp.toLocaleString()} XP
+                  {(entries[1].xp ?? entries[1].totalXp ?? 0).toLocaleString()} XP
                 </p>
               </div>
               <div className="flex items-center gap-1 text-xs text-orange-600 font-bold mt-2">
@@ -76,7 +76,7 @@ export const LeaderboardPage: React.FC = () => {
                   {entries[0].displayName}
                 </h4>
                 <p className="text-sm font-extrabold text-memora-green mt-0.5">
-                  {entries[0].totalXp.toLocaleString()} XP
+                  {(entries[0].xp ?? entries[0].totalXp ?? 0).toLocaleString()} XP
                 </p>
               </div>
               <div className="flex items-center gap-1 text-xs text-orange-600 font-bold mt-2">
@@ -98,7 +98,7 @@ export const LeaderboardPage: React.FC = () => {
                   {entries[2].displayName}
                 </h4>
                 <p className="text-xs font-bold text-memora-green mt-0.5">
-                  {entries[2].totalXp.toLocaleString()} XP
+                  {(entries[2].xp ?? entries[2].totalXp ?? 0).toLocaleString()} XP
                 </p>
               </div>
               <div className="flex items-center gap-1 text-xs text-orange-600 font-bold mt-2">
@@ -128,14 +128,19 @@ export const LeaderboardPage: React.FC = () => {
             <div className="py-16 flex justify-center">
               <LoadingSpinner size="lg" label="Sorting global leaderboard..." />
             </div>
+          ) : entries.length === 0 ? (
+            <div className="py-16 text-center text-sm text-memora-text-muted">
+              No leaderboard data available yet. Complete a quiz to be the first!
+            </div>
           ) : (
             <div className="divide-y divide-black/[0.04]">
-              {entries.map((entry) => {
-                const isCurrentUser = user && user.id === entry.userId;
+              {entries.map((entry, index) => {
+                const isCurrentUser = user && (user.name === entry.displayName || user.email === entry.displayName || (entry.userId && user.id === entry.userId));
+                const xpValue = entry.xp ?? entry.totalXp ?? 0;
 
                 return (
                   <div
-                    key={entry.userId}
+                    key={entry.userId ?? `${entry.rank}-${entry.displayName}-${index}`}
                     className={`py-3.5 px-4 rounded-2xl flex items-center justify-between transition-all duration-200 ${
                       isCurrentUser
                         ? 'bg-memora-green-light border border-memora-green/30'
@@ -160,7 +165,7 @@ export const LeaderboardPage: React.FC = () => {
 
                       {/* Avatar initial */}
                       <div className="w-9 h-9 rounded-xl bg-white border border-black/[0.06] flex items-center justify-center font-extrabold text-xs text-memora-dark shrink-0 shadow-sm">
-                        {entry.displayName.charAt(0).toUpperCase()}
+                        {(entry.displayName || 'U').charAt(0).toUpperCase()}
                       </div>
 
                       <div className="min-w-0">
@@ -185,7 +190,7 @@ export const LeaderboardPage: React.FC = () => {
 
                       <div className="min-w-[80px]">
                         <span className="text-sm font-extrabold text-memora-dark">
-                          {entry.totalXp.toLocaleString()}
+                          {xpValue.toLocaleString()}
                         </span>
                         <span className="text-[10px] text-memora-text-muted block">XP</span>
                       </div>

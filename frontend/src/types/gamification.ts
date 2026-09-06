@@ -58,20 +58,26 @@ export interface LearnerStatsResponse {
 
 export interface XpTransactionResponse {
   id: number;
-  xpEarned: number;
-  resultingTotalXp: number;
-  sourceActivity: string;
+  amount?: number;
+  xpEarned?: number;
+  resultingTotalXp?: number;
+  balanceAfter?: number;
+  activityType?: string;
+  sourceActivity?: string;
   sourceId?: string;
+  referenceId?: string;
   description: string;
   createdAt: string;
 }
 
 export interface LeaderboardEntryResponse {
   rank: number;
-  userId: number;
+  userId?: number;
   displayName: string;
-  totalXp: number;
+  xp?: number;
+  totalXp?: number;
   currentStreak: number;
+  level?: string;
 }
 
 export interface GamificationActivityResultResponse {

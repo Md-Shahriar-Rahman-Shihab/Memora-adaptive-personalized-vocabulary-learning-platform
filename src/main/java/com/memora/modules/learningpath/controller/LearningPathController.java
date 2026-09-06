@@ -91,6 +91,16 @@ public class LearningPathController {
     }
 
     /**
+     * Advances to the next day's new learning path curriculum.
+     */
+    @PostMapping("/advance")
+    public ResponseEntity<ApiResponse<LearningPathResponse>> advanceToNextDay(Authentication authentication) {
+        String email = authentication.getName();
+        LearningPathResponse response = learningPathService.advanceToNextDay(email);
+        return ResponseEntity.ok(ApiResponse.success("Advanced to next day's learning path successfully", response));
+    }
+
+    /**
      * Retrieves historical learning path records for the learner.
      */
     @GetMapping("/history")

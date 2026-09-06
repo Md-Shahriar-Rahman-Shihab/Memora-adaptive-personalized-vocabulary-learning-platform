@@ -56,6 +56,12 @@ public class QuizServiceImpl implements QuizService {
     private final MemoryService memoryService;
     private final GamificationService gamificationService;
 
+    @Autowired(required = false)
+    private com.memora.modules.learningpath.repository.LearningPathRepository learningPathRepository;
+
+    @Autowired(required = false)
+    private com.memora.modules.learningpath.repository.LearningPathItemRepository learningPathItemRepository;
+
     @Autowired
     public QuizServiceImpl(QuizRepository quizRepository,
                            QuestionRepository questionRepository,
@@ -246,6 +252,45 @@ public class QuizServiceImpl implements QuizService {
                 log.warn("Gamification tracking failed for quiz completion: {}", e.getMessage());
             }
         }
+
+        // Sync with Learning Path if this quiz is part of user's active curriculum
+        if (learningPathItemRepository != null && learningPathRepository != null) {
+            try {
+                List<com.memora.modules.learningpath.entity.LearningPathItem> pathItems = learningPathItemRepository.findByQuizId(quizId);
+                if (pathItems.isEmpty()) {
+                    // Fallback: find any pending QUIZ item in the user's active learning path
+                    learningPathRepository.findActivePathByUserId(user.getId()).ifPresent(activePath -> {
+                        List<com.memora.modules.learningpath.entity.LearningPathItem> allItems =
+                                learningPathItemRepository.findByLearningPathIdOrderByOrderIndexAsc(activePath.getId());
+                        for (com.memora.modules.learningpath.entity.LearningPathItem it : allItems) {
+                            if (it.getItemType() == com.memora.modules.learningpath.domain.LearningItemType.QUIZ
+                                    && it.getStatus() != com.memora.modules.learningpath.domain.LearningItemStatus.COMPLETED) {
+                                pathItems.add(it);
+                                break;
+                            }
+                        }
+                    });
+                }
+
+                for (com.memora.modules.learningpath.entity.LearningPathItem item : pathItems) {
+                    if (item.getStatus() == com.memora.modules.learningpath.domain.LearningItemStatus.COMPLETED) {
+                        continue;
+                    }
+                    item.markCompleted();
+                    learningPathItemRepository.save(item);
+
+                    com.memora.modules.learningpath.entity.LearningPath path = item.getLearningPath();
+                    path.incrementCompleted();
+                    // Completing the consolidating Daily Retention Quiz finishes today's path!
+                    path.setStatus(com.memora.modules.learningpath.domain.LearningPathStatus.COMPLETED);
+                    learningPathRepository.save(path);
+                    log.info("Concluded learning path ID: {} after daily retention quiz completion", path.getId());
+                }
+            } catch (Exception e) {
+                log.error("Could not sync quiz completion with learning path: {}", e.getMessage(), e);
+            }
+        }
+
 
         return new QuizResultResponse(
                 quizId,

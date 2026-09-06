@@ -23,5 +23,10 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
     List<QuizAttempt> findLatestAttemptsForQuiz(@Param("quizId") Long quizId, @Param("userId") Long userId);
 
     @Query("SELECT qa FROM QuizAttempt qa WHERE qa.quiz.id = :quizId AND qa.user.id = :userId AND qa.completedAt IS NULL ORDER BY qa.startedAt DESC")
-    Optional<QuizAttempt> findActiveAttempt(@Param("quizId") Long quizId, @Param("userId") Long userId);
+    List<QuizAttempt> findActiveAttemptsList(@Param("quizId") Long quizId, @Param("userId") Long userId);
+
+    default Optional<QuizAttempt> findActiveAttempt(Long quizId, Long userId) {
+        List<QuizAttempt> list = findActiveAttemptsList(quizId, userId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
 }

@@ -9,9 +9,14 @@ import {
   Play,
   RefreshCw,
   AlertCircle,
+  Volume2,
+  BookOpen,
+  ArrowRight,
 } from 'lucide-react';
 import { learningPathApi } from '../api/learningPathApi';
+import { vocabularyApi } from '../api/vocabularyApi';
 import { TodayLearningPathResponse, LearningPathItemResponse } from '../types/learningPath';
+import { VocabularyWordResponse } from '../types/vocabulary';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { AppShell } from '../components/layout/AppShell';
@@ -31,6 +36,12 @@ export const LearningPathPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Inline Vocabulary Learning Card State (no background blur, pops open right in list)
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+  const [wordDetailsMap, setWordDetailsMap] = useState<Record<number, VocabularyWordResponse>>({});
+  const [isWordLoading, setIsWordLoading] = useState<boolean>(false);
+  const [isCompletingId, setIsCompletingId] = useState<number | null>(null);
 
   const fetchTodayPath = async () => {
     setIsLoading(true);
@@ -74,7 +85,6 @@ export const LearningPathPage: React.FC = () => {
     try {
       const res = await learningPathApi.startItem(itemId);
       if (res.success) {
-        // Update local status
         setPath((prev) => {
           if (!prev) return prev;
           return {
@@ -91,6 +101,56 @@ export const LearningPathPage: React.FC = () => {
         title: 'Error',
         message: err?.response?.data?.message || 'Could not start item.',
       });
+    }
+  };
+
+  const handleSpeak = (text: string) => {
+    if ('speechSynthesis' in window && text) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const toggleLearnItem = async (item: LearningPathItemResponse) => {
+    if (item.type === 'QUIZ') {
+      if (item.quizId) {
+        navigate(`/quiz/${item.quizId}`);
+      } else {
+        navigate('/quiz');
+      }
+      return;
+    }
+
+    // If currently expanded, toggle it closed
+    if (expandedItemId === item.id) {
+      setExpandedItemId(null);
+      return;
+    }
+
+    // Expand this item right in the list
+    setExpandedItemId(item.id);
+
+    // If item is pending, mark it as started on the server
+    if (item.status === 'PENDING') {
+      handleStartItem(item.id);
+    }
+
+    // Fetch full word details if not already loaded in memory
+    if (item.wordId && !wordDetailsMap[item.wordId]) {
+      setIsWordLoading(true);
+      try {
+        const res = await vocabularyApi.getWordById(item.wordId);
+        if (res.success && res.data) {
+          setWordDetailsMap((prev) => ({ ...prev, [item.wordId!]: res.data }));
+        }
+      } catch {
+        // Fallback to existing item attributes
+      } finally {
+        setIsWordLoading(false);
+      }
     }
   };
 
@@ -112,7 +172,7 @@ export const LearningPathPage: React.FC = () => {
           type: 'xp',
           title: 'Lesson Completed!',
           message: res.data.message || 'Great job practicing your vocabulary.',
-          xpAmount: 20,
+          xpAmount: 15,
         });
 
         // Refresh user XP/streak in context and reload path
@@ -125,6 +185,16 @@ export const LearningPathPage: React.FC = () => {
         title: 'Error',
         message: err?.response?.data?.message || 'Failed to complete item.',
       });
+    }
+  };
+
+  const handleCompleteAndCollapse = async (item: LearningPathItemResponse) => {
+    setIsCompletingId(item.id);
+    try {
+      await handleCompleteItem(item);
+      setExpandedItemId(null);
+    } finally {
+      setIsCompletingId(null);
     }
   };
 
@@ -148,6 +218,31 @@ export const LearningPathPage: React.FC = () => {
       });
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
+
+  const handleAdvanceDay = async () => {
+    setIsAdvancing(true);
+    try {
+      const res = await learningPathApi.advanceToNextDay();
+      if (res.success) {
+        addToast({
+          type: 'success',
+          title: `Welcome to Day ${res.data?.currentDay || (path ? path.currentDay + 1 : '')}!`,
+          message: 'New vocabulary and adaptive lessons generated for you.',
+        });
+        await fetchTodayPath();
+      }
+    } catch (err: any) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: err?.response?.data?.message || 'Could not advance to next day.',
+      });
+    } finally {
+      setIsAdvancing(false);
     }
   };
 
@@ -242,6 +337,34 @@ export const LearningPathPage: React.FC = () => {
           </div>
         </Card>
 
+        {/* Day Completion Banner */}
+        {((path.totalItems > 0 && path.completedItems >= path.totalItems) ||
+          path.items.some((it) => it.type === 'QUIZ' && it.status === 'COMPLETED')) && (
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-memora-green" />
+                <span className="font-extrabold text-memora-dark text-lg">
+                  Day {path.currentDay} Curriculum Completed! 🎉
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-memora-text-muted">
+                You've completed your daily lessons and retention quiz. Ready for brand new vocabulary and challenges?
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              isLoading={isAdvancing}
+              onClick={handleAdvanceDay}
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+              className="shrink-0 shadow-md"
+            >
+              Start Day {path.currentDay + 1} (New Learning)
+            </Button>
+          </div>
+        )}
+
         {/* Learning Items Stack */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-memora-dark px-1">
@@ -252,104 +375,249 @@ export const LearningPathPage: React.FC = () => {
             path.items.map((item) => {
               const isCompleted = item.status === 'COMPLETED';
               const isInProgress = item.status === 'IN_PROGRESS';
+              const isExpanded = expandedItemId === item.id;
+              const wordInfo = item.wordId ? wordDetailsMap[item.wordId] : null;
 
               return (
                 <div
                   key={item.id}
-                  className={`p-5 rounded-3xl border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                    isCompleted
-                      ? 'bg-[#FBFBF9] border-black/[0.04] opacity-80'
-                      : 'bg-white border-black/[0.08] shadow-card hover:border-black/[0.12]'
+                  className={`rounded-3xl border transition-all duration-200 overflow-hidden ${
+                    isExpanded
+                      ? 'bg-white border-memora-green ring-4 ring-memora-green/10 shadow-lg'
+                      : isCompleted
+                      ? 'bg-[#FBFBF9] border-black/[0.04] opacity-85'
+                      : 'bg-white border-black/[0.08] shadow-card hover:border-black/[0.15]'
                   }`}
                 >
-                  {/* Left: Icon & Description */}
-                  <div className="flex items-start sm:items-center gap-4 min-w-0">
+                  {/* Top Item Summary Row */}
+                  <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Left: Icon & Title */}
                     <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                        item.type === 'REVIEW'
-                          ? 'bg-blue-100 text-blue-700'
-                          : item.type === 'NEW_WORD'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-purple-100 text-purple-700'
-                      }`}
+                      onClick={() => toggleLearnItem(item)}
+                      className="flex items-start sm:items-center gap-4 min-w-0 cursor-pointer group flex-1"
                     >
-                      {item.type === 'REVIEW' && <RotateCw className="w-5 h-5" />}
-                      {item.type === 'NEW_WORD' && <Sparkles className="w-5 h-5" />}
-                      {item.type === 'QUIZ' && <HelpCircle className="w-5 h-5" />}
-                    </div>
-
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-base font-extrabold text-memora-dark tracking-tight">
-                          {item.word || (item.type === 'QUIZ' ? 'Daily Retention Quiz' : 'Word')}
-                        </span>
-                        <Badge
-                          variant={
-                            item.priority === 'HIGH'
-                              ? 'red'
-                              : item.priority === 'MEDIUM'
-                              ? 'amber'
-                              : 'neutral'
-                          }
-                          size="sm"
-                        >
-                          {item.priority} PRIORITY
-                        </Badge>
-                        <span className="text-[11px] text-stone-400 font-semibold">
-                          #{item.orderIndex}
-                        </span>
-                      </div>
-                      <p className="text-xs text-memora-text-muted leading-relaxed line-clamp-2">
-                        {item.notes || item.meaning || `${item.type} vocabulary task`}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Actions */}
-                  <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
-                    {isCompleted ? (
-                      <Badge variant="green" size="md">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                      </Badge>
-                    ) : isInProgress ? (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleCompleteItem(item)}
-                        rightIcon={<CheckCircle2 className="w-4 h-4" />}
+                      <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                          item.type === 'REVIEW'
+                            ? 'bg-blue-100 text-blue-700'
+                            : item.type === 'NEW_WORD'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}
                       >
-                        Complete Item
-                      </Button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {item.type === 'REVIEW' && (
-                          <Button
-                            variant="outline"
+                        {item.type === 'REVIEW' && <RotateCw className="w-5 h-5" />}
+                        {item.type === 'NEW_WORD' && <Sparkles className="w-5 h-5" />}
+                        {item.type === 'QUIZ' && <HelpCircle className="w-5 h-5" />}
+                      </div>
+
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-base font-extrabold text-memora-dark tracking-tight group-hover:text-memora-green transition-colors">
+                            {item.word || (item.type === 'QUIZ' ? 'Daily Retention Quiz' : 'Word')}
+                          </span>
+                          <Badge
+                            variant={
+                              item.priority === 'HIGH'
+                                ? 'red'
+                                : item.priority === 'MEDIUM'
+                                ? 'amber'
+                                : 'neutral'
+                            }
                             size="sm"
-                            onClick={() => navigate('/review')}
-                            leftIcon={<RotateCw className="w-3.5 h-3.5 text-blue-600" />}
                           >
-                            Practice
-                          </Button>
+                            {item.priority} PRIORITY
+                          </Badge>
+                          <span className="text-[11px] text-stone-400 font-semibold">
+                            #{item.orderIndex}
+                          </span>
+                        </div>
+                        {!isExpanded && (
+                          <p className="text-xs text-memora-text-muted leading-relaxed line-clamp-1">
+                            {item.meaning || item.notes || `${item.type} vocabulary task`}
+                          </p>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+                      {isCompleted ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="green" size="md">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Completed
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleLearnItem(item)}
+                            className="text-xs text-stone-500 hover:text-stone-800 font-semibold"
+                          >
+                            {isExpanded ? 'Hide' : 'Review'}
+                          </Button>
+                        </div>
+                      ) : isExpanded ? (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleStartItem(item.id)}
-                          leftIcon={<Play className="w-3.5 h-3.5 text-stone-600" />}
+                          onClick={() => setExpandedItemId(null)}
+                          className="text-xs text-stone-500"
                         >
-                          Start
+                          Hide Details
                         </Button>
+                      ) : isInProgress ? (
                         <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => handleCompleteItem(item)}
+                          onClick={() => toggleLearnItem(item)}
+                          leftIcon={<BookOpen className="w-4 h-4" />}
+                          className="shadow-sm"
                         >
-                          Mark Done
+                          Study & Complete
                         </Button>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => toggleLearnItem(item)}
+                            leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
+                            className="shadow-sm"
+                          >
+                            Start
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCompleteItem(item)}
+                            className="text-xs text-stone-500 hover:text-stone-800"
+                          >
+                            Mark Done
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Inline Study Pop-Up Card (in the same place, no background blur) */}
+                  {isExpanded && (
+                    <div className="px-6 pb-6 pt-3 border-t border-emerald-100 bg-gradient-to-b from-emerald-50/25 to-white space-y-5 animate-fade-in">
+                      {/* Word, Category, Pronunciation */}
+                      <div className="flex items-start justify-between gap-4 pt-1">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-2xl sm:text-3xl font-black text-memora-dark tracking-tight">
+                              {wordInfo?.word || item.word}
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => handleSpeak(wordInfo?.word || item.word || '')}
+                              className="w-9 h-9 rounded-xl bg-emerald-100/80 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center transition shadow-sm hover:scale-105 active:scale-95"
+                              title="Listen to pronunciation"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {(wordInfo?.pronunciation || item.pronunciation) && (
+                            <p className="text-xs sm:text-sm font-mono text-stone-500 mt-1">
+                              /{wordInfo?.pronunciation || item.pronunciation}/
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {wordInfo?.category && (
+                            <Badge variant="neutral" size="sm">
+                              {wordInfo.category.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
+                          <Badge variant="green" size="sm">
+                            CEFR {wordInfo?.difficultyLevel || path.targetLevel}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Meaning Box */}
+                      <div className="p-4 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 block">
+                          Meaning
+                        </span>
+                        <p className="text-base font-bold text-emerald-950 leading-relaxed">
+                          {wordInfo?.meaning || item.meaning || 'No meaning provided'}
+                        </p>
+                      </div>
+
+                      {/* Detailed Definition */}
+                      {(wordInfo?.definition || item.definition) && (
+                        <div className="space-y-1 px-1">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-memora-text-muted block">
+                            Definition
+                          </span>
+                          <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+                            {wordInfo?.definition || item.definition}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Example Sentence Box */}
+                      {(wordInfo?.exampleSentence || item.exampleSentence) && (
+                        <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+                              Example in Context
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleSpeak(wordInfo?.exampleSentence || item.exampleSentence || '')
+                              }
+                              className="text-xs text-stone-500 hover:text-stone-800 flex items-center gap-1 font-semibold transition"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" /> Listen
+                            </button>
+                          </div>
+                          <p className="text-xs sm:text-sm font-medium italic text-stone-800 leading-relaxed">
+                            "{wordInfo?.exampleSentence || item.exampleSentence}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Notes / Discovery Tip */}
+                      {item.notes && (
+                        <div className="flex items-center gap-2 text-xs text-stone-500 bg-stone-50 px-3.5 py-2 rounded-xl">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span>{item.notes}</span>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-end gap-3 pt-3 border-t border-black/[0.06]">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setExpandedItemId(null)}
+                        >
+                          Close
+                        </Button>
+
+                        {item.status !== 'COMPLETED' ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            isLoading={isCompletingId === item.id}
+                            onClick={() => handleCompleteAndCollapse(item)}
+                            leftIcon={<CheckCircle2 className="w-4 h-4" />}
+                            className="shadow-sm"
+                          >
+                            Mark as Complete (+15 XP)
+                          </Button>
+                        ) : (
+                          <Badge variant="green" size="md">
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Completed
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })

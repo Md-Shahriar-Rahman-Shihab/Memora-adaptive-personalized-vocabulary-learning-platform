@@ -35,10 +35,11 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-black/[0.06] flex flex-col justify-between shrink-0 min-h-screen hidden md:flex">
-      <div>
+    <aside className="w-64 bg-white border-r border-black/[0.06] flex flex-col justify-between shrink-0 h-screen sticky top-0 hidden md:flex z-30">
+      {/* Top Section: Logo and Nav Items */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         {/* Logo */}
-        <div className="h-20 px-6 flex items-center border-b border-black/[0.04]">
+        <div className="h-20 px-6 flex items-center border-b border-black/[0.04] shrink-0">
           <Link to="/dashboard" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-2xl bg-memora-green-light flex items-center justify-center text-memora-green">
               <Sparkles className="w-5 h-5 fill-current" />
@@ -48,7 +49,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-4 space-y-1.5">
+        <nav className="p-4 space-y-1.5 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -69,9 +70,9 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* User Footer & Logout */}
-      <div className="p-4 border-t border-black/[0.06] space-y-3">
-        <div className="flex items-center gap-3 px-3 py-2 bg-[#F8F8F5] rounded-2xl border border-black/[0.04]">
-          <div className="w-9 h-9 rounded-xl bg-memora-green text-white flex items-center justify-center font-bold text-sm shrink-0">
+      <div className="p-4 border-t border-black/[0.06] shrink-0 bg-white space-y-2.5">
+        <div className="flex items-center gap-3 px-3 py-2.5 bg-[#F8F8F5] rounded-2xl border border-black/[0.04]">
+          <div className="w-9 h-9 rounded-xl bg-memora-green text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
             {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
           </div>
           <div className="flex-1 min-w-0">
@@ -82,7 +83,7 @@ export const Sidebar: React.FC = () => {
 
         <button
           onClick={logout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-stone-500 hover:text-red-600 hover:bg-red-50/80 transition-colors"
         >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>

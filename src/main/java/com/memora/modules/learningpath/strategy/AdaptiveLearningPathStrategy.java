@@ -112,6 +112,23 @@ public class AdaptiveLearningPathStrategy implements LearningPathStrategy {
                 scheduledWordIds.add(newWord.getWordId());
                 newWordsAdded++;
             }
+
+            // If not enough brand new unlearned words exist, fill remaining budget from available words
+            if (newWordsAdded < maxNewWords) {
+                for (VocabularyWordSummary word : context.getAvailableNewWords()) {
+                    if (newWordsAdded >= maxNewWords) break;
+                    if (scheduledWordIds.contains(word.getWordId())) continue;
+
+                    candidates.add(LearningPathItemCandidate.ofNewWord(
+                            word.getWordId(),
+                            word.getWord(),
+                            LearningItemPriority.LOW,
+                            String.format("Reinforcing vocabulary practice (CEFR %s)", word.getDifficultyLevel())
+                    ));
+                    scheduledWordIds.add(word.getWordId());
+                    newWordsAdded++;
+                }
+            }
         }
 
         // 3. Append Consolidating Daily Quiz (if any learning items were planned)

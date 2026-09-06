@@ -8,7 +8,6 @@ import jakarta.validation.constraints.PositiveOrZero;
  */
 public class AnswerSubmissionRequest {
 
-    @NotNull(message = "Question ID is required")
     private Long questionId;
 
     @NotNull(message = "Answer is required")
@@ -19,6 +18,11 @@ public class AnswerSubmissionRequest {
     private Long responseTimeMs;
 
     public AnswerSubmissionRequest() {
+    }
+
+    public AnswerSubmissionRequest(String answer, Long responseTimeMs) {
+        this.answer = answer;
+        this.responseTimeMs = responseTimeMs;
     }
 
     public AnswerSubmissionRequest(Long questionId, String answer, Long responseTimeMs) {

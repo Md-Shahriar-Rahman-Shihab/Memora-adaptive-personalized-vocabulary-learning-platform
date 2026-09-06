@@ -141,10 +141,36 @@ public class LearningPathServiceImpl implements LearningPathService {
     }
 
     @Override
+    @Transactional
     public TodayLearningPathResponse getTodayPath(String userEmail) {
         User user = findUserByEmail(userEmail);
-        LearningPath path = learningPathRepository.findActivePathByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("No active learning path found for user: " + userEmail));
+        Optional<LearningPath> activePathOpt = learningPathRepository.findActivePathByUserId(user.getId());
+
+        LearningPath path;
+        if (activePathOpt.isPresent()) {
+            path = activePathOpt.get();
+
+            List<LearningPathItem> currentItems = learningPathItemRepository.findByLearningPathIdOrderByOrderIndexAsc(path.getId());
+            boolean allItemsFinished = path.getTotalItems() > 0 && path.getCompletedItems() >= path.getTotalItems();
+            boolean quizFinished = currentItems.stream()
+                    .anyMatch(it -> it.getItemType() == LearningItemType.QUIZ && it.getStatus() == LearningItemStatus.COMPLETED);
+
+            if (path.getStatus() == LearningPathStatus.COMPLETED || allItemsFinished || quizFinished) {
+                path.setStatus(LearningPathStatus.COMPLETED);
+                learningPathRepository.save(path);
+                path = createNextDayPath(user, path);
+            }
+        } else {
+            List<LearningPath> historicalPaths = learningPathRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+            if (!historicalPaths.isEmpty()) {
+                LearningPath latest = historicalPaths.get(0);
+                path = createNextDayPath(user, latest);
+            } else {
+                LearningPathResponse resp = startPath(userEmail);
+                path = learningPathRepository.findById(resp.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Failed to initialize learning path"));
+            }
+        }
 
         List<LearningPathItem> items = learningPathItemRepository.findByLearningPathIdOrderByOrderIndexAsc(path.getId());
         List<LearningPathItemResponse> itemResponses = items.stream()
@@ -217,6 +243,9 @@ public class LearningPathServiceImpl implements LearningPathService {
         learningPathItemRepository.save(item);
 
         path.incrementCompleted();
+        if (item.getItemType() == LearningItemType.QUIZ || (path.getTotalItems() > 0 && path.getCompletedItems() >= path.getTotalItems())) {
+            path.setStatus(LearningPathStatus.COMPLETED);
+        }
         learningPathRepository.save(path);
 
         if (gamificationService != null) {
@@ -301,6 +330,42 @@ public class LearningPathServiceImpl implements LearningPathService {
     }
 
     @Override
+    @Transactional
+    public LearningPathResponse advanceToNextDay(String userEmail) {
+        User user = findUserByEmail(userEmail);
+        Optional<LearningPath> activePathOpt = learningPathRepository.findActivePathByUserId(user.getId());
+        LearningPath previousPath = activePathOpt.orElseGet(() -> {
+            List<LearningPath> list = learningPathRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+            return list.isEmpty() ? null : list.get(0);
+        });
+
+        if (previousPath != null && previousPath.getStatus() == LearningPathStatus.ACTIVE) {
+            previousPath.setStatus(LearningPathStatus.COMPLETED);
+            learningPathRepository.save(previousPath);
+        }
+
+        LearningPath newPath = createNextDayPath(user, previousPath);
+        return mapToLearningPathResponse(newPath);
+    }
+
+    private LearningPath createNextDayPath(User user, LearningPath previousPath) {
+        int nextDay = previousPath != null ? previousPath.getCurrentDay() + 1 : 1;
+        DifficultyLevel targetLevel = resolveTargetLevel(user);
+        LearningPathContext context = buildContext(user, targetLevel, nextDay);
+
+        LearningPathStrategy strategy = strategyFactory.getDefaultStrategy();
+        LearningPathResult result = strategy.generatePath(context);
+
+        LearningPath nextPath = new LearningPath(user, targetLevel, nextDay);
+        populateLearningPathItems(nextPath, result.getItems(), targetLevel);
+
+        LearningPath saved = learningPathRepository.save(nextPath);
+        log.info("Advanced learning path: generated Day {} curriculum with {} items for user: {}",
+                nextDay, saved.getTotalItems(), user.getEmail());
+        return saved;
+    }
+
+    @Override
     public List<LearningPathResponse> getPathHistory(String userEmail) {
         User user = findUserByEmail(userEmail);
         List<LearningPath> paths = learningPathRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
@@ -348,9 +413,17 @@ public class LearningPathServiceImpl implements LearningPathService {
         List<MemoryWordResponse> weakWords = memoryService.getWeakWords(user.getEmail());
 
         List<UserWordProgress> progressList = userWordProgressRepository.findByUser(user);
-        Set<Long> masteredWordIds = progressList.stream()
-                .map(p -> p.getVocabularyWord().getId())
-                .collect(Collectors.toSet());
+        Set<Long> masteredWordIds = new HashSet<>();
+        for (UserWordProgress p : progressList) {
+            if (p.getVocabularyWord() != null) {
+                masteredWordIds.add(p.getVocabularyWord().getId());
+            }
+        }
+
+        Set<Long> previouslyLearnedWordIds = learningPathItemRepository.findLearnedWordIdsByUserId(user.getId());
+        if (previouslyLearnedWordIds != null) {
+            masteredWordIds.addAll(previouslyLearnedWordIds);
+        }
 
         Double recentAccuracy = null;
         if (!progressList.isEmpty()) {
@@ -463,7 +536,10 @@ public class LearningPathServiceImpl implements LearningPathService {
                 item.getOrderIndex(),
                 item.getNotes(),
                 item.getScheduledAt(),
-                item.getCompletedAt()
+                item.getCompletedAt(),
+                word != null ? word.getDefinition() : null,
+                word != null ? word.getPronunciation() : null,
+                word != null ? word.getExampleSentence() : null
         );
     }
 }

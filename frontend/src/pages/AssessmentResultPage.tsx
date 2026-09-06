@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Award, CheckCircle2, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
+import { Award, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Trophy, User } from 'lucide-react';
 import { assessmentApi } from '../api/assessmentApi';
 import { learningPathApi } from '../api/learningPathApi';
 import { useAuth } from '../context/AuthContext';
@@ -147,8 +147,8 @@ export const AssessmentResultPage: React.FC = () => {
             </div>
           )}
 
-          {/* CTA: Start Learning Path */}
-          <div className="pt-4">
+          {/* Action Navigation */}
+          <div className="pt-4 space-y-3">
             <Button
               variant="primary"
               size="lg"
@@ -159,6 +159,27 @@ export const AssessmentResultPage: React.FC = () => {
             >
               Start My Personalized Learning Path
             </Button>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => navigate('/leaderboard')}
+                leftIcon={<Trophy className="w-4 h-4 text-amber-500" />}
+                className="w-full justify-center border-black/[0.08] hover:bg-stone-50"
+              >
+                View Leaderboard
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => navigate('/profile')}
+                leftIcon={<User className="w-4 h-4 text-memora-green" />}
+                className="w-full justify-center border-black/[0.08] hover:bg-stone-50"
+              >
+                View Profile
+              </Button>
+            </div>
           </div>
         </Card>
       </div>
