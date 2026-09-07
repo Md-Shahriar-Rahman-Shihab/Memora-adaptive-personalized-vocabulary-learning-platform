@@ -20,6 +20,7 @@ com\memora\modules\vocabulary\VocabularyServiceTest.class
 com\memora\modules\vocabulary\VocabularyControllerIntegrationTest.class
 com\memora\modules\ai\FallbackExplanationServiceTest.class
 com\memora\modules\learningpath\LearningPathStrategyFactoryTest.class
+com\memora\modules\ai\AiProviderRouterTest.class
 com\memora\common\controller\HealthControllerTest.class
 com\memora\modules\assessment\AssessmentControllerIntegrationTest.class
 com\memora\modules\vocabulary\UserWordProgressIntegrationTest.class
@@ -28,6 +29,7 @@ com\memora\modules\ai\GeminiAiProviderTest.class
 com\memora\modules\assessment\AssessmentServiceTest.class
 com\memora\common\exception\GlobalExceptionHandlerTest$TestValidationDto.class
 com\memora\modules\ai\AiResponseCacheTest.class
+com\memora\modules\ai\GroqAiProviderTest.class
 com\memora\modules\user\AuthIntegrationTest.class
 com\memora\modules\learningpath\LearningPathServiceTest.class
 com\memora\modules\ai\FallbackAiProviderTest.class

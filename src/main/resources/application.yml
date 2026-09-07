@@ -26,6 +26,7 @@ spring:
     show-sql: ${SHOW_SQL:true}
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     open-in-view: false
 
@@ -37,8 +38,15 @@ jwt:
 # Memora AI & Integration Configuration
 memora:
   ai:
-    provider: ${MEMORA_AI_PROVIDER:fallback} # "gemini" or "fallback"
-    api-key: ${MEMORA_AI_API_KEY:}
+    provider: ${MEMORA_AI_PROVIDER:auto} # "auto", "gemini", "groq", or "fallback"
+    gemini:
+      api-key: ${MEMORA_GEMINI_API_KEY:${MEMORA_AI_API_KEY:}}
+      model: ${MEMORA_AI_MODEL:gemini-3.6-flash}
+    groq:
+      api-key: ${MEMORA_GROQ_API_KEY:}
+      model: ${MEMORA_GROQ_MODEL:openai/gpt-oss-120b}
+    # Backward compatibility aliases
+    api-key: ${MEMORA_GEMINI_API_KEY:${MEMORA_AI_API_KEY:}}
     model: ${MEMORA_AI_MODEL:gemini-3.6-flash}
     timeout-ms: ${MEMORA_AI_TIMEOUT_MS:10000}
     temperature: ${MEMORA_AI_TEMPERATURE:0.3}

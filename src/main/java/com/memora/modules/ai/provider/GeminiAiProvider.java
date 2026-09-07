@@ -43,6 +43,28 @@ public class GeminiAiProvider implements AiProvider {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Executes a single attempt against the primary Gemini model.
+     * Does NOT perform model retry loops or fallback to other Gemini models.
+     * Used by AiProviderRouter in AUTO mode to preserve strict single-attempt semantics.
+     *
+     * @param prompt The prompt to execute
+     * @return Result if successful, or null on failure
+     */
+    public AiGenerationResult generateDirect(String prompt) {
+        if (!isAvailable()) {
+            return null;
+        }
+        String primaryModel = aiConfig.getModel();
+        log.info("[GEMINI-PROVIDER] Executing single-attempt request for primary model: {}", primaryModel);
+        String result = executeModelRequest(primaryModel, prompt);
+        if (result != null && !result.isBlank()) {
+            log.info("[AI-FLOW] provider=gemini model={} success=true", primaryModel);
+            return AiGenerationResult.success(result, "gemini", primaryModel);
+        }
+        return null;
+    }
+
     @Override
     public AiGenerationResult generate(String prompt) {
         if (!isAvailable()) {

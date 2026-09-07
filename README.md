@@ -17,8 +17,9 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 7** | **Adaptive Learning Path Engine** | ✅ Completed | Personalized daily curriculum (max 10 items), **Strategy Pattern** (`LearningPathStrategy`, `AdaptiveLearningPathStrategy`), **Factory Pattern** (`LearningPathStrategyFactory`), dynamic review/new word balancing, CEFR stretch words, consolidating quizzes, progress tracking, dynamic regeneration, `/api/v1/learning-path/*`. |
 | **Phase 8** | **Gamification & Learner Profile** | ✅ Completed | Extensible XP reward system via **Strategy & Factory Patterns** (`RewardStrategy`, `RewardStrategyFactory`), calendar-day boundary safe daily streaks (`StreakService`), extensible **Achievement Rule Engine** (`AchievementRule`, `AchievementRuleEngine`) with 10 unlockable badges, immutable XP audit ledger (`XpTransaction`), deterministic privacy-preserving leaderboard, learner profile & stats endpoints (`/api/v1/profile/*`, `/api/v1/leaderboard`, `/api/v1/achievements`). |
 | **Phase 9** | **React Frontend & Full API Integration** | ✅ Completed | Production React 19 + TypeScript + Vite + Tailwind CSS application matching approved visual design reference, complete REST API integration with Spring Boot backend, interactive 3D Floating Memory Ecosystem, live Memory Map widget, smooth-scrolling navigation with sticky offset, unified Plus Jakarta Sans typography, 20-question CEFR diagnostic placement (A1–C1), adaptive learning path dashboard, SRS flashcards, polymorphic quiz runner, gamification streaks & badges, auditable XP ledger, and global leaderboard. |
-| **Phase 10** | **AI Contextual Learning & Gemini Integration** | ✅ Completed | **Provider & Chain of Responsibility Patterns** (`GeminiAiProvider`, `FallbackAiProvider`), multi-model fallback (`gemini-3.6-flash` → `gemini-3.7-flash` → `gemini-3.5-flash`), in-memory LRU caching (`AiExplanationCache`), AI mnemonics, contextual collocations, register analysis, adaptive insights (`/api/v1/ai/*`, `/api/v1/insights/*`), and frontend Word Study modal (`WordStudyAiActions`). |
-| **Phase 11** | **Cloud Database Migration (Neon PostgreSQL)** | ✅ Completed | Normal runtime migrated to cloud-hosted **Neon PostgreSQL 18** (`ddl-auto: update`), permanent data persistence across backend restarts, safe environment configuration (`.env` ignored by Git), and isolated in-memory H2 database retained for automated tests (184 passing tests). |
+| **Phase 10** | **AI Contextual Learning & Gemini Integration** | ✅ Completed | **Provider & Chain of Responsibility Patterns** (`GeminiAiProvider`, `FallbackAiProvider`), multi-model fallback (`gemini-3.6-flash` → `gemini-3.7-flash` → `gemini-3.5-flash`), in-memory caching (`AiResponseCache`), AI mnemonics, contextual collocations, register analysis, adaptive insights (`/api/v1/ai/*`, `/api/v1/insights/*`), and frontend Word Study modal (`WordStudyAiActions`). |
+| **Phase 10.5** | **Multi-Provider AI (Groq + Gemini + Fallback Router)** | ✅ Completed | Multi-provider architecture with **Groq** (`openai/gpt-oss-120b`) via Spring `RestClient`, centralized `AiProviderRouter` (`auto`, `gemini`, `groq`, `fallback`), safe zero-loop fallback chain (Gemini → Groq → Deterministic Fallback), rate-limit safety (max 2 attempts in auto), and context-isolated caching. |
+| **Phase 11** | **Cloud Database Migration (Neon PostgreSQL)** | ✅ Completed | Normal runtime migrated to cloud-hosted **Neon PostgreSQL 18** (`ddl-auto: update`), permanent data persistence across backend restarts, safe environment configuration (`.env` ignored by Git), and isolated in-memory H2 database retained for automated tests (206 passing tests). |
 
 ---
 
@@ -30,7 +31,11 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 * **Core Modules**: Spring Web (REST API), Spring Data JPA, Spring Security (Stateless JWT Authentication), Spring Validation
 * **Runtime Database**: Neon PostgreSQL 18 (AWS Cloud) via HikariCP connection pool (`ddl-auto: update`)
 * **Test Database**: H2 In-Memory (`jdbc:h2:mem:memoradb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`, `ddl-auto: create-drop`)
-* **AI & LLM Integration**: Google Gemini Generative Language API (`v1beta`) with primary model `gemini-3.6-flash` and automatic multi-tier fallback chain
+* **AI & LLM Integration**: Multi-Provider Router (`auto`, `gemini`, `groq`, `fallback`):
+  * **Primary Provider**: Google Gemini Generative Language API (`gemini-3.6-flash`)
+  * **Secondary Provider**: Groq OpenAI-compatible Chat Completions API (`openai/gpt-oss-120b`)
+  * **Deterministic Fallback**: Offline educational learning engine
+  * **Routing Chain (AUTO)**: Gemini → Groq → Deterministic Fallback (zero duplicate calls, max 2 cloud attempts)
 * **Build Tool**: Apache Maven (`mvnw` / `mvnw.cmd`)
 * **Architecture**: Layered Clean Architecture (`Controller → Service → Repository → Entity/Domain` with strict DTO boundaries)
 
@@ -174,23 +179,25 @@ com.memora/
     │   │   └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
     │   └── controller/             # ProfileController, LeaderboardController, AchievementController
     │
-    └── ai/                         # AI & Contextual Vocabulary Learning (Phase 10)
-        ├── cache/                  # AiExplanationCache (in-memory LRU cache with TTL)
-        ├── config/                 # AiConfig (model configurations, fallback chain, timeouts)
+    └── ai/                         # Multi-Provider AI & Contextual Vocabulary Learning (Phase 10 & 10.5)
+        ├── cache/                  # AiResponseCache (thread-safe in-memory bounded cache with TTL)
+        ├── config/                 # AiConfig (multi-provider properties, timeouts, RestClient bean)
         ├── controller/             # AiController (/api/v1/ai/*), AdaptiveInsightController (/api/v1/insights/*)
-        ├── dto/                    # AiExplanationResponse, AdaptiveInsightResponse, WordExplanationRequest
-        ├── provider/               # Provider Pattern implementations
-        │   ├── AiProvider.java                # Core provider contract
-        │   ├── GeminiAiProvider.java          # Google Gemini implementation with multi-model fallback chain
+        ├── dto/                    # AiExplanationRequest/Response, AiExampleRequest/Response, AiMemoryTipRequest/Response, AiUsageRequest/Response, AdaptiveInsightResponse
+        ├── provider/               # Provider Pattern & Multi-Provider Architecture
+        │   ├── AiProvider.java                # Core provider interface contract (generate, generateDirect, isAvailable)
+        │   ├── AiProviderRouter.java          # Central router with safe zero-loop fallback (AUTO: Gemini -> Groq -> Fallback)
+        │   ├── GeminiAiProvider.java          # Google Gemini implementation with single-attempt & resilient upgrade
+        │   ├── GroqAiProvider.java            # Groq OpenAI-compatible RestClient implementation (openai/gpt-oss-120b)
         │   ├── FallbackAiProvider.java        # Deterministic offline generator for resilience
         │   └── AiGenerationResult.java        # Generation payload with provider and model metadata
-        └── service/                # AI orchestration and prompt engineering
+        └── service/                # AI orchestration and prompt calibration
             ├── AIExplanationService.java      # Service interface contract
-            ├── GeminiExplanationService.java  # Main explanation orchestrator with caching & validation
+            ├── GeminiExplanationService.java  # Main explanation orchestrator with caching & multi-provider routing
             ├── FallbackExplanationService.java# Local rule-based explanation service
             ├── AdaptiveInsightService.java    # Real-time learner insight & memory health analysis
-            ├── AiPromptBuilder.java           # Structured JSON prompt construction
-            └── CollocationValidator.java     # Collocation & register quality validation
+            ├── AiPromptBuilder.java           # Structured prompt construction
+            └── CollocationValidator.java     # Grammatical and register quality validation
 ```
 
 ---
@@ -219,7 +226,7 @@ frontend/
     │   ├── learningPath.ts         # LearningPath, LearningItem, CompleteItemResponse
     │   ├── quiz.ts                 # Quiz, Polymorphic Question, QuizAttempt, EvaluationResult
     │   ├── gamification.ts         # LearnerProfile, XpTransaction, LeaderboardEntry, Achievement
-    │   ├── ai.ts                   # WordExplanation, AiExplanationResponse, WordStudyMode
+    │   ├── ai.ts                   # AiExplanationResponse, AiExampleResponse, AiMemoryTipResponse, AiUsageResponse, AiActionType
     │   └── insight.ts              # AdaptiveInsight, MemoryHealthMetrics, InsightRecommendation
     │
     ├── api/                        # Centralized Axios Client & Service Modules
@@ -617,16 +624,18 @@ erDiagram
 * **`AchievementRuleEngine`**: Evaluates active rules against the user's latest stats, filtering out previously unlocked badges.
 * **Idempotent Storage**: Unique database constraint on `(user_id, achievement_id)` prevents duplicate unlock entries or duplicate bonus XP rewards.
 
-### 9. Provider Pattern & Multi-Tier Fallback Chain for AI Integration (Phase 10)
-* **`AiProvider` Interface Contract**: Defines `generate(String prompt, String targetLevel)` returning `AiGenerationResult`.
-* **`GeminiAiProvider` (Primary Cloud Provider)**: Interfaces with Google Generative Language API (`v1beta`). Incorporates a resilient **Chain of Responsibility**:
-  - `gemini-3.6-flash` (Primary default model)
-  - `gemini-3.7-flash` (First fallback on model deprecation or error)
-  - `gemini-3.5-flash` (Second fallback)
-  - `FallbackAiProvider` (Deterministic offline fallback on quota exhaustion / 429)
-* **`FallbackAiProvider` & `FallbackExplanationService`**: High-quality rule-based local provider guaranteeing that AI vocabulary assistance is always available even during network dropouts or Google API quota exhaustion.
-* **Thread-Safe LRU Cache (`AiExplanationCache`)**: In-memory cache keyed by normalized word and CEFR level with configurable TTL, preventing redundant API calls and conserving rate limits.
-* **`CollocationValidator`**: Validates grammatical and natural collocations, stripping generic phrases (e.g., *"a happy"* or *"very happy"*) to preserve linguistic accuracy.
+### 9. Multi-Provider Router & Chain of Responsibility for AI Integration (Phase 10 & 10.5)
+* **`AiProvider` Interface Contract**: Common abstraction defining `generate(String prompt, String targetLevel)`, `generateDirect(String prompt, String targetLevel)` (single-attempt execution), and `isAvailable()`.
+* **`AiProviderRouter` (`@Primary` Orchestrator)**: Central routing coordinator supporting configurable routing policies via `MEMORA_AI_PROVIDER`:
+  - `auto` (Default): Evaluates primary provider (Gemini); if rate-limited (429) or unavailable, seamlessly fails over to secondary provider (Groq); if Groq also fails or is unconfigured, gracefully falls back to deterministic offline provider. Zero circular loops, guaranteed maximum 2 cloud attempts per request.
+  - `gemini`: Routes directly to Google Gemini with its internal model upgrade chain (`gemini-3.6-flash` → `gemini-3.7-flash` → `gemini-3.5-flash`), falling back to offline provider on exhaustion.
+  - `groq`: Routes directly to Groq Cloud completions API, falling back to offline provider on failure.
+  - `fallback`: Direct deterministic offline mode (ideal for offline development or automated tests).
+* **`GeminiAiProvider` (Google Cloud Provider)**: Interfaces with Google Generative Language API (`v1beta`) via Spring `RestClient`. Offers both single-attempt direct execution (`generateDirect` for auto-router) and multi-model fallback chain (`generate`).
+* **`GroqAiProvider` (Groq Fast-Inference Provider)**: Groq OpenAI-compatible Chat Completions API client engineered via Spring `RestClient` with `openai/gpt-oss-120b`, featuring custom JSON sanitization, markdown code-fence stripping, and HTTP 429 backoff handling.
+* **`FallbackAiProvider` & `FallbackExplanationService`**: Rule-based educational generators guaranteeing instant, deterministic, and linguistically sound vocabulary assistance when cloud APIs are unconfigured or offline.
+* **Thread-Safe Bounded Cache (`AiResponseCache`)**: In-memory `ConcurrentHashMap` cache keyed by normalized word and CEFR level with configurable TTL (default 24h), isolating cached responses and preventing duplicate external API consumption.
+* **`CollocationValidator`**: Grammatical validation engine that filters out generic non-collocations (e.g., *"a happy"* or *"very happy"*) and validates native idiomatic phrasing.
 
 ### 10. Cloud Database Persistence & Profile Segregation (Phase 11)
 * **Normal Application Runtime**: Powered by **Neon PostgreSQL 18** via HikariCP connection pool with `hibernate.ddl-auto: update`, ensuring learner progress, accounts, streaks, and XP permanently persist across restarts.
@@ -701,10 +710,11 @@ erDiagram
 * `GET  /api/v1/achievements` — List full master catalog of all available achievements (Public)
 
 ### 12. AI & Contextual Vocabulary Learning (`/api/v1/ai`, `/api/v1/insights`)
-* `GET  /api/v1/ai/explain/{word}` — Enriched AI word explanation (contextual definition, memory tip/mnemonic, example sentence, collocations, register)
-* `GET  /api/v1/ai/explain/{word}/contextual` — Context-aware AI explanation calibrated to the authenticated learner's CEFR level
-* `POST /api/v1/ai/explain` — Custom prompt and word explanation request
-* `GET  /api/v1/insights/adaptive` — Adaptive learner insights, weak-spot recommendations, and memory health diagnosis
+* `POST /api/v1/ai/word-explanation` — Enriched AI word explanation (contextual definition, CEFR-calibrated example, memory tip/mnemonic, collocations, formal/informal register, provider/model metadata) (Requires JWT)
+* `POST /api/v1/ai/example` — Generates a natural, CEFR-calibrated example sentence tailored to the learner's vocabulary level (Requires JWT)
+* `POST /api/v1/ai/memory-tip` — Generates a high-retention cognitive mnemonic hook or associative memory tip (Requires JWT)
+* `POST /api/v1/ai/contextual-usage` — Explains practical contextual usage, formal/informal register, and validated collocations (Requires JWT)
+* `GET  /api/v1/insights/today` — Deterministic adaptive learner insights, memory health diagnosis, and prioritized daily recommendations (Requires JWT)
 
 ---
 
@@ -722,11 +732,20 @@ DB_URL=jdbc:postgresql://<neon-host>/<database>?sslmode=require
 DB_USERNAME=<neon-username>
 DB_PASSWORD=<neon-password>
 
-# Memora AI & Gemini Configuration
-MEMORA_AI_PROVIDER=gemini
-MEMORA_AI_API_KEY=<gemini-api-key>
+# Memora Multi-Provider AI Configuration
+MEMORA_AI_PROVIDER=auto # auto, gemini, groq, fallback
+
+# Primary Provider (Google Gemini)
+MEMORA_GEMINI_API_KEY=<gemini-api-key>
 MEMORA_AI_MODEL=gemini-3.6-flash
+
+# Secondary Provider (Groq)
+MEMORA_GROQ_API_KEY=<groq-api-key>
+MEMORA_GROQ_MODEL=openai/gpt-oss-120b
+
+# General AI Settings
 MEMORA_AI_TIMEOUT_MS=10000
+MEMORA_AI_TEMPERATURE=0.3
 ```
 
 ---
@@ -758,7 +777,7 @@ The automated test suite runs completely isolated on in-memory H2 without touchi
 ```powershell
 .\mvnw.cmd test
 ```
-* **Baseline**: 184 tests run across all domain modules (0 failures, 0 errors, 0 skipped).
+* **Baseline**: 206 tests run across all domain modules (0 failures, 0 errors, 0 skipped). Real AI APIs are never invoked during tests.
 
 ### 5. Health Check Verification
 ```powershell

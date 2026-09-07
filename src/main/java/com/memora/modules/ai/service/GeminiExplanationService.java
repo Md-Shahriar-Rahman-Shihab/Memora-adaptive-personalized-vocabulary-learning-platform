@@ -6,6 +6,7 @@ import com.memora.modules.ai.cache.AiResponseCache;
 import com.memora.modules.ai.config.AiConfig;
 import com.memora.modules.ai.dto.*;
 import com.memora.modules.ai.provider.AiGenerationResult;
+import com.memora.modules.ai.provider.AiProvider;
 import com.memora.modules.ai.provider.GeminiAiProvider;
 import com.memora.modules.user.entity.User;
 import com.memora.modules.user.repository.UserRepository;
@@ -23,9 +24,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Primary implementation of {@link AIExplanationService} interacting with Google Gemini
- * through {@link GeminiAiProvider}, augmented with local caching, quality prompt calibration,
- * linguistic validation, and guaranteed automatic delegation to {@link FallbackExplanationService}.
+ * Primary implementation of {@link AIExplanationService} interacting with AI providers
+ * through {@link AiProvider} (orchestrated by {@code AiProviderRouter}), augmented with local caching,
+ * quality prompt calibration, linguistic validation, and guaranteed automatic delegation to {@link FallbackExplanationService}.
  */
 @Primary
 @Service("geminiExplanationService")
@@ -34,7 +35,7 @@ public class GeminiExplanationService implements AIExplanationService {
     private static final Logger log = LoggerFactory.getLogger(GeminiExplanationService.class);
 
     private final AiConfig aiConfig;
-    private final GeminiAiProvider geminiAiProvider;
+    private final AiProvider aiProvider;
     private final FallbackExplanationService fallbackService;
     private final AiResponseCache responseCache;
     private final VocabularyWordRepository wordRepository;
@@ -44,19 +45,23 @@ public class GeminiExplanationService implements AIExplanationService {
 
     public GeminiExplanationService(
             AiConfig aiConfig,
-            GeminiAiProvider geminiAiProvider,
+            AiProvider aiProvider,
             FallbackExplanationService fallbackService,
             AiResponseCache responseCache,
             VocabularyWordRepository wordRepository,
             UserWordProgressRepository progressRepository,
             UserRepository userRepository) {
         this.aiConfig = aiConfig;
-        this.geminiAiProvider = geminiAiProvider;
+        this.aiProvider = aiProvider;
         this.fallbackService = fallbackService;
         this.responseCache = responseCache;
         this.wordRepository = wordRepository;
         this.progressRepository = progressRepository;
         this.userRepository = userRepository;
+    }
+
+    private boolean isProviderConfigured() {
+        return aiConfig.isAiConfigured() || aiConfig.isGeminiConfigured();
     }
 
     @Override
@@ -78,20 +83,21 @@ public class GeminiExplanationService implements AIExplanationService {
             );
         }
 
-        if (!aiConfig.isGeminiConfigured()) {
-            log.info("[AI-FLOW] Gemini is NOT configured. Delegating to FallbackExplanationService.");
+        if (!isProviderConfigured()) {
+            log.info("[AI-FLOW] AI provider is NOT configured. Delegating to FallbackExplanationService.");
             return fallbackService.explainWord(userEmail, request);
         }
 
         try {
-            log.info("[AI-FLOW] Gemini IS configured. Building prompt for word: {} (CEFR {})", meta.wordText(), meta.cefrLevel());
+            log.info("[AI-FLOW] AI provider IS configured. Building prompt for word: {} (CEFR {})", meta.wordText(), meta.cefrLevel());
             String prompt = AiPromptBuilder.buildExplanationPrompt(
                     meta.wordText(), meta.cefrLevel(), meta.meaning(), meta.category(), meta.isStruggling()
             );
 
-            log.info("[AI-FLOW] Calling geminiAiProvider.generate...");
-            AiGenerationResult aiResult = geminiAiProvider.generate(prompt);
-            log.info("[AI-FLOW] geminiAiProvider.generate completed. Model: {}, Fallback: {}",
+            log.info("[AI-FLOW] Calling aiProvider.generate...");
+            AiGenerationResult aiResult = aiProvider.generate(prompt);
+            log.info("[AI-FLOW] aiProvider.generate completed. Provider: {}, Model: {}, Fallback: {}",
+                    aiResult != null ? aiResult.provider() : "null",
                     aiResult != null ? aiResult.model() : "null",
                     aiResult != null ? aiResult.isFallback() : "null");
 
@@ -116,7 +122,7 @@ public class GeminiExplanationService implements AIExplanationService {
             return response;
 
         } catch (Exception e) {
-            log.warn("Gemini explanation generation encountered an issue: {}. Using fallback service.", e.getMessage());
+            log.warn("AI explanation generation encountered an issue: {}. Using fallback service.", e.getMessage());
             return fallbackService.explainWord(userEmail, request);
         }
     }
@@ -140,7 +146,7 @@ public class GeminiExplanationService implements AIExplanationService {
             );
         }
 
-        if (!aiConfig.isGeminiConfigured()) {
+        if (!isProviderConfigured()) {
             return fallbackService.generateExample(userEmail, request);
         }
 
@@ -149,7 +155,7 @@ public class GeminiExplanationService implements AIExplanationService {
                     meta.wordText(), meta.cefrLevel(), meta.meaning(), meta.category()
             );
 
-            AiGenerationResult aiResult = geminiAiProvider.generate(prompt);
+            AiGenerationResult aiResult = aiProvider.generate(prompt);
             if (aiResult == null || aiResult.isFallback() || aiResult.text() == null || aiResult.text().isBlank() || aiResult.text().startsWith("Deterministic educational")) {
                 return fallbackService.generateExample(userEmail, request);
             }
@@ -173,7 +179,7 @@ public class GeminiExplanationService implements AIExplanationService {
             return response;
 
         } catch (Exception e) {
-            log.warn("Gemini example generation failed: {}. Using fallback service.", e.getMessage());
+            log.warn("AI example generation failed: {}. Using fallback service.", e.getMessage());
             return fallbackService.generateExample(userEmail, request);
         }
     }
@@ -197,7 +203,7 @@ public class GeminiExplanationService implements AIExplanationService {
             );
         }
 
-        if (!aiConfig.isGeminiConfigured()) {
+        if (!isProviderConfigured()) {
             return fallbackService.generateMemoryTip(userEmail, request);
         }
 
@@ -206,7 +212,7 @@ public class GeminiExplanationService implements AIExplanationService {
                     meta.wordText(), meta.cefrLevel(), meta.meaning(), meta.category(), meta.isStruggling()
             );
 
-            AiGenerationResult aiResult = geminiAiProvider.generate(prompt);
+            AiGenerationResult aiResult = aiProvider.generate(prompt);
             if (aiResult == null || aiResult.isFallback() || aiResult.text() == null || aiResult.text().isBlank() || aiResult.text().startsWith("Deterministic educational")) {
                 return fallbackService.generateMemoryTip(userEmail, request);
             }
@@ -227,7 +233,7 @@ public class GeminiExplanationService implements AIExplanationService {
             return response;
 
         } catch (Exception e) {
-            log.warn("Gemini memory tip generation failed: {}. Using fallback service.", e.getMessage());
+            log.warn("AI memory tip generation failed: {}. Using fallback service.", e.getMessage());
             return fallbackService.generateMemoryTip(userEmail, request);
         }
     }
@@ -252,7 +258,7 @@ public class GeminiExplanationService implements AIExplanationService {
             );
         }
 
-        if (!aiConfig.isGeminiConfigured()) {
+        if (!isProviderConfigured()) {
             return fallbackService.explainUsage(userEmail, request);
         }
 
@@ -261,7 +267,7 @@ public class GeminiExplanationService implements AIExplanationService {
                     meta.wordText(), meta.cefrLevel(), meta.meaning(), meta.category()
             );
 
-            AiGenerationResult aiResult = geminiAiProvider.generate(prompt);
+            AiGenerationResult aiResult = aiProvider.generate(prompt);
             if (aiResult == null || aiResult.isFallback() || aiResult.text() == null || aiResult.text().isBlank() || aiResult.text().startsWith("Deterministic educational")) {
                 return fallbackService.explainUsage(userEmail, request);
             }
@@ -314,7 +320,7 @@ public class GeminiExplanationService implements AIExplanationService {
             return response;
 
         } catch (Exception e) {
-            log.warn("Gemini usage explanation failed: {}. Using fallback service.", e.getMessage());
+            log.warn("AI usage explanation failed: {}. Using fallback service.", e.getMessage());
             return fallbackService.explainUsage(userEmail, request);
         }
     }

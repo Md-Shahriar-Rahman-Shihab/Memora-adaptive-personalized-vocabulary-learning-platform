@@ -19,3 +19,15 @@ spring:
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
   expiration: 86400000
+
+memora:
+  ai:
+    provider: fallback
+    gemini:
+      api-key: ""
+      model: gemini-3.6-flash
+    groq:
+      api-key: ""
+      model: openai/gpt-oss-120b
+    api-key: ""
+    model: gemini-3.6-flash

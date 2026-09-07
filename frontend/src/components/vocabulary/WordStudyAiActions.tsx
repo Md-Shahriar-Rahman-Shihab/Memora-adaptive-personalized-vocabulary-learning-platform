@@ -18,11 +18,18 @@ export interface WordStudyAiActionsProps {
 type TabType = 'explanation' | 'example' | 'tip' | 'usage';
 
 const renderAiBadgeText = (provider?: string, model?: string | null): string => {
-  if (model) {
-    return `Gemini · ${model}`;
+  const normProvider = provider ? provider.toLowerCase() : '';
+  if (normProvider === 'groq') {
+    return model ? `Groq · ${model}` : 'Groq AI';
   }
-  if (provider === 'gemini') {
-    return 'Gemini AI';
+  if (normProvider === 'gemini') {
+    return model ? `Gemini · ${model}` : 'Gemini AI';
+  }
+  if (normProvider === 'fallback') {
+    return 'Smart fallback';
+  }
+  if (model) {
+    return `AI · ${model}`;
   }
   return provider || 'AI Generated';
 };

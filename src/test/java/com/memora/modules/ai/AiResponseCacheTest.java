@@ -47,4 +47,23 @@ class AiResponseCacheTest {
         cache.clear();
         assertEquals(0, cache.size());
     }
+
+    @Test
+    @DisplayName("TEST 15: Cache safety - User and context-specific AI responses cannot be incorrectly shared")
+    void testCacheSafety_preventCrossUserLeakage() {
+        // User A is struggling (e.g. at B1)
+        String userAKey = "explain:ubiquitous:b1:true";
+        String userAResponse = "Simplified explanation for struggling learner A.";
+        cache.put(userAKey, userAResponse);
+
+        // User B is not struggling (e.g. at B1)
+        String userBKey = "explain:ubiquitous:b1:false";
+        String userBResponse = "Standard academic explanation for learner B.";
+        cache.put(userBKey, userBResponse);
+
+        // Verify distinct separation without cross-user leakage
+        assertEquals(userAResponse, cache.get(userAKey, String.class));
+        assertEquals(userBResponse, cache.get(userBKey, String.class));
+        assertNotEquals(cache.get(userAKey, String.class), cache.get(userBKey, String.class));
+    }
 }

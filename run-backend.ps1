@@ -1,6 +1,12 @@
 # Memora Backend Startup Script
 # Automatically frees port 8080 if needed, loads environment configuration, and starts Spring Boot
 
+# Ensure JDK 21 is used if present in user directory
+if (Test-Path "C:\Users\HP\.jdks\ms-21.0.12.1") {
+    $env:JAVA_HOME = "C:\Users\HP\.jdks\ms-21.0.12.1"
+    $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+}
+
 $conn = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
 if ($conn) {
     Write-Host "[Memora] Port 8080 is currently occupied by PID $($conn.OwningProcess). Releasing port..." -ForegroundColor Yellow
@@ -23,9 +29,10 @@ if (Test-Path $envFile) {
                         $v = $v.Substring(1, $v.Length - 2)
                     }
                 }
-                if (-not [System.Environment]::GetEnvironmentVariable($k, "Process")) {
-                    [System.Environment]::SetEnvironmentVariable($k, $v, "Process")
+                if ($k -eq "DB_URL" -and $v -match "^jdbc:postgresql://[^/@]+:[^/@]+@") {
+                    $v = $v -replace "^jdbc:postgresql://[^/@]+:[^/@]+@", "jdbc:postgresql://"
                 }
+                [System.Environment]::SetEnvironmentVariable($k, $v, "Process")
             }
         }
     }
@@ -43,6 +50,9 @@ if ($dbConfigured) {
 if (-not $env:MEMORA_AI_TIMEOUT_MS) {
     $env:MEMORA_AI_TIMEOUT_MS = "10000"
 }
+
+Write-Host "[Memora] Compiling backend classes..." -ForegroundColor Green
+.\mvnw.cmd compile -DskipTests
 
 Write-Host "[Memora] Starting Spring Boot backend on PostgreSQL..." -ForegroundColor Green
 .\mvnw.cmd spring-boot:run

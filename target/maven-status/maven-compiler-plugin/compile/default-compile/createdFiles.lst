@@ -128,6 +128,7 @@ com\memora\modules\gamification\service\StreakServiceImpl.class
 com\memora\modules\assessment\controller\AssessmentController.class
 com\memora\modules\gamification\rule\QuizMasterAchievementRule.class
 com\memora\common\exception\BadRequestException.class
+com\memora\modules\ai\provider\GroqAiProvider.class
 com\memora\modules\quiz\dto\QuizResponse.class
 com\memora\modules\quiz\factory\QuestionFactory.class
 com\memora\modules\gamification\service\StreakService.class
@@ -196,6 +197,7 @@ com\memora\security\user\CustomUserDetailsService.class
 com\memora\modules\ai\service\AIExplanationService.class
 com\memora\modules\memory\domain\MemoryInput.class
 com\memora\modules\quiz\dto\QuizGenerationRequest.class
+com\memora\modules\ai\provider\AiProviderRouter.class
 com\memora\modules\quiz\dto\QuizResultResponse.class
 com\memora\modules\assessment\repository\AssessmentQuestionRepository.class
 com\memora\modules\learningpath\domain\LearningItemType.class

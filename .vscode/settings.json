@@ -1,4 +1,7 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.autobuild.enabled": false,
+    "java.project.outputPath": "bin",
+    "java.jdt.ls.java.home": "C:\\Users\\HP\\.jdks\\ms-21.0.12.1"
 }

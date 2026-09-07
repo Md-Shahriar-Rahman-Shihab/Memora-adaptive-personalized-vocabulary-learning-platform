@@ -28,8 +28,10 @@ E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\package-info.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\provider\AiGenerationResult.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\provider\AiProvider.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\provider\AiProviderRouter.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\provider\FallbackAiProvider.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\provider\GeminiAiProvider.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\provider\GroqAiProvider.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\service\AdaptiveInsightService.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\service\AIExplanationService.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\main\java\com\memora\modules\ai\service\AiPromptBuilder.java

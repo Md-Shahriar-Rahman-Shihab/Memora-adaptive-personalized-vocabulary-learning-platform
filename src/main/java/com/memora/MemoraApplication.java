@@ -49,12 +49,26 @@ public class MemoraApplication {
                             val = val.substring(1, val.length() - 1);
                         }
                     }
-                    if (System.getenv(key) == null && System.getProperty(key) == null) {
+                    if ("DB_URL".equalsIgnoreCase(key) && val.matches("^jdbc:postgresql://[^/@]+:[^/@]+@.*")) {
+                        val = val.replaceFirst("jdbc:postgresql://[^/@]+:[^/@]+@", "jdbc:postgresql://");
+                    }
+                    String envVal = System.getenv(key);
+                    String propVal = System.getProperty(key);
+                    if ((envVal == null || envVal.isBlank()) && (propVal == null || propVal.isBlank())) {
                         System.setProperty(key, val);
                     }
                 }
             }
         } catch (IOException ignored) {
+        }
+
+        // Ensure active JDBC DB_URL is normalized without user:password@
+        String effectiveDbUrl = System.getProperty("DB_URL");
+        if (effectiveDbUrl == null || effectiveDbUrl.isBlank()) {
+            effectiveDbUrl = System.getenv("DB_URL");
+        }
+        if (effectiveDbUrl != null && effectiveDbUrl.matches("^jdbc:postgresql://[^/@]+:[^/@]+@.*")) {
+            System.setProperty("DB_URL", effectiveDbUrl.replaceFirst("jdbc:postgresql://[^/@]+:[^/@]+@", "jdbc:postgresql://"));
         }
     }
 }
