@@ -26,6 +26,7 @@ import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorState } from '../components/ui/ErrorState';
+import { WordStudyAiActions } from '../components/vocabulary/WordStudyAiActions';
 
 export const LearningPathPage: React.FC = () => {
   const navigate = useNavigate();
@@ -580,6 +581,14 @@ export const LearningPathPage: React.FC = () => {
                           </p>
                         </div>
                       )}
+
+                      {/* AI Word Study Tools */}
+                      <WordStudyAiActions
+                        word={wordInfo?.word || item.word || ''}
+                        wordId={wordInfo?.id || item.wordId}
+                        cefrLevel={wordInfo?.difficultyLevel || path?.targetLevel}
+                        onSpeak={handleSpeak}
+                      />
 
                       {/* Notes / Discovery Tip */}
                       {item.notes && (

@@ -1,6 +1,17 @@
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\common\controller\HealthControllerTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\common\exception\GlobalExceptionHandlerTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\MemoraApplicationTests.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\AdaptiveInsightControllerIntegrationTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\AdaptiveInsightServiceTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\AiConfigTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\AiControllerIntegrationTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\AiPromptBuilderTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\AiResponseCacheTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\CollocationValidatorTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\FallbackAiProviderTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\FallbackExplanationServiceTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\GeminiAiProviderTest.java
+E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\ai\GeminiExplanationServiceTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\assessment\AssessmentControllerIntegrationTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\assessment\AssessmentQuestionGeneratorTest.java
 E:\University\UIU\11th Trimester\Advanced Object Oriented Programming Laboratory\Project\Memora\src\test\java\com\memora\modules\assessment\AssessmentServiceTest.java

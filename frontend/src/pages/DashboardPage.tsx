@@ -17,15 +17,19 @@ import { useAuth } from '../context/AuthContext';
 import { profileApi } from '../api/profileApi';
 import { learningPathApi } from '../api/learningPathApi';
 import { memoryApi } from '../api/memoryApi';
+import { insightApi } from '../api/insightApi';
 import { LearnerProfileResponse } from '../types/gamification';
 import { TodayLearningPathResponse } from '../types/learningPath';
 import { MemoryWordResponse } from '../types/memory';
+import { AdaptiveInsightResponse } from '../types/insight';
 import { AppShell } from '../components/layout/AppShell';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { AiLearningInsightCard } from '../components/dashboard/AiLearningInsightCard';
+import { MemoryHealthWidget } from '../components/dashboard/MemoryHealthWidget';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -34,6 +38,7 @@ export const DashboardPage: React.FC = () => {
   const [profile, setProfile] = useState<LearnerProfileResponse | null>(null);
   const [todayPath, setTodayPath] = useState<TodayLearningPathResponse | null>(null);
   const [weakWords, setWeakWords] = useState<MemoryWordResponse[]>([]);
+  const [insights, setInsights] = useState<AdaptiveInsightResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Time-based greeting
@@ -48,10 +53,11 @@ export const DashboardPage: React.FC = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        const [profileRes, pathRes, weakRes] = await Promise.allSettled([
+        const [profileRes, pathRes, weakRes, insightRes] = await Promise.allSettled([
           profileApi.getProfile(),
           learningPathApi.getTodayPath(),
           memoryApi.getWeakWords(),
+          insightApi.getTodayInsights(),
         ]);
 
         if (profileRes.status === 'fulfilled' && profileRes.value.success) {
@@ -62,6 +68,9 @@ export const DashboardPage: React.FC = () => {
         }
         if (weakRes.status === 'fulfilled' && weakRes.value.success) {
           setWeakWords(weakRes.value.data);
+        }
+        if (insightRes.status === 'fulfilled' && insightRes.value.success) {
+          setInsights(insightRes.value.data);
         }
       } finally {
         setIsLoading(false);
@@ -187,6 +196,9 @@ export const DashboardPage: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        {/* AI Adaptive Learning Insight Card */}
+        <AiLearningInsightCard insight={insights} />
 
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -330,53 +342,14 @@ export const DashboardPage: React.FC = () => {
             </Card>
           </div>
 
-          {/* Right Column: Memory Map Widget + Achievements Preview + Quick Actions (5 cols) */}
+          {/* Right Column: Memory Health Widget + Achievements Preview + Quick Actions (5 cols) */}
           <div className="lg:col-span-5 space-y-8">
-            {/* Memory Map Preview Widget */}
-            <Card variant="subtle" className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-bold text-memora-dark">Memory Network</h4>
-                  <p className="text-[11px] text-memora-text-muted">Active vocabulary neural map</p>
-                </div>
-                <Badge variant="green" size="sm">
-                  Live
-                </Badge>
-              </div>
-
-              {/* Minimal Node representation */}
-              <div className="h-44 bg-white rounded-2xl border border-black/[0.04] p-3 flex items-center justify-center relative overflow-hidden">
-                <div className="w-12 h-12 rounded-full bg-memora-green text-white flex items-center justify-center font-bold text-xs shadow-glow z-10">
-                  {levelText}
-                </div>
-                {/* Orbital nodes */}
-                <div className="absolute top-4 left-6 px-2.5 py-0.5 bg-[#EAF2DE] text-[#425E16] rounded-full text-[10px] font-bold shadow-sm">
-                  curious
-                </div>
-                <div className="absolute top-5 right-6 px-2.5 py-0.5 bg-[#FEF3E2] text-[#B45309] rounded-full text-[10px] font-bold shadow-sm">
-                  meticulous
-                </div>
-                <div className="absolute bottom-5 left-8 px-2.5 py-0.5 bg-[#E6F0FA] text-[#1D4ED8] rounded-full text-[10px] font-bold shadow-sm">
-                  scrutinize
-                </div>
-                <div className="absolute bottom-4 right-8 px-2.5 py-0.5 bg-[#EAF2DE] text-[#425E16] rounded-full text-[10px] font-bold shadow-sm">
-                  lucid
-                </div>
-
-                {/* SVG connection lines */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none stroke-stone-300 stroke-dashed [stroke-dasharray:3,3]">
-                  <line x1="50%" y1="50%" x2="25%" y2="25%" />
-                  <line x1="50%" y1="50%" x2="75%" y2="25%" />
-                  <line x1="50%" y1="50%" x2="30%" y2="75%" />
-                  <line x1="50%" y1="50%" x2="70%" y2="75%" />
-                </svg>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-memora-text-muted pt-1">
-                <span>{profile?.masteredWords ?? 0} Mastered</span>
-                <span>{profile?.wordsLearned ?? 0} In Progress</span>
-              </div>
-            </Card>
+            {/* Real Memory Health Widget */}
+            <MemoryHealthWidget
+              metrics={insights?.metrics}
+              weakWords={weakWords}
+              activeLevel={levelText}
+            />
 
             {/* Recent Badges Showcase */}
             <Card variant="default" className="p-6 space-y-4">

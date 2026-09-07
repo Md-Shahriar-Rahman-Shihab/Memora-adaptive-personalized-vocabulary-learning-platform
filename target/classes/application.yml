@@ -6,6 +6,8 @@ server:
 spring:
   application:
     name: memora-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/memora_db}
@@ -25,7 +27,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
 
 # JWT Security Configuration
@@ -33,8 +34,20 @@ jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
   expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
 
+# Memora AI & Integration Configuration
+memora:
+  ai:
+    provider: ${MEMORA_AI_PROVIDER:fallback} # "gemini" or "fallback"
+    api-key: ${MEMORA_AI_API_KEY:}
+    model: ${MEMORA_AI_MODEL:gemini-3.6-flash}
+    timeout-ms: ${MEMORA_AI_TIMEOUT_MS:10000}
+    temperature: ${MEMORA_AI_TEMPERATURE:0.3}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
+
 logging:
   level:
     root: INFO
     com.memora: DEBUG
     org.hibernate.SQL: DEBUG
+

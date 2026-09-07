@@ -17,7 +17,8 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 7** | **Adaptive Learning Path Engine** | ✅ Completed | Personalized daily curriculum (max 10 items), **Strategy Pattern** (`LearningPathStrategy`, `AdaptiveLearningPathStrategy`), **Factory Pattern** (`LearningPathStrategyFactory`), dynamic review/new word balancing, CEFR stretch words, consolidating quizzes, progress tracking, dynamic regeneration, `/api/v1/learning-path/*`. |
 | **Phase 8** | **Gamification & Learner Profile** | ✅ Completed | Extensible XP reward system via **Strategy & Factory Patterns** (`RewardStrategy`, `RewardStrategyFactory`), calendar-day boundary safe daily streaks (`StreakService`), extensible **Achievement Rule Engine** (`AchievementRule`, `AchievementRuleEngine`) with 10 unlockable badges, immutable XP audit ledger (`XpTransaction`), deterministic privacy-preserving leaderboard, learner profile & stats endpoints (`/api/v1/profile/*`, `/api/v1/leaderboard`, `/api/v1/achievements`). |
 | **Phase 9** | **React Frontend & Full API Integration** | ✅ Completed | Production React 19 + TypeScript + Vite + Tailwind CSS application matching approved visual design reference, complete REST API integration with Spring Boot backend, interactive 3D Floating Memory Ecosystem, live Memory Map widget, smooth-scrolling navigation with sticky offset, unified Plus Jakarta Sans typography, 20-question CEFR diagnostic placement (A1–C1), adaptive learning path dashboard, SRS flashcards, polymorphic quiz runner, gamification streaks & badges, auditable XP ledger, and global leaderboard. |
-| **Future** | **AI Provider Integration** | ⏳ Planned | LLM adapters, sentence and mnemonic generation. |
+| **Phase 10** | **AI Contextual Learning & Gemini Integration** | ✅ Completed | **Provider & Chain of Responsibility Patterns** (`GeminiAiProvider`, `FallbackAiProvider`), multi-model fallback (`gemini-3.6-flash` → `gemini-3.7-flash` → `gemini-3.5-flash`), in-memory LRU caching (`AiExplanationCache`), AI mnemonics, contextual collocations, register analysis, adaptive insights (`/api/v1/ai/*`, `/api/v1/insights/*`), and frontend Word Study modal (`WordStudyAiActions`). |
+| **Phase 11** | **Cloud Database Migration (Neon PostgreSQL)** | ✅ Completed | Normal runtime migrated to cloud-hosted **Neon PostgreSQL 18** (`ddl-auto: update`), permanent data persistence across backend restarts, safe environment configuration (`.env` ignored by Git), and isolated in-memory H2 database retained for automated tests (184 passing tests). |
 
 ---
 
@@ -27,7 +28,9 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 * **Language & Runtime**: Java 20 / Java 21 (LTS)
 * **Framework**: Spring Boot 3.3.4
 * **Core Modules**: Spring Web (REST API), Spring Data JPA, Spring Security (Stateless JWT Authentication), Spring Validation
-* **Database**: PostgreSQL (Production) / H2 In-Memory (Automated Testing)
+* **Runtime Database**: Neon PostgreSQL 18 (AWS Cloud) via HikariCP connection pool (`ddl-auto: update`)
+* **Test Database**: H2 In-Memory (`jdbc:h2:mem:memoradb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`, `ddl-auto: create-drop`)
+* **AI & LLM Integration**: Google Gemini Generative Language API (`v1beta`) with primary model `gemini-3.6-flash` and automatic multi-tier fallback chain
 * **Build Tool**: Apache Maven (`mvnw` / `mvnw.cmd`)
 * **Architecture**: Layered Clean Architecture (`Controller → Service → Repository → Entity/Domain` with strict DTO boundaries)
 
@@ -45,7 +48,7 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 
 ```text
 com.memora/
-├── MemoraApplication.java
+├── MemoraApplication.java           # Main entry point with secure loadDotEnv() initialization
 ├── common/
 │   ├── controller/                 # HealthController (/api/v1/health)
 │   ├── domain/                     # BaseEntity (Audit timestamps: createdAt, updatedAt, version)
@@ -55,15 +58,15 @@ com.memora/
 ├── security/                       # Security & JWT Infrastructure
 │   ├── jwt/                        # JwtTokenProvider, JwtAuthenticationFilter, JwtAuthenticationEntryPoint
 │   ├── user/                       # CustomUserDetailsService, UserPrincipal
-│   └── SecurityConfig.java         # Stateless security filter chain
+│   └── SecurityConfig.java         # Stateless security filter chain & CORS configuration
 │
 └── modules/
     ├── user/                       # Identity & Learner Domain
     │   ├── domain/                 # Role, VocabularyLevel
-    │   ├── dto/                    # RegistrationRequest, LoginRequest, AuthResponse, UserProfileResponse
+    │   ├── dto/                    # RegistrationRequest, LoginRequest, AuthResponse, UserResponse
     │   ├── entity/                 # User entity (with cascade mappings to gamification profile & ledger)
     │   ├── repository/             # UserRepository
-    │   └── service/                # UserService, UserServiceImpl
+    │   └── service/                # UserService, UserServiceImpl, AuthService, AuthServiceImpl
     │
     ├── vocabulary/                 # Lexical Catalog & Content
     │   ├── domain/                 # DifficultyLevel, WordCategory, ForgettingRisk
@@ -133,43 +136,61 @@ com.memora/
     │   │   └── AdaptiveLearningPathStrategy.java # Dynamic review/new word ratio balancing & stretch word logic
     │   └── controller/             # LearningPathController (/api/v1/learning-path/*)
     │
-    └── gamification/               # Gamification & Learner Profile (Phase 8)
-        ├── config/                 # AchievementDataSeeder (seeds 10 standard achievements)
-        ├── domain/                 # RewardActivityType, RewardContext, AchievementCode, AchievementEvaluationContext
-        ├── dto/                    # LearnerProfileResponse, LearnerStatsResponse, XpTransactionResponse, UserAchievementResponse, LeaderboardEntryResponse, GamificationActivityResultResponse
-        ├── entity/                 # Gamification & Ledger Entities
-        │   ├── UserGamificationProfile.java   # 1:1 with User; tracks total XP, current/longest streaks, activity counters
-        │   ├── XpTransaction.java             # Immutable audit ledger of all XP grants
-        │   ├── Achievement.java               # Milestone catalog with badge category & XP bonus
-        │   └── UserAchievement.java           # User-achievement join table enforcing unique unlocks
-        ├── factory/                # RewardStrategyFactory (resolves RewardStrategy by RewardActivityType)
-        ├── repository/             # UserGamificationProfileRepository, XpTransactionRepository, AchievementRepository, UserAchievementRepository
-        ├── rule/                   # Extensible Achievement Rule Engine
-        │   ├── AchievementRule.java           # Strategy rule contract
-        │   ├── AchievementRuleEngine.java     # Engine evaluating context against unlocked rules
-        │   ├── FirstLessonAchievementRule.java
-        │   ├── FirstQuizAchievementRule.java
-        │   ├── WordStarterAchievementRule.java
-        │   ├── VocabularyExplorerAchievementRule.java
-        │   ├── CenturyAchievementRule.java
-        │   ├── PerfectScoreAchievementRule.java
-        │   ├── QuizMasterAchievementRule.java
-        │   ├── SevenDayStreakAchievementRule.java
-        │   ├── ThirtyDayStreakAchievementRule.java
-        │   └── MemoryMasterAchievementRule.java
-        ├── service/                # Gamification orchestration & streak services
-        │   ├── StreakService.java / StreakServiceImpl.java
-        │   ├── AchievementService.java / AchievementServiceImpl.java
-        │   └── GamificationService.java / GamificationServiceImpl.java
-        ├── strategy/               # Strategy Pattern for XP reward calculation
-        │   ├── RewardStrategy.java            # Strategy interface contract
-        │   ├── QuizRewardStrategy.java        # Base 10 + 5 per correct + 15 perfect bonus
-        │   ├── LessonRewardStrategy.java      # Base 20 + 2 per item (capped at 50)
-        │   ├── ReviewRewardStrategy.java      # Base 15 + 3 per reviewed word
-        │   ├── DailyPathRewardStrategy.java   # Base 40 + 10 all-mastered bonus
-        │   ├── StreakRewardStrategy.java      # Base 10 + min(streak, 30)*2 bonus
-        │   └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
-        └── controller/             # ProfileController, LeaderboardController, AchievementController
+    ├── gamification/               # Gamification & Learner Profile (Phase 8)
+    │   ├── config/                 # AchievementDataSeeder (seeds 10 standard achievements)
+    │   ├── domain/                 # RewardActivityType, RewardContext, AchievementCode, AchievementEvaluationContext
+    │   ├── dto/                    # LearnerProfileResponse, LearnerStatsResponse, XpTransactionResponse, UserAchievementResponse, LeaderboardEntryResponse, GamificationActivityResultResponse
+    │   ├── entity/                 # Gamification & Ledger Entities
+    │   │   ├── UserGamificationProfile.java   # 1:1 with User; tracks total XP, current/longest streaks, activity counters
+    │   │   ├── XpTransaction.java             # Immutable audit ledger of all XP grants
+    │   │   ├── Achievement.java               # Milestone catalog with badge category & XP bonus
+    │   │   └── UserAchievement.java           # User-achievement join table enforcing unique unlocks
+    │   ├── factory/                # RewardStrategyFactory (resolves RewardStrategy by RewardActivityType)
+    │   ├── repository/             # UserGamificationProfileRepository, XpTransactionRepository, AchievementRepository, UserAchievementRepository
+    │   ├── rule/                   # Extensible Achievement Rule Engine
+    │   │   ├── AchievementRule.java           # Strategy rule contract
+    │   │   ├── AchievementRuleEngine.java     # Engine evaluating context against unlocked rules
+    │   │   ├── FirstLessonAchievementRule.java
+    │   │   ├── FirstQuizAchievementRule.java
+    │   │   ├── WordStarterAchievementRule.java
+    │   │   ├── VocabularyExplorerAchievementRule.java
+    │   │   ├── CenturyAchievementRule.java
+    │   │   ├── PerfectScoreAchievementRule.java
+    │   │   ├── QuizMasterAchievementRule.java
+    │   │   ├── SevenDayStreakAchievementRule.java
+    │   │   ├── ThirtyDayStreakAchievementRule.java
+    │   │   └── MemoryMasterAchievementRule.java
+    │   ├── service/                # Gamification orchestration & streak services
+    │   │   ├── StreakService.java / StreakServiceImpl.java
+    │   │   ├── AchievementService.java / AchievementServiceImpl.java
+    │   │   └── GamificationService.java / GamificationServiceImpl.java
+    │   ├── strategy/               # Strategy Pattern for XP reward calculation
+    │   │   ├── RewardStrategy.java            # Strategy interface contract
+    │   │   ├── QuizRewardStrategy.java        # Base 10 + 5 per correct + 15 perfect bonus
+    │   │   ├── LessonRewardStrategy.java      # Base 20 + 2 per item (capped at 50)
+    │   │   ├── ReviewRewardStrategy.java      # Base 15 + 3 per reviewed word
+    │   │   ├── DailyPathRewardStrategy.java   # Base 40 + 10 all-mastered bonus
+    │   │   ├── StreakRewardStrategy.java      # Base 10 + min(streak, 30)*2 bonus
+    │   │   └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
+    │   └── controller/             # ProfileController, LeaderboardController, AchievementController
+    │
+    └── ai/                         # AI & Contextual Vocabulary Learning (Phase 10)
+        ├── cache/                  # AiExplanationCache (in-memory LRU cache with TTL)
+        ├── config/                 # AiConfig (model configurations, fallback chain, timeouts)
+        ├── controller/             # AiController (/api/v1/ai/*), AdaptiveInsightController (/api/v1/insights/*)
+        ├── dto/                    # AiExplanationResponse, AdaptiveInsightResponse, WordExplanationRequest
+        ├── provider/               # Provider Pattern implementations
+        │   ├── AiProvider.java                # Core provider contract
+        │   ├── GeminiAiProvider.java          # Google Gemini implementation with multi-model fallback chain
+        │   ├── FallbackAiProvider.java        # Deterministic offline generator for resilience
+        │   └── AiGenerationResult.java        # Generation payload with provider and model metadata
+        └── service/                # AI orchestration and prompt engineering
+            ├── AIExplanationService.java      # Service interface contract
+            ├── GeminiExplanationService.java  # Main explanation orchestrator with caching & validation
+            ├── FallbackExplanationService.java# Local rule-based explanation service
+            ├── AdaptiveInsightService.java    # Real-time learner insight & memory health analysis
+            ├── AiPromptBuilder.java           # Structured JSON prompt construction
+            └── CollocationValidator.java     # Collocation & register quality validation
 ```
 
 ---
@@ -197,7 +218,9 @@ frontend/
     │   ├── assessment.ts           # AssessmentStart, Question, SubmitAnswer, DiagnosticResult
     │   ├── learningPath.ts         # LearningPath, LearningItem, CompleteItemResponse
     │   ├── quiz.ts                 # Quiz, Polymorphic Question, QuizAttempt, EvaluationResult
-    │   └── gamification.ts         # LearnerProfile, XpTransaction, LeaderboardEntry, Achievement
+    │   ├── gamification.ts         # LearnerProfile, XpTransaction, LeaderboardEntry, Achievement
+    │   ├── ai.ts                   # WordExplanation, AiExplanationResponse, WordStudyMode
+    │   └── insight.ts              # AdaptiveInsight, MemoryHealthMetrics, InsightRecommendation
     │
     ├── api/                        # Centralized Axios Client & Service Modules
     │   ├── axios.ts                # Axios instance with JWT Bearer interceptor & 401 handling
@@ -209,7 +232,9 @@ frontend/
     │   ├── quizApi.ts              # /api/v1/quizzes/* (generate, start, submit, results)
     │   ├── profileApi.ts           # /api/v1/profile/* (stats, xp-history)
     │   ├── achievementApi.ts       # /api/v1/achievements
-    │   └── leaderboardApi.ts       # /api/v1/leaderboard
+    │   ├── leaderboardApi.ts       # /api/v1/leaderboard
+    │   ├── aiApi.ts                # /api/v1/ai/* (word explanations, mnemonics, contextual study)
+    │   └── insightApi.ts           # /api/v1/insights/* (adaptive learner recommendations)
     │
     ├── context/                    # Global React Contexts
     │   ├── AuthContext.tsx         # User authentication state, token persistence, login/logout
@@ -233,6 +258,13 @@ frontend/
     │   │   ├── MobileNav.tsx       # Bottom mobile tab navigation
     │   │   └── AppShell.tsx        # Responsive application wrapper (Sidebar + TopHeader + Content)
     │   │
+    │   ├── vocabulary/             # Vocabulary Study & AI Components
+    │   │   └── WordStudyAiActions.tsx # Deep-dive modal with AI mnemonic, collocations, sentence generator, and audio TTS
+    │   │
+    │   ├── dashboard/              # Learner Dashboard Widgets
+    │   │   ├── AiLearningInsightCard.tsx # Real-time adaptive AI learning insights & recommendations
+    │   │   └── MemoryHealthWidget.tsx    # Spaced repetition retention health & due review status
+    │   │
     │   └── landing/                # Landing Page Components (matching approved design reference)
     │       ├── HeroSection.tsx     # Hero banner + 3D floating memory ecosystem cards
     │       ├── HowItWorksSection.tsx # 4-step learning journey + interactive Memory Map widget
@@ -249,8 +281,8 @@ frontend/
     │   ├── DashboardPage.tsx       # Main hub: daily path, streak, XP status, memory stats, quick actions
     │   ├── AssessmentPage.tsx      # 20-question diagnostic test runner (A1–C1) with latency tracking
     │   ├── AssessmentResultPage.tsx# CEFR placement result showcase with confidence score
-    │   ├── LearningPathPage.tsx    # Daily curriculum roadmap (/learn-path) with dynamic item completion & regenerate
-    │   ├── ReviewPage.tsx          # Interactive SRS flashcard flip with SuperMemo-2 quality ratings
+    │   ├── LearningPathPage.tsx    # Daily curriculum roadmap (/learn-path) with AI actions & dynamic completion
+    │   ├── ReviewPage.tsx          # Interactive SRS flashcard flip with SuperMemo-2 quality ratings & AI tips
     │   ├── QuizPage.tsx            # Polymorphic quiz runner (/quiz, /quiz/:quizId) with instant feedback
     │   ├── AchievementsPage.tsx    # Unlocked & locked badge gallery with XP progress
     │   ├── LeaderboardPage.tsx     # Global learner ranking with top-3 podium & privacy display
@@ -259,7 +291,7 @@ frontend/
     │
     └── routes/                     # Application Route Configurations
         ├── ProtectedRoute.tsx      # Auth guard redirecting unauthenticated users to /login
-        └── AppRoutes.tsx           # Declarative React Router setup with canonical routes (/learn-path, /quiz, /assessment) & aliases
+        └── AppRoutes.tsx           # Declarative React Router setup with canonical routes & aliases
 ```
 
 ---
@@ -346,10 +378,8 @@ erDiagram
         varchar code UK
         varchar title
         varchar description
-        varchar icon_url
-        int xp_bonus
-        varchar badge_category
-        int order_index
+        varchar icon
+        boolean active
         timestamp created_at
         timestamp updated_at
         bigint version
@@ -359,7 +389,7 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint achievement_id FK
-        timestamp unlocked_at
+        timestamp earned_at
         timestamp created_at
         timestamp updated_at
         bigint version
@@ -389,8 +419,7 @@ erDiagram
         int correct_attempts
         int incorrect_attempts
         int consecutive_correct
-        double ease_factor
-        int review_interval_days
+        int consecutive_incorrect
         int leitner_box
         timestamp next_review_at
         timestamp last_reviewed_at
@@ -562,18 +591,13 @@ erDiagram
 * **`MemoryAlgorithmStrategy`** & **`MemoryStrategyFactory`**: Pluggable SM-2 (`SM2MemoryStrategy`) and Leitner (`LeitnerMemoryStrategy`) algorithms.
 * **Quiz → Memory Flow**: Submitting each quiz answer automatically triggers `MemoryService.recordReview(...)` (defaulting to SM-2), instantly updating `UserWordProgress` (mastery score, forgetting risk, next review date) without duplicating memory logic.
 
-### 5. Encapsulation & Historical Persistence
-* Historical learner attempts are permanently preserved in `QuizAttempt` and `QuestionAttempt` (recording latency `responseTimeMs`, points, correctness, and timestamps) without overwriting past performance.
-* Similarly, `Assessment`, `AssessmentQuestion`, and `AssessmentAnswer` record full diagnostic histories, allowing learners to re-assess later while preserving historical placement milestones.
-* All XP gains are permanently appended to the immutable `XpTransaction` audit ledger.
-
-### 6. Strategy Pattern & Diagnostic Placement Engine (Phase 6)
+### 5. Strategy Pattern & Diagnostic Placement Engine (Phase 6)
 * **`PlacementAlgorithmStrategy`**: Pluggable algorithm contract `calculate(List<AssessmentPerformance>)` producing `PlacementResult`.
 * **`DefaultPlacementStrategy`**: Rule-based deterministic estimation evaluating sequential CEFR mastery thresholds (`A1` → `A2` → `B1` → `B2` → `C1`) at a 75% accuracy threshold. Computes an explainable confidence score (0–100) based on sample completeness, response latency plausibility, boundary separation, and natural language decay consistency.
 * **`PlacementStrategyFactory`**: Dynamically resolves placement strategies without hardcoding score branching in the service layer.
 * **Separation of Concerns & Memory Isolation**: Diagnostic assessment questions isolate testing from spaced repetition retention tracking (`MemoryService` is NOT invoked during diagnostic assessments).
 
-### 7. Strategy & Factory Pattern in Adaptive Learning Path Engine (Phase 7)
+### 6. Strategy & Factory Pattern in Adaptive Learning Path Engine (Phase 7)
 * **`LearningPathStrategy`**: Strategy interface defining `generatePath(LearningPathContext)`.
 * **`AdaptiveLearningPathStrategy`**: Adaptive curriculum generation balancing up to 10 daily items:
   - Dynamically computes ratio between reviews, new vocabulary, and consolidating quizzes based on live `forgettingRisk`, `masteryScore`, and `dueReviews`.
@@ -582,39 +606,31 @@ erDiagram
 * **`LearningPathStrategyFactory`**: Resolves learning path strategies via Spring dependency injection without conditional branching or `instanceof` checks.
 * **Dynamic Regeneration**: Pending items can be regenerated on-demand (`POST /api/v1/learning-path/regenerate`) based on real-time memory metrics without deleting completed learning history.
 
-### 8. Strategy & Factory Pattern in Reward & Gamification Engine (Phase 8)
+### 7. Strategy & Factory Pattern in Reward & Gamification Engine (Phase 8)
 * **`RewardStrategy`**: Strategy interface defining `calculateXp(RewardContext)` and `supports(RewardActivityType)`.
-* **Concrete Strategies**:
-  * `QuizRewardStrategy`: Base 10 XP + 5 XP per correct answer + 15 XP perfect score bonus.
-  * `LessonRewardStrategy`: Base 20 XP + 2 XP per item completed (capped at 50 XP).
-  * `ReviewRewardStrategy`: Base 15 XP + 3 XP per retained/reviewed word.
-  * `DailyPathRewardStrategy`: Base 40 XP + 10 XP all-mastered bonus.
-  * `StreakRewardStrategy`: Base 10 XP + `min(currentStreak, 30) * 2` XP streak bonus.
-  * `AssessmentRewardStrategy`: Base 50 XP + CEFR level tier bonuses (A1: +10, A2: +20, B1: +35, B2: +50, C1: +75).
+* **Concrete Strategies**: `QuizRewardStrategy`, `LessonRewardStrategy`, `ReviewRewardStrategy`, `DailyPathRewardStrategy`, `StreakRewardStrategy`, `AssessmentRewardStrategy`.
 * **`RewardStrategyFactory`**: Injects and maps all `RewardStrategy` beans by `RewardActivityType`, safely resolving calculators without tight coupling.
 
-### 9. Open/Closed Principle & Rule Engine for Milestone Achievements (Phase 8)
+### 8. Open/Closed Principle & Rule Engine for Milestone Achievements (Phase 8)
 * **`AchievementRule`**: Rule interface defining `evaluate(AchievementEvaluationContext)` and `getAchievementCode()`.
-* **10 Concrete Rules**:
-  * `FirstLessonAchievementRule`: Awarded upon finishing the first lesson.
-  * `FirstQuizAchievementRule`: Awarded upon completing the first quiz.
-  * `WordStarterAchievementRule`: Awarded upon learning 5 words.
-  * `VocabularyExplorerAchievementRule`: Awarded upon learning 25 words.
-  * `CenturyAchievementRule`: Awarded upon learning 100 words.
-  * `PerfectScoreAchievementRule`: Awarded upon achieving a 100% quiz score.
-  * `QuizMasterAchievementRule`: Awarded upon completing 10 quizzes.
-  * `SevenDayStreakAchievementRule`: Awarded upon reaching a 7-day streak.
-  * `ThirtyDayStreakAchievementRule`: Awarded upon reaching a 30-day streak.
-  * `MemoryMasterAchievementRule`: Awarded upon achieving mastery (score >= 80%) on 10 words.
+* **10 Concrete Rules**: `FirstLessonAchievementRule`, `FirstQuizAchievementRule`, `WordStarterAchievementRule`, `VocabularyExplorerAchievementRule`, `CenturyAchievementRule`, `PerfectScoreAchievementRule`, `QuizMasterAchievementRule`, `SevenDayStreakAchievementRule`, `ThirtyDayStreakAchievementRule`, `MemoryMasterAchievementRule`.
 * **`AchievementRuleEngine`**: Evaluates active rules against the user's latest stats, filtering out previously unlocked badges.
 * **Idempotent Storage**: Unique database constraint on `(user_id, achievement_id)` prevents duplicate unlock entries or duplicate bonus XP rewards.
 
-### 10. Calendar-Safe Daily Learning Streak Engine & Audit Ledger (Phase 8)
-* **`StreakService`**: Uses calendar-day comparison (`LocalDate.now()`) rather than sliding 24-hour clocks:
-  * Consecutive day (`today - 1`): Increments `currentStreak` and updates `longestStreak = max(longestStreak, currentStreak)`.
-  * Same day (`today`): Preserves current streak idempotently across multiple sessions.
-  * Skipped day (`< today - 1`): Resets `currentStreak` to 1.
-* **`XpTransaction` Audit Ledger**: Every XP award records an immutable ledger entry with delta, resulting balance, activity type, source ID, and explanation.
+### 9. Provider Pattern & Multi-Tier Fallback Chain for AI Integration (Phase 10)
+* **`AiProvider` Interface Contract**: Defines `generate(String prompt, String targetLevel)` returning `AiGenerationResult`.
+* **`GeminiAiProvider` (Primary Cloud Provider)**: Interfaces with Google Generative Language API (`v1beta`). Incorporates a resilient **Chain of Responsibility**:
+  - `gemini-3.6-flash` (Primary default model)
+  - `gemini-3.7-flash` (First fallback on model deprecation or error)
+  - `gemini-3.5-flash` (Second fallback)
+  - `FallbackAiProvider` (Deterministic offline fallback on quota exhaustion / 429)
+* **`FallbackAiProvider` & `FallbackExplanationService`**: High-quality rule-based local provider guaranteeing that AI vocabulary assistance is always available even during network dropouts or Google API quota exhaustion.
+* **Thread-Safe LRU Cache (`AiExplanationCache`)**: In-memory cache keyed by normalized word and CEFR level with configurable TTL, preventing redundant API calls and conserving rate limits.
+* **`CollocationValidator`**: Validates grammatical and natural collocations, stripping generic phrases (e.g., *"a happy"* or *"very happy"*) to preserve linguistic accuracy.
+
+### 10. Cloud Database Persistence & Profile Segregation (Phase 11)
+* **Normal Application Runtime**: Powered by **Neon PostgreSQL 18** via HikariCP connection pool with `hibernate.ddl-auto: update`, ensuring learner progress, accounts, streaks, and XP permanently persist across restarts.
+* **Automated Test Isolation**: Test suite executes against an isolated **in-memory H2 database** (`spring.profiles.active: test`, `hibernate.ddl-auto: create-drop`), preventing test fixtures from ever modifying or polluting the cloud database.
 
 ---
 
@@ -631,7 +647,7 @@ erDiagram
 * `GET  /api/v1/vocabulary` — List all vocabulary words (Public)
 * `GET  /api/v1/vocabulary/{id}` — Get word definition and metadata (Public)
 * `GET  /api/v1/vocabulary/search?query=...` — Search vocabulary by keyword (Public)
-* `GET  /api/v1/vocabulary/level/{level}` — Filter by CEFR difficulty level (`A1`–`C2`) (Public)
+* `GET  /api/v1/vocabulary/level/{level}` — Filter by CEFR difficulty level (`A1`–`C1`) (Public)
 * `GET  /api/v1/vocabulary/category/{category}` — Filter by topic category (Public)
 * `POST /api/v1/vocabulary` — Create a new vocabulary word (Admin/Authenticated)
 
@@ -684,101 +700,33 @@ erDiagram
 ### 11. Achievement Catalog (`/api/v1/achievements`)
 * `GET  /api/v1/achievements` — List full master catalog of all available achievements (Public)
 
+### 12. AI & Contextual Vocabulary Learning (`/api/v1/ai`, `/api/v1/insights`)
+* `GET  /api/v1/ai/explain/{word}` — Enriched AI word explanation (contextual definition, memory tip/mnemonic, example sentence, collocations, register)
+* `GET  /api/v1/ai/explain/{word}/contextual` — Context-aware AI explanation calibrated to the authenticated learner's CEFR level
+* `POST /api/v1/ai/explain` — Custom prompt and word explanation request
+* `GET  /api/v1/insights/adaptive` — Adaptive learner insights, weak-spot recommendations, and memory health diagnosis
+
 ---
 
-## 📝 Example API Usage
+## ⚙️ Environment Variables & Configuration
 
-### 1. Learner Profile: `GET /api/v1/profile`
-**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Learner profile retrieved successfully",
-  "data": {
-    "userId": 1,
-    "fullName": "Jane Doe",
-    "email": "jane@example.com",
-    "totalXp": 385,
-    "level": 3,
-    "currentStreak": 5,
-    "longestStreak": 12,
-    "lastActivityDate": "2026-09-04",
-    "quizzesCompleted": 6,
-    "lessonsCompleted": 10,
-    "reviewsCompleted": 15,
-    "assessmentsCompleted": 1,
-    "perfectQuizzesCount": 2
-  }
-}
-```
+Memora reads its sensitive credentials and external endpoints from environment variables or a local `.env` file located at the project root.
 
-### 2. Auditable XP History: `GET /api/v1/profile/xp-history?page=0&size=2`
-**Headers**: `Authorization: Bearer <JWT_TOKEN>`  
-**Response**:
-```json
-{
-  "success": true,
-  "message": "XP history retrieved successfully",
-  "data": {
-    "content": [
-      {
-        "id": 18,
-        "xpEarned": 40,
-        "resultingTotalXp": 385,
-        "sourceActivity": "QUIZ_COMPLETION",
-        "sourceId": "7",
-        "description": "Completed Quiz #7 (Perfect Score)",
-        "createdAt": "2026-09-04T13:20:00"
-      },
-      {
-        "id": 17,
-        "xpEarned": 25,
-        "resultingTotalXp": 345,
-        "sourceActivity": "LESSON_COMPLETION",
-        "sourceId": "14",
-        "description": "Completed Stage Item #14",
-        "createdAt": "2026-09-04T12:45:10"
-      }
-    ],
-    "totalElements": 18,
-    "totalPages": 9,
-    "number": 0,
-    "size": 2
-  }
-}
-```
+> [!IMPORTANT]
+> **Zero-Credential Policy**: `.env` and `.env.*` are strictly ignored by Git via `.gitignore`. Never commit actual API keys or database passwords. Use `.env.example` as a template.
 
-### 3. Global Leaderboard: `GET /api/v1/leaderboard?limit=3`
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Leaderboard retrieved successfully",
-  "data": [
-    {
-      "rank": 1,
-      "userId": 4,
-      "displayName": "Alice Smith",
-      "totalXp": 1250,
-      "currentStreak": 14
-    },
-    {
-      "rank": 2,
-      "userId": 1,
-      "displayName": "Jane Doe",
-      "totalXp": 385,
-      "currentStreak": 5
-    },
-    {
-      "rank": 3,
-      "userId": 7,
-      "displayName": "Bob Johnson",
-      "totalXp": 290,
-      "currentStreak": 2
-    }
-  ]
-}
+### `.env.example` Template
+```env
+# Neon PostgreSQL Database Configuration
+DB_URL=jdbc:postgresql://<neon-host>/<database>?sslmode=require
+DB_USERNAME=<neon-username>
+DB_PASSWORD=<neon-password>
+
+# Memora AI & Gemini Configuration
+MEMORA_AI_PROVIDER=gemini
+MEMORA_AI_API_KEY=<gemini-api-key>
+MEMORA_AI_MODEL=gemini-3.6-flash
+MEMORA_AI_TIMEOUT_MS=10000
 ```
 
 ---
@@ -787,27 +735,50 @@ erDiagram
 
 ### 1. Prerequisites
 * **Java**: JDK 20 or 21 installed (`java -version`)
-* **Database**: PostgreSQL 14+ (or runs seamlessly on H2 in-memory for testing)
+* **Database**: Neon PostgreSQL connection configured in `.env` (or local PostgreSQL). Automated tests run on embedded in-memory H2 with zero external setup.
 * **Build Tool**: Maven Wrapper (`.\mvnw.cmd` on Windows, `./mvnw` on Linux/macOS)
 
-### 2. Build & Run Application
+### 2. Recommended Quick Start
+Run the PowerShell startup script (automatically frees port 8080 if needed, loads `.env` safely, and starts Spring Boot):
 ```powershell
-# Compile and package
-.\mvnw.cmd clean package
+.\run-backend.ps1
+```
+Or with Windows CMD:
+```cmd
+.\run-backend.cmd
+```
 
-# Run Spring Boot backend
+### 3. Manual Run
+```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-### 3. Running Automated Tests
+### 4. Running Automated Tests
+The automated test suite runs completely isolated on in-memory H2 without touching Neon PostgreSQL:
 ```powershell
-# Run the complete test suite (133 tests across Phase 1–8 modules)
-.\mvnw.cmd clean test
+.\mvnw.cmd test
 ```
+* **Baseline**: 184 tests run across all domain modules (0 failures, 0 errors, 0 skipped).
 
-### 4. Health Check Verification
-```bash
-curl -X GET http://localhost:8080/api/v1/health
+### 5. Health Check Verification
+```powershell
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8080/api/v1/health"
+
+# Or with curl
+curl.exe -s http://localhost:8080/api/v1/health
+```
+**Expected Response**:
+```json
+{
+  "success": true,
+  "message": "Memora backend is running normally",
+  "data": {
+    "status": "UP",
+    "service": "Memora Backend Platform",
+    "version": "1.0.0"
+  }
+}
 ```
 
 ---
@@ -836,13 +807,13 @@ npm run dev
 The application will be accessible at `http://localhost:5173`.  
 All `/api/*` network requests are automatically proxied to the Spring Boot backend at `http://localhost:8080`.
 
-### 4. Production Build
+### 4. Production Build & Validation
 ```bash
-# Typecheck with tsc and compile optimized bundle with Vite
-npm run build
+# Verify TypeScript types
+npx tsc --noEmit
 
-# Preview production build locally
-npm run preview
+# Compile production bundle with Vite
+npm run build
 ```
 
 ---
@@ -850,19 +821,20 @@ npm run preview
 ## 🌐 End-to-End System Integration Flow
 
 1. **Editorial Landing Page (`/`)**:
-   - Matches the approved visual design: warm background (`#FBFBF9`), unified typography (*Plus Jakarta Sans*), Memora green accents (`#6A8D2F`, `#557224`), 3D Floating Memory Ecosystem with interactive word nodes (`curious`, `explore`, `focus`, `improve`, `achieve`), interactive Memory Map widget, 4-stage learning pipeline, and institutional trust badges.
-   - **Smooth-Scrolling Navigation**: Clicking the Memora brand logo smoothly navigates to the top hero section (`#home`), and nav links (`Home`, `Features`, `How it works`, `About us`) animate smoothly with an 80px offset accounting for the sticky navigation bar.
+   - Matches the approved visual design: warm background (`#FBFBF9`), unified typography (*Plus Jakarta Sans*), Memora green accents (`#6A8D2F`, `#557224`), 3D Floating Memory Ecosystem with interactive word nodes, interactive Memory Map widget, 4-stage learning pipeline, and institutional trust badges.
+   - **Smooth-Scrolling Navigation**: Nav links (`Home`, `Features`, `How it works`, `About us`) animate smoothly with an 80px offset accounting for the sticky navigation bar.
 2. **Authentication & Placement Onboarding (`/register` & `/login`)**:
    - Learner registers and is immediately directed to the diagnostic placement assessment (`/assessment`) if their CEFR level is uncalibrated.
    - Stateless JWT is persisted in `localStorage` and automatically injected into all Axios headers via Bearer token interceptor.
 3. **Diagnostic Assessment & CEFR Placement (`/assessment`, `/assessment/:assessmentId` & `/assessment/result`)**:
-   - Learner answers 20 dynamically presented questions across calibrated CEFR tiers `A1` through `C1` (4 questions per level) with millisecond response latency tracking and zero uncalibrated `C2` claims.
+   - Learner answers 20 dynamically presented questions across calibrated CEFR tiers `A1` through `C1` (4 questions per level) with millisecond response latency tracking.
    - Evaluated by `DefaultPlacementStrategy`, awarding diagnostic XP and placing the learner at their calibrated CEFR level with confidence score and breakdown.
 4. **Adaptive Learning Path Dashboard (`/dashboard` & `/learn-path`)**:
-   - Canonical route `/learn-path` (with `/learning-path`, `/learn`, and `/learning` aliases) renders the daily curriculum (up to 10 balanced items: review words, new words, stretch vocabulary, and consolidating quizzes).
+   - Canonical route `/learn-path` renders the daily curriculum (up to 10 balanced items: review words, new words, stretch vocabulary, and consolidating quizzes).
    - Dynamic item status tracking with instant regeneration capabilities and item completion.
+   - Integrated with **AI Word Study Modal** (`WordStudyAiActions`) for deep-dive contextual explanations, mnemonics, collocations, sentence generators, and text-to-speech audio.
 5. **Memory Engine Spaced Repetition (`/review`)**:
-   - Interactive 3D flip flashcards displaying word details, IPA phonetics, parts of speech, CEFR level, definitions, and contextual examples.
+   - Interactive 3D flip flashcards displaying word details, IPA phonetics, parts of speech, CEFR level, definitions, contextual examples, and AI memory tips.
    - Submits ratings (Again=1, Hard=3, Good=4, Easy=5) to `POST /api/v1/memory/review` using SuperMemo-2 / Leitner algorithms, dynamically recalculating easiness factors and review intervals.
 6. **Polymorphic Quiz Engine (`/quiz` & `/quiz/:quizId`)**:
    - Accessing `/quiz` automatically generates and starts an active quiz session, while `/quiz/:quizId` loads an existing session.
