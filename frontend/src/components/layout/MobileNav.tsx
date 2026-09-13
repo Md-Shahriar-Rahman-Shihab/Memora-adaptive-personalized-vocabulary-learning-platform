@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Compass, RotateCw, HelpCircle, User } from 'lucide-react';
+import { LayoutDashboard, Compass, RotateCw, HelpCircle, User, BookA } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
   const items = [
     { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: 'Learn', path: '/learn-path', icon: <Compass className="w-5 h-5" /> },
     { label: 'Review', path: '/review', icon: <RotateCw className="w-5 h-5" /> },
+    { label: 'Dictionary', path: '/dictionary', icon: <BookA className="w-5 h-5" /> },
     { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" /> },
     { label: 'Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
   ];

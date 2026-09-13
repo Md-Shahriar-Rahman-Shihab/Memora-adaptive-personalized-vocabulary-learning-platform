@@ -17,6 +17,7 @@ import ProgressPage from '../pages/ProgressPage';
 import AchievementsPage from '../pages/AchievementsPage';
 import LeaderboardPage from '../pages/LeaderboardPage';
 import ProfilePage from '../pages/ProfilePage';
+import DictionaryPage from '../pages/DictionaryPage';
 
 // Component redirecting authenticated users away from /login and /register
 const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -63,6 +64,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/quiz/:quizId" element={<QuizPage />} />
+          <Route path="/dictionary" element={<DictionaryPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>

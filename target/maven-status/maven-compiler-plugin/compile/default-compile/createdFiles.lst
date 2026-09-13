@@ -54,6 +54,7 @@ com\memora\modules\assessment\repository\AssessmentRepository.class
 com\memora\modules\assessment\domain\PlacementResult.class
 com\memora\modules\learningpath\service\LearningPathServiceImpl.class
 com\memora\modules\user\dto\LoginRequest.class
+com\memora\modules\dictionary\exception\DictionaryAuthenticationException.class
 com\memora\modules\ai\service\GeminiExplanationService.class
 com\memora\modules\learningpath\dto\LearningItemCompletionResponse.class
 com\memora\modules\memory\controller\MemoryController.class
@@ -62,6 +63,8 @@ com\memora\common\domain\BaseEntity.class
 com\memora\modules\gamification\rule\SevenDayStreakAchievementRule.class
 com\memora\modules\ai\service\AiPromptBuilder.class
 com\memora\modules\learningpath\domain\LearningPathStrategyType.class
+com\memora\modules\dictionary\service\DictionaryServiceImpl.class
+com\memora\modules\dictionary\dto\DictionaryResponse.class
 com\memora\security\SecurityConfig.class
 com\memora\modules\learningpath\controller\LearningPathController.class
 com\memora\modules\memory\domain\MemoryCalculationResult$Builder.class
@@ -71,18 +74,22 @@ com\memora\modules\ai\dto\AiExplanationRequest.class
 com\memora\modules\ai\dto\AiExplanationResponse.class
 com\memora\modules\ai\provider\FallbackAiProvider.class
 com\memora\modules\user\repository\UserRepository.class
+com\memora\modules\dictionary\dto\PartOfSpeechDto.class
 com\memora\modules\gamification\dto\UserAchievementResponse.class
 com\memora\modules\quiz\service\QuizServiceImpl.class
 com\memora\modules\gamification\dto\XpTransactionResponse.class
 com\memora\security\jwt\JwtAuthenticationFilter.class
 com\memora\modules\vocabulary\service\UserWordProgressServiceImpl.class
 com\memora\modules\gamification\rule\MemoryMasterAchievementRule.class
+com\memora\modules\dictionary\service\DictionaryService.class
 com\memora\modules\gamification\controller\LeaderboardController.class
 com\memora\modules\vocabulary\service\VocabularyService.class
 com\memora\modules\gamification\rule\AchievementRuleEngine.class
+com\memora\modules\dictionary\exception\DictionaryRateLimitException.class
 com\memora\modules\gamification\config\AchievementDataSeeder.class
 com\memora\modules\learningpath\factory\LearningPathStrategyFactory.class
 com\memora\modules\memory\service\MemoryServiceImpl.class
+com\memora\modules\dictionary\client\DictionaryProvider.class
 com\memora\modules\quiz\dto\QuestionResponse.class
 com\memora\MemoraApplication.class
 com\memora\modules\ai\dto\AdaptiveInsightResponse.class
@@ -102,7 +109,9 @@ com\memora\modules\learningpath\repository\LearningPathRepository.class
 com\memora\modules\vocabulary\dto\UserWordProgressResponse.class
 com\memora\modules\gamification\domain\AchievementEvaluationContext.class
 com\memora\modules\ai\dto\AiUsageResponse.class
+com\memora\modules\dictionary\exception\DictionaryTimeoutException.class
 com\memora\modules\assessment\strategy\PlacementAlgorithmStrategy.class
+com\memora\modules\dictionary\exception\DictionaryServiceUnavailableException.class
 com\memora\modules\learningpath\entity\LearningPath.class
 com\memora\modules\quiz\dto\AnswerResponse.class
 com\memora\modules\vocabulary\mapper\UserWordProgressMapper.class
@@ -110,6 +119,7 @@ com\memora\modules\vocabulary\config\VocabularyDataSeeder.class
 com\memora\modules\quiz\entity\TranslationQuestion.class
 com\memora\modules\user\service\UserService.class
 com\memora\modules\user\service\UserServiceImpl.class
+com\memora\modules\dictionary\client\MerriamWebsterDictionaryApiClient.class
 com\memora\modules\memory\service\MemoryService.class
 com\memora\modules\vocabulary\domain\ForgettingRisk.class
 com\memora\modules\assessment\dto\AssessmentAnswerRequest.class
@@ -124,6 +134,7 @@ com\memora\modules\gamification\service\GamificationServiceImpl$1.class
 com\memora\modules\assessment\repository\AssessmentAnswerRepository.class
 com\memora\modules\user\dto\UserResponse.class
 com\memora\modules\learningpath\entity\LearningPathItem.class
+com\memora\modules\dictionary\dto\DefinitionDto.class
 com\memora\modules\gamification\service\StreakServiceImpl.class
 com\memora\modules\assessment\controller\AssessmentController.class
 com\memora\modules\gamification\rule\QuizMasterAchievementRule.class
@@ -160,6 +171,7 @@ com\memora\modules\gamification\rule\FirstQuizAchievementRule.class
 com\memora\modules\learningpath\dto\TodayLearningPathResponse.class
 com\memora\modules\quiz\entity\Question.class
 com\memora\modules\gamification\controller\ProfileController.class
+com\memora\modules\dictionary\config\DictionaryConfig.class
 com\memora\common\exception\UserNotFoundException.class
 com\memora\modules\gamification\rule\FirstLessonAchievementRule.class
 com\memora\modules\vocabulary\package-info.class
@@ -208,10 +220,13 @@ com\memora\modules\vocabulary\domain\DifficultyLevel.class
 com\memora\modules\gamification\strategy\AssessmentRewardStrategy.class
 com\memora\modules\quiz\entity\FillInTheBlankQuestion.class
 com\memora\modules\quiz\controller\QuizController.class
+com\memora\modules\dictionary\controller\DictionaryController.class
+com\memora\modules\dictionary\exception\DictionaryWordNotFoundException.class
 com\memora\modules\learningpath\domain\LearningPathResult.class
 com\memora\modules\quiz\strategy\FillInTheBlankEvaluator.class
 com\memora\modules\gamification\repository\XpTransactionRepository.class
 com\memora\modules\quiz\entity\QuestionAttempt.class
+com\memora\modules\dictionary\service\DictionaryServiceImpl$CachedDictionaryEntry.class
 com\memora\modules\quiz\repository\QuestionAttemptRepository.class
 com\memora\modules\gamification\controller\AchievementController.class
 com\memora\modules\gamification\repository\UserAchievementRepository.class

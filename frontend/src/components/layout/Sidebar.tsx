@@ -11,6 +11,7 @@ import {
   User as UserIcon,
   LogOut,
   Sparkles,
+  BookA,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -28,6 +29,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Learn Path', path: '/learn-path', icon: <Compass className="w-5 h-5" /> },
     { label: 'Review', path: '/review', icon: <RotateCw className="w-5 h-5" /> },
     { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" /> },
+    { label: 'Dictionary', path: '/dictionary', icon: <BookA className="w-5 h-5" /> },
     { label: 'Progress', path: '/progress', icon: <TrendingUp className="w-5 h-5" /> },
     { label: 'Achievements', path: '/achievements', icon: <Award className="w-5 h-5" /> },
     { label: 'Leaderboard', path: '/leaderboard', icon: <Crown className="w-5 h-5" /> },

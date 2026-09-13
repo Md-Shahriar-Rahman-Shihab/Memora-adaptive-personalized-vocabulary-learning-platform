@@ -6,6 +6,7 @@ if (Test-Path "C:\Users\HP\.jdks\ms-21.0.12.1") {
     $env:JAVA_HOME = "C:\Users\HP\.jdks\ms-21.0.12.1"
     $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 }
+$env:_JAVA_OPTIONS = "-Djava.net.preferIPv4Stack=true"
 
 $conn = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
 if ($conn) {

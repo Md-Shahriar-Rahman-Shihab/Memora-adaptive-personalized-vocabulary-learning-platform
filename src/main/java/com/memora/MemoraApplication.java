@@ -18,7 +18,12 @@ import java.nio.charset.StandardCharsets;
 @EnableJpaAuditing
 public class MemoraApplication {
 
+    static {
+        System.setProperty("java.net.preferIPv4Stack", "true");
+    }
+
     public static void main(String[] args) {
+        System.setProperty("java.net.preferIPv4Stack", "true");
         loadDotEnv();
         SpringApplication.run(MemoraApplication.class, args);
     }
