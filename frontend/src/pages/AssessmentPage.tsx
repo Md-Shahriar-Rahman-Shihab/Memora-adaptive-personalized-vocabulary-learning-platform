@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Compass, ArrowRight, Clock, CheckCircle2 } from 'lucide-react';
+import { Compass, ArrowRight, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { assessmentApi } from '../api/assessmentApi';
-import { AssessmentQuestionResponse, AssessmentDetailResponse } from '../types/assessment';
+import { AssessmentQuestionResponse } from '../types/assessment';
 import { AppShell } from '../components/layout/AppShell';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -11,91 +11,130 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorState } from '../components/ui/ErrorState';
 
+type PageStatus = 'loading' | 'intro' | 'question' | 'error';
+
 export const AssessmentPage: React.FC = () => {
   const navigate = useNavigate();
   const { assessmentId: routeAssessmentId } = useParams<{ assessmentId?: string }>();
 
-  const [assessmentId, setAssessmentId] = useState<number | null>(null);
+  const [pageStatus, setPageStatus] = useState<PageStatus>(
+    routeAssessmentId ? 'loading' : 'intro'
+  );
+  const [assessmentId, setAssessmentId] = useState<number | null>(
+    routeAssessmentId ? Number(routeAssessmentId) : null
+  );
   const [totalQuestions, setTotalQuestions] = useState<number>(20);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [currentQuestion, setCurrentQuestion] = useState<AssessmentQuestionResponse | null>(null);
+  const [questionsList, setQuestionsList] = useState<AssessmentQuestionResponse[]>([]);
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [textInput, setTextInput] = useState<string>('');
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [started, setStarted] = useState<boolean>(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (routeAssessmentId) {
-      const loadExisting = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const res = await assessmentApi.getAssessment(Number(routeAssessmentId));
-          if (res.success && res.data) {
-            const data = res.data;
-            if (data.status === 'COMPLETED') {
-              navigate(`/assessment/result?assessmentId=${data.assessmentId}`);
-              return;
-            }
-            setAssessmentId(data.assessmentId);
-            setTotalQuestions(data.totalQuestions || 20);
-            const nextIdx = data.answeredQuestions;
-            if (data.questions && data.questions[nextIdx]) {
-              setCurrentQuestion(data.questions[nextIdx]);
-              setCurrentQuestionIndex(nextIdx + 1);
-              setStarted(true);
-            }
-          }
-        } catch (err: any) {
-          setError(err?.response?.data?.message || 'Could not load existing assessment session.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      loadExisting();
-    }
-  }, [routeAssessmentId]);
-
-  // Measure response time in ms
+  // Measure response latency
   const questionStartTimeRef = useRef<number>(Date.now());
 
-  // Reset timer on new question
+  // Reset timer & selections on new question
   useEffect(() => {
     if (currentQuestion) {
       questionStartTimeRef.current = Date.now();
       setSelectedOption('');
       setTextInput('');
+      setSubmitError(null);
     }
   }, [currentQuestion]);
 
+  // Load existing session by route param
+  const loadExistingSession = useCallback(async (id: number) => {
+    setPageStatus('loading');
+    setSessionError(null);
+    try {
+      const res = await assessmentApi.getAssessment(id);
+      if (res.success && res.data) {
+        const data = res.data;
+        if (data.status === 'COMPLETED') {
+          navigate(`/assessment/result?assessmentId=${data.assessmentId}`, { replace: true });
+          return;
+        }
+
+        const qList = data.questions || [];
+        setAssessmentId(data.assessmentId);
+        setQuestionsList(qList);
+        setTotalQuestions(data.totalQuestions || qList.length || 20);
+
+        const nextIdx = data.answeredQuestions || 0;
+        if (qList[nextIdx]) {
+          setCurrentQuestion(qList[nextIdx]);
+          setCurrentQuestionIndex(nextIdx + 1);
+          setPageStatus('question');
+        } else if (nextIdx >= qList.length && qList.length > 0) {
+          // All questions already answered, complete session
+          await assessmentApi.completeAssessment(data.assessmentId);
+          navigate(`/assessment/result?assessmentId=${data.assessmentId}`, { replace: true });
+        } else {
+          setSessionError('No questions found for this assessment session.');
+          setPageStatus('error');
+        }
+      } else {
+        setSessionError('Could not load existing assessment session.');
+        setPageStatus('error');
+      }
+    } catch (err: any) {
+      setSessionError(err?.response?.data?.message || 'Could not load existing assessment session.');
+      setPageStatus('error');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    if (routeAssessmentId) {
+      loadExistingSession(Number(routeAssessmentId));
+    } else {
+      setPageStatus('intro');
+    }
+  }, [routeAssessmentId, loadExistingSession]);
+
   // Start Assessment
   const handleStart = async () => {
-    setIsLoading(true);
-    setError(null);
+    setPageStatus('loading');
+    setSessionError(null);
     try {
       const res = await assessmentApi.startAssessment();
       if (res.success && res.data) {
-        setAssessmentId(res.data.assessmentId);
-        setTotalQuestions(res.data.totalQuestions || 20);
-        setCurrentQuestion(res.data.firstQuestion);
-        setCurrentQuestionIndex(1);
-        setStarted(true);
+        const data = res.data;
+        const qList = data.questions || (data.firstQuestion ? [data.firstQuestion] : []);
+        setQuestionsList(qList);
+        setAssessmentId(data.assessmentId);
+        setTotalQuestions(data.totalQuestions || qList.length || 20);
+
+        const startIdx = data.answeredQuestions || 0;
+        if (qList[startIdx]) {
+          setCurrentQuestion(qList[startIdx]);
+          setCurrentQuestionIndex(startIdx + 1);
+          setPageStatus('question');
+          // Synchronize URL with active assessment ID without reloading
+          navigate(`/assessment/${data.assessmentId}`, { replace: true });
+        } else {
+          setSessionError('Assessment generated without questions. Please try again.');
+          setPageStatus('error');
+        }
+      } else {
+        setSessionError('Failed to start diagnostic assessment. Please try again.');
+        setPageStatus('error');
       }
     } catch (err: any) {
-      setError(
+      setSessionError(
         err?.response?.data?.message || 'Failed to start diagnostic assessment. Please try again.'
       );
-    } finally {
-      setIsLoading(false);
+      setPageStatus('error');
     }
   };
 
   // Submit Answer
   const handleSubmitAnswer = async () => {
-    if (!assessmentId || !currentQuestion) return;
+    if (isSubmitting || !assessmentId || !currentQuestion) return;
 
     const answerValue =
       currentQuestion.questionType === 'MULTIPLE_CHOICE' ? selectedOption : textInput.trim();
@@ -105,31 +144,80 @@ export const AssessmentPage: React.FC = () => {
     const latencyMs = Math.max(100, Date.now() - questionStartTimeRef.current);
 
     setIsSubmitting(true);
+    setSubmitError(null);
+
     try {
       const res = await assessmentApi.submitAnswer(assessmentId, currentQuestion.questionId, {
         answer: answerValue,
         responseTimeMs: latencyMs,
       });
 
-      if (res.success && res.data) {
-        if (res.data.isComplete || !res.data.nextQuestion) {
-          // Finalize assessment
+      if (res.success) {
+        const nextIdx = currentQuestionIndex; // next 0-based question index
+        if (nextIdx >= totalQuestions || (questionsList.length > 0 && nextIdx >= questionsList.length)) {
+          // Finalize assessment when all questions are answered
+          setPageStatus('loading');
           await assessmentApi.completeAssessment(assessmentId);
-          navigate(`/assessment/result?assessmentId=${assessmentId}`);
+          navigate(`/assessment/result?assessmentId=${assessmentId}`, { replace: true });
+        } else if (questionsList[nextIdx]) {
+          // Advance smoothly in-memory without extra round-trip
+          setCurrentQuestion(questionsList[nextIdx]);
+          setCurrentQuestionIndex(nextIdx + 1);
         } else {
-          // Next question
-          setCurrentQuestion(res.data.nextQuestion);
-          setCurrentQuestionIndex(res.data.answeredQuestions + 1);
+          // Fallback if list was somehow incomplete
+          setPageStatus('loading');
+          await loadExistingSession(assessmentId);
         }
+      } else {
+        setSubmitError(res.message || 'Error submitting answer. Please try again.');
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error submitting answer. Please try again.');
+      setSubmitError(err?.response?.data?.message || 'Error submitting answer. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!started) {
+  // Loading state
+  if (pageStatus === 'loading') {
+    return (
+      <AppShell
+        title="CEFR Diagnostic Placement"
+        subtitle="Loading your assessment..."
+      >
+        <div className="max-w-2xl mx-auto py-20 flex flex-col items-center justify-center">
+          <LoadingSpinner size="lg" label="Loading assessment session..." />
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Session error state — strictly renders error UI with retry, NEVER stale question cards
+  if (pageStatus === 'error') {
+    return (
+      <AppShell
+        title="Diagnostic Placement Test"
+        subtitle="Session Error"
+      >
+        <div className="max-w-2xl mx-auto py-12">
+          <ErrorState
+            title="Session Error"
+            message={sessionError || 'Could not load existing assessment session.'}
+            onRetry={() => {
+              if (routeAssessmentId) {
+                loadExistingSession(Number(routeAssessmentId));
+              } else {
+                handleStart();
+              }
+            }}
+          />
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Intro state
+  if (pageStatus === 'intro') {
     return (
       <AppShell
         title="CEFR Diagnostic Placement"
@@ -166,14 +254,11 @@ export const AssessmentPage: React.FC = () => {
               </div>
             </div>
 
-            {error && <ErrorState message={error} />}
-
             <div className="pt-2">
               <Button
                 variant="primary"
                 size="lg"
                 onClick={handleStart}
-                isLoading={isLoading}
                 rightIcon={<ArrowRight className="w-5 h-5" />}
                 className="shadow-md"
               >
@@ -186,6 +271,7 @@ export const AssessmentPage: React.FC = () => {
     );
   }
 
+  // Active question state
   return (
     <AppShell
       title="Diagnostic Placement Test"
@@ -209,8 +295,6 @@ export const AssessmentPage: React.FC = () => {
             barClassName="bg-memora-green"
           />
         </div>
-
-        {error && <ErrorState message={error} />}
 
         {/* Question Card */}
         {currentQuestion && (
@@ -278,6 +362,14 @@ export const AssessmentPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Transient inline submit error */}
+            {submitError && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200/60 rounded-xl text-red-700 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                <span>{submitError}</span>
+              </div>
+            )}
 
             {/* Next / Submit Button */}
             <div className="pt-4 flex justify-end">

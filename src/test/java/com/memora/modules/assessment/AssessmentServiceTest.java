@@ -6,6 +6,7 @@ import com.memora.modules.assessment.domain.AssessmentStatus;
 import com.memora.modules.assessment.domain.PlacementResult;
 import com.memora.modules.assessment.dto.AssessmentAnswerRequest;
 import com.memora.modules.assessment.dto.AssessmentAnswerResponse;
+import com.memora.modules.assessment.dto.AssessmentDetailResponse;
 import com.memora.modules.assessment.dto.AssessmentStartResponse;
 import com.memora.modules.assessment.dto.PlacementResultResponse;
 import com.memora.modules.assessment.entity.Assessment;
@@ -131,6 +132,42 @@ class AssessmentServiceTest {
         assertEquals(1, response.getTotalQuestions());
         assertEquals(1, response.getQuestions().size());
         assertEquals(DifficultyLevel.A1, response.getQuestions().get(0).getDifficultyLevel());
+    }
+
+    @Test
+    @DisplayName("startAssessment should return existing active assessment if one is already in progress")
+    void testStartAssessmentReturnsExistingIfActiveAlreadyExists() {
+        when(userRepository.findByEmail("alice@memora.com")).thenReturn(Optional.of(testUser));
+        when(assessmentRepository.findActiveAssessment(1L)).thenReturn(Optional.of(testAssessment));
+        when(assessmentQuestionRepository.findByAssessmentIdOrderByOrderIndexAsc(100L))
+                .thenReturn(List.of(testAssessmentQuestion));
+        when(assessmentAnswerRepository.countByAssessmentId(100L)).thenReturn(1);
+
+        AssessmentStartResponse response = assessmentService.startAssessment("alice@memora.com");
+
+        assertNotNull(response);
+        assertEquals(100L, response.getAssessmentId());
+        assertEquals(AssessmentStatus.IN_PROGRESS, response.getStatus());
+        assertEquals(1, response.getAnsweredQuestions());
+        assertEquals(1, response.getQuestions().size());
+        verify(assessmentRepository, never()).save(any(Assessment.class));
+    }
+
+    @Test
+    @DisplayName("getAssessment should return details with countByAssessmentId")
+    void testGetAssessmentSuccess() {
+        when(assessmentRepository.findById(100L)).thenReturn(Optional.of(testAssessment));
+        when(assessmentQuestionRepository.findByAssessmentIdOrderByOrderIndexAsc(100L))
+                .thenReturn(List.of(testAssessmentQuestion));
+        when(assessmentAnswerRepository.countByAssessmentId(100L)).thenReturn(1);
+
+        AssessmentDetailResponse response = assessmentService.getAssessment("alice@memora.com", 100L);
+
+        assertNotNull(response);
+        assertEquals(100L, response.getAssessmentId());
+        assertEquals(1, response.getAnsweredQuestions());
+        assertEquals(0, response.getRemainingQuestions());
+        assertEquals(1, response.getQuestions().size());
     }
 
     @Test

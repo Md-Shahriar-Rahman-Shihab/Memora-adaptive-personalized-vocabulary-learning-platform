@@ -19,6 +19,7 @@ public class MultipleChoiceQuestion extends Question {
     @CollectionTable(name = "quiz_mcq_options", joinColumns = @JoinColumn(name = "question_id"))
     @Column(name = "option_text", nullable = false)
     @OrderColumn(name = "option_order")
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<String> options = new ArrayList<>();
 
     @Column(name = "correct_option", nullable = false)

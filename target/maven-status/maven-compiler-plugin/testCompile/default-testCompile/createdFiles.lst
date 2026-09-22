@@ -14,6 +14,7 @@ com\memora\modules\ai\FallbackExplanationServiceTest.class
 com\memora\modules\ai\AiProviderRouterTest.class
 com\memora\common\controller\HealthControllerTest.class
 com\memora\modules\assessment\AssessmentControllerIntegrationTest.class
+com\memora\modules\onboarding\OnboardingServiceTest.class
 com\memora\modules\ai\GeminiAiProviderTest.class
 com\memora\modules\assessment\AssessmentServiceTest.class
 com\memora\modules\ai\AiResponseCacheTest.class
@@ -25,6 +26,7 @@ com\memora\modules\ai\AiConfigTest.class
 com\memora\modules\quiz\QuestionFactoryTest.class
 com\memora\modules\gamification\StreakServiceTest.class
 com\memora\modules\learningpath\AdaptiveLearningPathStrategyTest.class
+com\memora\modules\onboarding\OnboardingControllerIntegrationTest.class
 com\memora\common\exception\GlobalExceptionHandlerTest$TestExceptionController.class
 com\memora\modules\quiz\QuizControllerIntegrationTest.class
 com\memora\modules\gamification\RewardStrategyTest.class

@@ -18,6 +18,7 @@ import AchievementsPage from '../pages/AchievementsPage';
 import LeaderboardPage from '../pages/LeaderboardPage';
 import ProfilePage from '../pages/ProfilePage';
 import DictionaryPage from '../pages/DictionaryPage';
+import OnboardingPage from '../pages/OnboardingPage';
 
 // Component redirecting authenticated users away from /login and /register
 const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -54,6 +55,7 @@ export const AppRoutes: React.FC = () => {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/assessment" element={<AssessmentPage />} />
           <Route path="/assessment/:assessmentId" element={<AssessmentPage />} />

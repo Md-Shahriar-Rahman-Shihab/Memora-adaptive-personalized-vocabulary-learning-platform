@@ -96,6 +96,13 @@ public class Assessment extends BaseEntity {
         }
     }
 
+    public void recordAnswer(boolean correct) {
+        if (correct) {
+            this.correctAnswers++;
+            this.score += 10;
+        }
+    }
+
     public User getUser() {
         return user;
     }

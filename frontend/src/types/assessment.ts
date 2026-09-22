@@ -24,7 +24,9 @@ export interface AssessmentDetailResponse {
 export interface AssessmentStartResponse {
   assessmentId: number;
   totalQuestions: number;
-  firstQuestion: AssessmentQuestionResponse;
+  answeredQuestions?: number;
+  questions?: AssessmentQuestionResponse[];
+  firstQuestion?: AssessmentQuestionResponse;
 }
 
 export interface AssessmentAnswerRequest {
@@ -33,12 +35,9 @@ export interface AssessmentAnswerRequest {
 }
 
 export interface AssessmentAnswerResponse {
-  assessmentId: number;
-  questionId: number;
-  answeredQuestions: number;
-  totalQuestions: number;
-  isComplete: boolean;
-  nextQuestion?: AssessmentQuestionResponse;
+  correct: boolean;
+  feedback?: string;
+  responseTimeMs: number;
 }
 
 export interface PlacementResultResponse {

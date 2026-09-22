@@ -128,12 +128,14 @@ com\memora\modules\ai\dto\AiExampleResponse.class
 com\memora\modules\ai\dto\AdaptiveInsightResponse$InsightMetrics.class
 com\memora\modules\memory\strategy\SM2MemoryStrategy.class
 com\memora\modules\vocabulary\service\VocabularyServiceImpl.class
+com\memora\modules\onboarding\controller\OnboardingController.class
 com\memora\modules\memory\dto\WordReviewRequest.class
 com\memora\modules\gamification\repository\AchievementRepository.class
 com\memora\modules\gamification\service\GamificationServiceImpl$1.class
 com\memora\modules\assessment\repository\AssessmentAnswerRepository.class
 com\memora\modules\user\dto\UserResponse.class
 com\memora\modules\learningpath\entity\LearningPathItem.class
+com\memora\modules\onboarding\service\OnboardingService.class
 com\memora\modules\dictionary\dto\DefinitionDto.class
 com\memora\modules\gamification\service\StreakServiceImpl.class
 com\memora\modules\assessment\controller\AssessmentController.class
@@ -164,6 +166,7 @@ com\memora\common\response\ErrorDetails.class
 com\memora\modules\assessment\entity\AssessmentAnswer.class
 com\memora\modules\quiz\entity\Quiz.class
 com\memora\modules\quiz\repository\QuizAttemptRepository.class
+com\memora\modules\onboarding\domain\OnboardingState.class
 com\memora\modules\gamification\rule\VocabularyExplorerAchievementRule.class
 com\memora\modules\quiz\factory\QuestionFactory$1.class
 com\memora\modules\assessment\dto\PlacementResultResponse.class
@@ -216,6 +219,7 @@ com\memora\modules\learningpath\domain\LearningItemType.class
 com\memora\modules\user\dto\AuthResponse.class
 com\memora\modules\gamification\service\GamificationService.class
 com\memora\modules\ai\service\FallbackExplanationService.class
+com\memora\modules\onboarding\dto\OnboardingStateResponse.class
 com\memora\modules\vocabulary\domain\DifficultyLevel.class
 com\memora\modules\gamification\strategy\AssessmentRewardStrategy.class
 com\memora\modules\quiz\entity\FillInTheBlankQuestion.class
@@ -227,6 +231,7 @@ com\memora\modules\quiz\strategy\FillInTheBlankEvaluator.class
 com\memora\modules\gamification\repository\XpTransactionRepository.class
 com\memora\modules\quiz\entity\QuestionAttempt.class
 com\memora\modules\dictionary\service\DictionaryServiceImpl$CachedDictionaryEntry.class
+com\memora\modules\onboarding\service\OnboardingServiceImpl.class
 com\memora\modules\quiz\repository\QuestionAttemptRepository.class
 com\memora\modules\gamification\controller\AchievementController.class
 com\memora\modules\gamification\repository\UserAchievementRepository.class

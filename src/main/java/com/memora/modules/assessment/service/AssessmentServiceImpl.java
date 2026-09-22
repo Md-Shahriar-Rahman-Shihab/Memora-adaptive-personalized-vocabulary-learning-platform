@@ -97,6 +97,25 @@ public class AssessmentServiceImpl implements AssessmentService {
     public AssessmentStartResponse startAssessment(String userEmail) {
         User user = findUserByEmail(userEmail);
 
+        // Check if user already has an active (IN_PROGRESS) assessment
+        Optional<Assessment> existingActive = assessmentRepository.findActiveAssessment(user.getId());
+        if (existingActive.isPresent()) {
+            Assessment active = existingActive.get();
+            log.info("User {} already has an active assessment ID: {}. Returning existing session.", userEmail, active.getId());
+            List<AssessmentQuestion> existingQuestions = assessmentQuestionRepository.findByAssessmentIdOrderByOrderIndexAsc(active.getId());
+            int answeredCount = assessmentAnswerRepository.countByAssessmentId(active.getId());
+            List<AssessmentQuestionResponse> questionResponses = existingQuestions.stream()
+                    .map(this::mapToQuestionResponse)
+                    .toList();
+            return new AssessmentStartResponse(
+                    active.getId(),
+                    active.getStatus(),
+                    active.getTotalQuestions(),
+                    answeredCount,
+                    questionResponses
+            );
+        }
+
         // Create new assessment session
         Assessment assessment = new Assessment(user, 20);
         List<AssessmentQuestion> questions = questionGenerator.generateAssessmentQuestions(assessment);
@@ -114,6 +133,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 savedAssessment.getId(),
                 savedAssessment.getStatus(),
                 savedAssessment.getTotalQuestions(),
+                0,
                 questionResponses
         );
     }
@@ -124,7 +144,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         validateOwnership(assessment, userEmail);
 
         List<AssessmentQuestion> questions = assessmentQuestionRepository.findByAssessmentIdOrderByOrderIndexAsc(assessmentId);
-        int answeredCount = assessmentAnswerRepository.findByAssessmentId(assessmentId).size();
+        int answeredCount = assessmentAnswerRepository.countByAssessmentId(assessmentId);
         int remainingCount = Math.max(0, assessment.getTotalQuestions() - answeredCount);
 
         List<AssessmentQuestionResponse> questionResponses = questions.stream()
@@ -178,7 +198,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         );
 
         assessmentAnswerRepository.save(answer);
-        assessment.addAssessmentAnswer(answer);
+        assessment.recordAnswer(evaluationResult.isCorrect());
         assessmentRepository.save(assessment);
 
         return new AssessmentAnswerResponse(

@@ -15,6 +15,8 @@ public interface AssessmentAnswerRepository extends JpaRepository<AssessmentAnsw
 
     List<AssessmentAnswer> findByAssessmentId(Long assessmentId);
 
+    int countByAssessmentId(Long assessmentId);
+
     Optional<AssessmentAnswer> findByAssessmentIdAndAssessmentQuestionId(Long assessmentId, Long assessmentQuestionId);
 
     boolean existsByAssessmentIdAndAssessmentQuestionId(Long assessmentId, Long assessmentQuestionId);

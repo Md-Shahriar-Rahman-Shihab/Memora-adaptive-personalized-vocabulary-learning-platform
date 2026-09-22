@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Award, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Trophy, User } from 'lucide-react';
 import { assessmentApi } from '../api/assessmentApi';
 import { learningPathApi } from '../api/learningPathApi';
+import { onboardingApi } from '../api/onboardingApi';
 import { useAuth } from '../context/AuthContext';
 import { PlacementResultResponse } from '../types/assessment';
 import { AppShell } from '../components/layout/AppShell';
@@ -26,13 +27,32 @@ export const AssessmentResultPage: React.FC = () => {
 
   useEffect(() => {
     const fetchResult = async () => {
-      if (!assessmentId) {
-        setError('Missing assessment ID.');
+      let resolvedId = assessmentId ? Number(assessmentId) : null;
+
+      if (!resolvedId) {
+        try {
+          const stateRes = await onboardingApi.getState();
+          if (stateRes.success && stateRes.data?.assessmentId) {
+            resolvedId = stateRes.data.assessmentId;
+          } else {
+            const historyRes = await assessmentApi.getHistory();
+            if (historyRes.success && historyRes.data && historyRes.data.length > 0) {
+              resolvedId = historyRes.data[0].assessmentId;
+            }
+          }
+        } catch {
+          // Ignore and handle missing ID below
+        }
+      }
+
+      if (!resolvedId) {
+        setError('No completed assessment found. Please complete an assessment first.');
         setIsLoading(false);
         return;
       }
+
       try {
-        const res = await assessmentApi.getResult(Number(assessmentId));
+        const res = await assessmentApi.getResult(resolvedId);
         if (res.success && res.data) {
           setResult(res.data);
           // Refresh auth context so header reflects new CEFR level
@@ -49,12 +69,13 @@ export const AssessmentResultPage: React.FC = () => {
   }, [assessmentId]);
 
   const handleStartLearningPath = async () => {
+    if (isStartingPath) return; // Prevent duplicate clicks
     setIsStartingPath(true);
     try {
       await learningPathApi.startPath();
       navigate('/learn-path');
     } catch {
-      // If already started, still navigate to learning path
+      // If already started or race condition, gracefully navigate to learning path
       navigate('/learn-path');
     } finally {
       setIsStartingPath(false);
@@ -157,7 +178,7 @@ export const AssessmentResultPage: React.FC = () => {
               rightIcon={<ArrowRight className="w-5 h-5" />}
               className="w-full justify-center shadow-lg"
             >
-              Start My Personalized Learning Path
+              Build My Learning Path
             </Button>
 
             <div className="grid grid-cols-2 gap-3">

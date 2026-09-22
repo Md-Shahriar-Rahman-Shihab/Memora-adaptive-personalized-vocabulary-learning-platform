@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, Lock, Mail, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { onboardingApi, getDestinationForOnboardingState } from '../api/onboardingApi';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 
@@ -26,7 +27,18 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Smart Post-Login Routing based on real onboarding state
+      try {
+        const stateRes = await onboardingApi.getState();
+        if (stateRes.success && stateRes.data) {
+          const dest = getDestinationForOnboardingState(stateRes.data);
+          navigate(dest, { replace: true });
+          return;
+        }
+      } catch {
+        // Fallback if onboarding check temporarily fails
+      }
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const msg =
         err?.response?.data?.message || 'Invalid email or password. Please try again.';

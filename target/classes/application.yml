@@ -19,15 +19,22 @@ spring:
       minimum-idle: 2
       idle-timeout: 30000
       connection-timeout: 20000
+      data-source-properties:
+        reWriteBatchedInserts: true
 
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
-    show-sql: ${SHOW_SQL:true}
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: false
+        jdbc:
+          batch_size: 50
+          order_inserts: true
+          order_updates: true
+          batch_versioned_data: true
     open-in-view: false
 
 # JWT Security Configuration
