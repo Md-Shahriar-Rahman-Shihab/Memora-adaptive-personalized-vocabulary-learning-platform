@@ -197,6 +197,41 @@ class LearningPathServiceTest {
     }
 
     @Test
+    @DisplayName("completeItem for new word type should record review with MemoryService")
+    void testCompleteItemNewWord() {
+        LearningPathItem newWordItem = new LearningPathItem(testPath, testWord, null, LearningItemType.NEW_WORD, LearningItemPriority.HIGH, 2, "Learn new word");
+        ReflectionTestUtils.setField(newWordItem, "id", 201L);
+        testPath.addItem(newWordItem);
+
+        when(learningPathItemRepository.findById(201L)).thenReturn(Optional.of(newWordItem));
+        when(learningPathItemRepository.save(any(LearningPathItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(learningPathRepository.save(any(LearningPath.class))).thenAnswer(i -> i.getArgument(0));
+
+        LearningItemCompletionRequest request = new LearningItemCompletionRequest(true, 1000L, null, null);
+        LearningItemCompletionResponse response = learningPathService.completeItem("alice@memora.com", 201L, request);
+
+        assertNotNull(response);
+        assertEquals(LearningItemStatus.COMPLETED, response.getStatus());
+        assertEquals(LearningItemType.NEW_WORD, response.getItemType());
+        verify(memoryService, times(1)).recordReview(eq("alice@memora.com"), any(WordReviewRequest.class));
+    }
+
+    @Test
+    @DisplayName("completeItem on already completed item should return idempotent response with 0 xpEarned")
+    void testCompleteItemAlreadyCompleted() {
+        testItem.markCompleted();
+        when(learningPathItemRepository.findById(200L)).thenReturn(Optional.of(testItem));
+
+        LearningItemCompletionResponse response = learningPathService.completeItem("alice@memora.com", 200L, null);
+
+        assertNotNull(response);
+        assertEquals(LearningItemStatus.COMPLETED, response.getStatus());
+        assertEquals(Integer.valueOf(0), response.getXpEarned());
+        assertEquals("Item is already completed", response.getMessage());
+        verify(learningPathItemRepository, never()).save(any(LearningPathItem.class));
+    }
+
+    @Test
     @DisplayName("Unauthorized learner accessing another user's path item should throw AccessDeniedException")
     void testUnauthorizedAccess() {
         when(learningPathItemRepository.findById(200L)).thenReturn(Optional.of(testItem));

@@ -30,6 +30,7 @@ import com.memora.modules.vocabulary.repository.UserWordProgressRepository;
 import com.memora.modules.vocabulary.repository.VocabularyWordRepository;
 import com.memora.modules.gamification.domain.RewardActivityType;
 import com.memora.modules.gamification.domain.RewardContext;
+import com.memora.modules.gamification.dto.GamificationActivityResultResponse;
 import com.memora.modules.gamification.service.GamificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -215,12 +216,14 @@ public class LearningPathServiceImpl implements LearningPathService {
                     path.getStatus() == LearningPathStatus.COMPLETED,
                     path.getCompletedItems(),
                     path.getTotalItems(),
-                    "Item is already completed"
+                    "Item is already completed",
+                    0
             );
         }
 
-        // Delegate review updates to MemoryService
-        if (item.getItemType() == LearningItemType.REVIEW && item.getVocabularyWord() != null) {
+        // Delegate memory updates to MemoryService
+        if ((item.getItemType() == LearningItemType.REVIEW || item.getItemType() == LearningItemType.NEW_WORD)
+                && item.getVocabularyWord() != null) {
             boolean isCorrect = request != null && request.getCorrect() != null ? request.getCorrect() : true;
             long latency = request != null && request.getResponseTimeMs() != null ? request.getResponseTimeMs() : 1500L;
             MemoryAlgorithmType algorithm = request != null && request.getAlgorithm() != null
@@ -248,17 +251,26 @@ public class LearningPathServiceImpl implements LearningPathService {
         }
         learningPathRepository.save(path);
 
+        int xpEarned = 0;
         if (gamificationService != null) {
             try {
                 User user = path.getUser();
+                GamificationActivityResultResponse result = null;
                 if (item.getItemType() == LearningItemType.REVIEW) {
-                    gamificationService.recordActivity(user, RewardActivityType.REVIEW, RewardContext.forReview(item.getId()));
+                    result = gamificationService.recordActivity(user, RewardActivityType.REVIEW, RewardContext.forReview(item.getId()));
                 } else if (item.getItemType() == LearningItemType.NEW_WORD) {
-                    gamificationService.recordActivity(user, RewardActivityType.LESSON, RewardContext.forLesson(item.getId()));
+                    result = gamificationService.recordActivity(user, RewardActivityType.LESSON, RewardContext.forLesson(item.getId()));
+                }
+
+                if (result != null) {
+                    xpEarned += result.getXpEarned();
                 }
 
                 if (path.getStatus() == LearningPathStatus.COMPLETED) {
-                    gamificationService.recordActivity(user, RewardActivityType.DAILY_PATH, RewardContext.forDailyPath(path.getId()));
+                    GamificationActivityResultResponse dailyResult = gamificationService.recordActivity(user, RewardActivityType.DAILY_PATH, RewardContext.forDailyPath(path.getId()));
+                    if (dailyResult != null) {
+                        xpEarned += dailyResult.getXpEarned();
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Gamification tracking failed for learning path item completion: {}", e.getMessage());
@@ -273,7 +285,8 @@ public class LearningPathServiceImpl implements LearningPathService {
                 path.getStatus() == LearningPathStatus.COMPLETED,
                 path.getCompletedItems(),
                 path.getTotalItems(),
-                "Learning item completed successfully"
+                "Learning item completed successfully",
+                xpEarned
         );
     }
 

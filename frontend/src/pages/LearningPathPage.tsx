@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Compass,
   RotateCw,
@@ -8,15 +8,11 @@ import {
   CheckCircle2,
   Play,
   RefreshCw,
-  AlertCircle,
-  Volume2,
   BookOpen,
   ArrowRight,
 } from 'lucide-react';
 import { learningPathApi } from '../api/learningPathApi';
-import { vocabularyApi } from '../api/vocabularyApi';
-import { TodayLearningPathResponse, LearningPathItemResponse } from '../types/learningPath';
-import { VocabularyWordResponse } from '../types/vocabulary';
+import { TodayLearningPathResponse, LearningPathItemResponse, LearningItemCompletionResponse } from '../types/learningPath';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { AppShell } from '../components/layout/AppShell';
@@ -25,24 +21,22 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ErrorState } from '../components/ui/ErrorState';
-import { WordStudyAiActions } from '../components/vocabulary/WordStudyAiActions';
+import { WordStudyModal } from '../components/vocabulary/WordStudyModal';
 
 export const LearningPathPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
   const { refreshUser } = useAuth();
 
   const [path, setPath] = useState<TodayLearningPathResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Inline Vocabulary Learning Card State (no background blur, pops open right in list)
-  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
-  const [wordDetailsMap, setWordDetailsMap] = useState<Record<number, VocabularyWordResponse>>({});
-  const [isWordLoading, setIsWordLoading] = useState<boolean>(false);
-  const [isCompletingId, setIsCompletingId] = useState<number | null>(null);
+  // Word Study Experience Modal State
+  const [studyingItem, setStudyingItem] = useState<LearningPathItemResponse | null>(null);
 
   const fetchTodayPath = async () => {
     setIsLoading(true);
@@ -64,6 +58,17 @@ export const LearningPathPage: React.FC = () => {
   useEffect(() => {
     fetchTodayPath();
   }, []);
+
+  // Sync with ?study=itemId search param for persistence on refresh
+  useEffect(() => {
+    const studyId = searchParams.get('study');
+    if (studyId && path?.items) {
+      const targetItem = path.items.find((it) => it.id === Number(studyId));
+      if (targetItem && targetItem.type === 'NEW_WORD') {
+        setStudyingItem(targetItem);
+      }
+    }
+  }, [path, searchParams]);
 
   const handleStartPath = async () => {
     setIsLoading(true);
@@ -96,106 +101,94 @@ export const LearningPathPage: React.FC = () => {
           };
         });
       }
-    } catch (err: any) {
-      addToast({
-        type: 'error',
-        title: 'Error',
-        message: err?.response?.data?.message || 'Could not start item.',
-      });
+    } catch {
+      // Non-blocking
     }
   };
 
-  const handleSpeak = (text: string) => {
-    if ('speechSynthesis' in window && text) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
+  const handleOpenStudy = (item: LearningPathItemResponse) => {
+    setStudyingItem(item);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('study', item.id.toString());
+    setSearchParams(newParams, { replace: true });
 
-  const toggleLearnItem = async (item: LearningPathItemResponse) => {
-    if (item.type === 'QUIZ') {
-      if (item.quizId) {
-        navigate(`/quiz/${item.quizId}`);
-      } else {
-        navigate('/quiz');
-      }
-      return;
-    }
-
-    // If currently expanded, toggle it closed
-    if (expandedItemId === item.id) {
-      setExpandedItemId(null);
-      return;
-    }
-
-    // Expand this item right in the list
-    setExpandedItemId(item.id);
-
-    // If item is pending, mark it as started on the server
     if (item.status === 'PENDING') {
       handleStartItem(item.id);
     }
+  };
 
-    // Fetch full word details if not already loaded in memory
-    if (item.wordId && !wordDetailsMap[item.wordId]) {
-      setIsWordLoading(true);
-      try {
-        const res = await vocabularyApi.getWordById(item.wordId);
-        if (res.success && res.data) {
-          setWordDetailsMap((prev) => ({ ...prev, [item.wordId!]: res.data }));
-        }
-      } catch {
-        // Fallback to existing item attributes
-      } finally {
-        setIsWordLoading(false);
+  const handleCloseStudy = () => {
+    setStudyingItem(null);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('study');
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const handleWordStudyCompleted = async (
+    res: LearningItemCompletionResponse,
+    completedItemId: number
+  ) => {
+    // 1. Update local path state
+    setPath((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        completedItems: Math.min(prev.totalItems, prev.completedItems + 1),
+        items: prev.items.map((it) =>
+          it.id === completedItemId ? { ...it, status: 'COMPLETED' } : it
+        ),
+      };
+    });
+
+    // 2. Add toast notification with real backend XP
+    addToast({
+      type: 'xp',
+      title: 'Word Mastered!',
+      message: res.message || 'Great job completing your word study.',
+      xpAmount: res.xpEarned ?? 15,
+    });
+
+    // 3. Refresh user profile (streaks, total XP, achievements)
+    await refreshUser();
+    // 4. Silently refresh path to ensure full sync
+    try {
+      const updated = await learningPathApi.getTodayPath();
+      if (updated.success && updated.data) {
+        setPath(updated.data);
       }
+    } catch {
+      // Keep optimistic state
     }
   };
 
-  const handleCompleteItem = async (item: LearningPathItemResponse) => {
-    if (item.type === 'QUIZ' && item.quizId) {
-      navigate(`/quiz/${item.quizId}`);
+  // Find next pending NEW_WORD item for the Next Word button
+  const nextStudyItem = useMemo(() => {
+    if (!studyingItem || !path?.items) return null;
+    return (
+      path.items.find(
+        (it) => it.type === 'NEW_WORD' && it.status !== 'COMPLETED' && it.id !== studyingItem.id
+      ) || null
+    );
+  }, [path?.items, studyingItem]);
+
+  const handleNavigateToNextItem = (nextItem: LearningPathItemResponse) => {
+    handleOpenStudy(nextItem);
+  };
+
+  const handleItemClick = (item: LearningPathItemResponse) => {
+    if (item.type === 'QUIZ') {
+      navigate(item.quizId ? `/quiz/${item.quizId}` : '/quiz');
       return;
     }
 
-    try {
-      const res = await learningPathApi.completeItem(item.id, {
-        correct: true,
-        responseTimeMs: 1200,
-        algorithm: 'SM2',
-      });
-
-      if (res.success && res.data) {
-        addToast({
-          type: 'xp',
-          title: 'Lesson Completed!',
-          message: res.data.message || 'Great job practicing your vocabulary.',
-          xpAmount: 15,
-        });
-
-        // Refresh user XP/streak in context and reload path
-        await refreshUser();
-        await fetchTodayPath();
-      }
-    } catch (err: any) {
-      addToast({
-        type: 'error',
-        title: 'Error',
-        message: err?.response?.data?.message || 'Failed to complete item.',
-      });
+    if (item.type === 'REVIEW') {
+      navigate('/review');
+      return;
     }
-  };
 
-  const handleCompleteAndCollapse = async (item: LearningPathItemResponse) => {
-    setIsCompletingId(item.id);
-    try {
-      await handleCompleteItem(item);
-      setExpandedItemId(null);
-    } finally {
-      setIsCompletingId(null);
+    if (item.type === 'NEW_WORD') {
+      handleOpenStudy(item);
+      return;
     }
   };
 
@@ -221,8 +214,6 @@ export const LearningPathPage: React.FC = () => {
       setIsRegenerating(false);
     }
   };
-
-  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
 
   const handleAdvanceDay = async () => {
     setIsAdvancing(true);
@@ -376,16 +367,12 @@ export const LearningPathPage: React.FC = () => {
             path.items.map((item) => {
               const isCompleted = item.status === 'COMPLETED';
               const isInProgress = item.status === 'IN_PROGRESS';
-              const isExpanded = expandedItemId === item.id;
-              const wordInfo = item.wordId ? wordDetailsMap[item.wordId] : null;
 
               return (
                 <div
                   key={item.id}
                   className={`rounded-3xl border transition-all duration-200 overflow-hidden ${
-                    isExpanded
-                      ? 'bg-white border-memora-green ring-4 ring-memora-green/10 shadow-lg'
-                      : isCompleted
+                    isCompleted
                       ? 'bg-[#FBFBF9] border-black/[0.04] opacity-85'
                       : 'bg-white border-black/[0.08] shadow-card hover:border-black/[0.15]'
                   }`}
@@ -394,7 +381,7 @@ export const LearningPathPage: React.FC = () => {
                   <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     {/* Left: Icon & Title */}
                     <div
-                      onClick={() => toggleLearnItem(item)}
+                      onClick={() => handleItemClick(item)}
                       className="flex items-start sm:items-center gap-4 min-w-0 cursor-pointer group flex-1"
                     >
                       <div
@@ -416,6 +403,24 @@ export const LearningPathPage: React.FC = () => {
                           <span className="text-base font-extrabold text-memora-dark tracking-tight group-hover:text-memora-green transition-colors">
                             {item.word || (item.type === 'QUIZ' ? 'Daily Retention Quiz' : 'Word')}
                           </span>
+
+                          <Badge
+                            variant={
+                              item.type === 'NEW_WORD'
+                                ? 'green'
+                                : item.type === 'REVIEW'
+                                ? 'blue'
+                                : 'purple'
+                            }
+                            size="sm"
+                          >
+                            {item.type === 'NEW_WORD'
+                              ? 'NEW WORD'
+                              : item.type === 'REVIEW'
+                              ? 'REVIEW'
+                              : 'QUIZ'}
+                          </Badge>
+
                           <Badge
                             variant={
                               item.priority === 'HIGH'
@@ -426,17 +431,17 @@ export const LearningPathPage: React.FC = () => {
                             }
                             size="sm"
                           >
-                            {item.priority} PRIORITY
+                            {item.priority}
                           </Badge>
+
                           <span className="text-[11px] text-stone-400 font-semibold">
                             #{item.orderIndex}
                           </span>
                         </div>
-                        {!isExpanded && (
-                          <p className="text-xs text-memora-text-muted leading-relaxed line-clamp-1">
-                            {item.meaning || item.notes || `${item.type} vocabulary task`}
-                          </p>
-                        )}
+
+                        <p className="text-xs text-memora-text-muted leading-relaxed line-clamp-1">
+                          {item.meaning || item.notes || `${item.type} vocabulary task`}
+                        </p>
                       </div>
                     </div>
 
@@ -447,186 +452,58 @@ export const LearningPathPage: React.FC = () => {
                           <Badge variant="green" size="md">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Completed
                           </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleLearnItem(item)}
-                            className="text-xs text-stone-500 hover:text-stone-800 font-semibold"
-                          >
-                            {isExpanded ? 'Hide' : 'Review'}
-                          </Button>
+                          {item.type === 'NEW_WORD' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenStudy(item)}
+                              className="text-xs text-stone-500 hover:text-stone-800 font-semibold"
+                            >
+                              Review
+                            </Button>
+                          )}
                         </div>
-                      ) : isExpanded ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setExpandedItemId(null)}
-                          className="text-xs text-stone-500"
-                        >
-                          Hide Details
-                        </Button>
-                      ) : isInProgress ? (
+                      ) : item.type === 'NEW_WORD' ? (
                         <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => toggleLearnItem(item)}
-                          leftIcon={<BookOpen className="w-4 h-4" />}
-                          className="shadow-sm"
+                          onClick={() => handleOpenStudy(item)}
+                          leftIcon={
+                            isInProgress ? (
+                              <BookOpen className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                            )
+                          }
+                          className="shadow-sm font-semibold"
                         >
-                          Study & Complete
+                          {isInProgress ? 'Study Word' : 'Study Word'}
                         </Button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => toggleLearnItem(item)}
-                            leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
-                            className="shadow-sm"
-                          >
-                            Start
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCompleteItem(item)}
-                            className="text-xs text-stone-500 hover:text-stone-800"
-                          >
-                            Mark Done
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Inline Study Pop-Up Card (in the same place, no background blur) */}
-                  {isExpanded && (
-                    <div className="px-6 pb-6 pt-3 border-t border-emerald-100 bg-gradient-to-b from-emerald-50/25 to-white space-y-5 animate-fade-in">
-                      {/* Word, Category, Pronunciation */}
-                      <div className="flex items-start justify-between gap-4 pt-1">
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h3 className="text-2xl sm:text-3xl font-black text-memora-dark tracking-tight">
-                              {wordInfo?.word || item.word}
-                            </h3>
-                            <button
-                              type="button"
-                              onClick={() => handleSpeak(wordInfo?.word || item.word || '')}
-                              className="w-9 h-9 rounded-xl bg-emerald-100/80 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center transition shadow-sm hover:scale-105 active:scale-95"
-                              title="Listen to pronunciation"
-                            >
-                              <Volume2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                          {(wordInfo?.pronunciation || item.pronunciation) && (
-                            <p className="text-xs sm:text-sm font-mono text-stone-500 mt-1">
-                              /{wordInfo?.pronunciation || item.pronunciation}/
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {wordInfo?.category && (
-                            <Badge variant="neutral" size="sm">
-                              {wordInfo.category.replace(/_/g, ' ')}
-                            </Badge>
-                          )}
-                          <Badge variant="green" size="sm">
-                            CEFR {wordInfo?.difficultyLevel || path.targetLevel}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Meaning Box */}
-                      <div className="p-4 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 block">
-                          Meaning
-                        </span>
-                        <p className="text-base font-bold text-emerald-950 leading-relaxed">
-                          {wordInfo?.meaning || item.meaning || 'No meaning provided'}
-                        </p>
-                      </div>
-
-                      {/* Detailed Definition */}
-                      {(wordInfo?.definition || item.definition) && (
-                        <div className="space-y-1 px-1">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-memora-text-muted block">
-                            Definition
-                          </span>
-                          <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-                            {wordInfo?.definition || item.definition}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Example Sentence Box */}
-                      {(wordInfo?.exampleSentence || item.exampleSentence) && (
-                        <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
-                              Example in Context
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleSpeak(wordInfo?.exampleSentence || item.exampleSentence || '')
-                              }
-                              className="text-xs text-stone-500 hover:text-stone-800 flex items-center gap-1 font-semibold transition"
-                            >
-                              <Volume2 className="w-3.5 h-3.5" /> Listen
-                            </button>
-                          </div>
-                          <p className="text-xs sm:text-sm font-medium italic text-stone-800 leading-relaxed">
-                            "{wordInfo?.exampleSentence || item.exampleSentence}"
-                          </p>
-                        </div>
-                      )}
-
-                      {/* AI Word Study Tools */}
-                      <WordStudyAiActions
-                        word={wordInfo?.word || item.word || ''}
-                        wordId={wordInfo?.id || item.wordId}
-                        cefrLevel={wordInfo?.difficultyLevel || path?.targetLevel}
-                        onSpeak={handleSpeak}
-                      />
-
-                      {/* Notes / Discovery Tip */}
-                      {item.notes && (
-                        <div className="flex items-center gap-2 text-xs text-stone-500 bg-stone-50 px-3.5 py-2 rounded-xl">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          <span>{item.notes}</span>
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center justify-end gap-3 pt-3 border-t border-black/[0.06]">
+                      ) : item.type === 'REVIEW' ? (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setExpandedItemId(null)}
+                          onClick={() => navigate('/review')}
+                          leftIcon={<RotateCw className="w-3.5 h-3.5" />}
+                          className="text-xs font-semibold text-blue-700 hover:bg-blue-50 border-blue-200"
                         >
-                          Close
+                          Review Now
                         </Button>
-
-                        {item.status !== 'COMPLETED' ? (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            isLoading={isCompletingId === item.id}
-                            onClick={() => handleCompleteAndCollapse(item)}
-                            leftIcon={<CheckCircle2 className="w-4 h-4" />}
-                            className="shadow-sm"
-                          >
-                            Mark as Complete (+15 XP)
-                          </Button>
-                        ) : (
-                          <Badge variant="green" size="md">
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Completed
-                          </Badge>
-                        )}
-                      </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigate(item.quizId ? `/quiz/${item.quizId}` : '/quiz')
+                          }
+                          leftIcon={<HelpCircle className="w-3.5 h-3.5" />}
+                          className="text-xs font-semibold text-purple-700 hover:bg-purple-50 border-purple-200"
+                        >
+                          Take Quiz
+                        </Button>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })
@@ -637,6 +514,17 @@ export const LearningPathPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Focused Word Study Experience Modal */}
+      <WordStudyModal
+        isOpen={studyingItem !== null}
+        item={studyingItem}
+        targetLevel={path.targetLevel}
+        nextItem={nextStudyItem}
+        onClose={handleCloseStudy}
+        onCompleted={handleWordStudyCompleted}
+        onNavigateToItem={handleNavigateToNextItem}
+      />
     </AppShell>
   );
 };

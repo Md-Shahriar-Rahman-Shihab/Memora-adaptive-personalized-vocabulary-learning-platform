@@ -19,8 +19,9 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 9** | **React Frontend & Full API Integration** | ✅ Completed | Production React 19 + TypeScript + Vite + Tailwind CSS application matching approved visual design reference, complete REST API integration with Spring Boot backend, interactive 3D Floating Memory Ecosystem, live Memory Map widget, smooth-scrolling navigation with sticky offset, unified Plus Jakarta Sans typography, 20-question CEFR diagnostic placement (A1–C1), adaptive learning path dashboard, SRS flashcards, polymorphic quiz runner, gamification streaks & badges, auditable XP ledger, and global leaderboard. |
 | **Phase 10** | **AI Contextual Learning & Gemini Integration** | ✅ Completed | **Provider & Chain of Responsibility Patterns** (`GeminiAiProvider`, `FallbackAiProvider`), multi-model fallback (`gemini-3.6-flash` → `gemini-3.7-flash` → `gemini-3.5-flash`), in-memory caching (`AiResponseCache`), AI mnemonics, contextual collocations, register analysis, adaptive insights (`/api/v1/ai/*`, `/api/v1/insights/*`), and frontend Word Study modal (`WordStudyAiActions`). |
 | **Phase 10.5** | **Multi-Provider AI (Groq + Gemini + Fallback Router)** | ✅ Completed | Multi-provider architecture with **Groq** (`openai/gpt-oss-120b`) via Spring `RestClient`, centralized `AiProviderRouter` (`auto`, `gemini`, `groq`, `fallback`), safe zero-loop fallback chain (Gemini → Groq → Deterministic Fallback), rate-limit safety (max 2 attempts in auto), and context-isolated caching. |
-| **Phase 11 (Infra)** | **Cloud Database Migration (Neon PostgreSQL)** | ✅ Completed | Normal runtime migrated to cloud-hosted **Neon PostgreSQL 18** (`ddl-auto: update`), permanent data persistence across backend restarts, safe environment configuration (`.env` ignored by Git), and isolated in-memory H2 database retained for automated tests (249 passing tests). |
+| **Phase 11 (Infra)** | **Cloud Database Migration (Neon PostgreSQL)** | ✅ Completed | Normal runtime migrated to cloud-hosted **Neon PostgreSQL 18** (`ddl-auto: update`), permanent data persistence across backend restarts, safe environment configuration (`.env` ignored by Git), and isolated in-memory H2 database retained for automated tests. |
 | **Phase 11 Step 1** | **Smart Onboarding Flow & Assessment Optimization** | ✅ Completed | Fully automated, domain-driven learner journey routing via `GET /api/v1/onboarding/state` (`ONBOARDING_REQUIRED` → `ASSESSMENT_IN_PROGRESS` → `LEARNING_PATH_REQUIRED` → `LEARNING_ACTIVE`), dedicated `/onboarding` view, post-auth automatic destination resolution, "Build My Learning Path" CTA, idempotent session resumption, remote Neon WAN performance optimization (`reWriteBatchedInserts`, Hibernate `batch_size: 50`, JPQL `JOIN FETCH`, `@BatchSize(50)` on element collections), and frontend unified state machine (`loading`, `intro`, `question`, `error`) eliminating disjoint error superpositions. |
+| **Phase 11 Step 2** | **Real Learning / Word Study Experience & UI Stabilization** | ✅ Completed | Dedicated `NEW_WORD` Word Study Modal (`WordStudyModal`) rendered via `createPortal(..., document.body)` with isolated stacking context above mobile navigation (`MobileNav`), responsive viewport bounds (`100dvh`), background scroll-locking, and automatic scroll-to-top reset. Features authentic Merriam-Webster pronunciation audio CDN playback, CEFR level badge, parts of speech, numbered definitions, contextual example sentences with audio, deep-dive AI Learning Assistant (`WordStudyAiActions`) with multi-provider failover routing (Gemini → Groq → Fallback), Spaced-Repetition Memory Engine review integration (`MemoryService.recordReview`), duplicate completion idempotency protection, and real gamification reward feedback (+15 XP). |
 | **Phase 12** | **Collegiate Dictionary Integration (Merriam-Webster)** | ✅ Completed | Production integration with official **Merriam-Webster Collegiate Dictionary API** via Spring `RestClient` (HTTP/2), headword syllabification, written IPA/phonetics, native audio CDN playback, part-of-speech categorization, multi-sense numbered definitions, usage examples, historical etymology, typo spelling suggestions fallback, thread-safe bounded in-memory caching (`DictionaryServiceImpl`), and an interactive frontend `/dictionary` explorer with audio playback and quick discovery chips. |
 
 ---
@@ -45,12 +46,13 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 * **Architecture**: Layered Clean Architecture (`Controller → Service → Repository → Entity/Domain` with strict DTO boundaries)
 
 ### Frontend
-* **Core & Runtime**: React 19, TypeScript, Vite 6
+* **Core & Runtime**: React 19, TypeScript, Vite 8
 * **Styling & Design System**: Tailwind CSS v4, PostCSS, Google Font (*Plus Jakarta Sans* — unified modern typography system)
 * **Routing & State**: React Router DOM v7, React Context API (`AuthContext`, `ToastContext`)
 * **HTTP & API Client**: Axios (with Bearer token interceptor, automated 401 handling, and response unwrap)
 * **Audio & Media**: HTML5 Web Audio API integrating Merriam-Webster high-fidelity CDN pronunciation tracks
 * **Icons & Visuals**: Lucide React (feather-style modern icons), Recharts (data visualizations & retention decay curves)
+* **Utility Libraries**: clsx, tailwind-merge
 * **Design Language**: Warm off-white background (`#FBFBF9`), Memora forest green accents (`#6A8D2F`, `#557224`), dark surface contrast (`#141A14`, `#171F17`), glassmorphism card surfaces, and dynamic micro-animations.
 
 ---
@@ -63,16 +65,20 @@ com.memora/
 ├── common/
 │   ├── controller/                 # HealthController (/api/v1/health)
 │   ├── domain/                     # BaseEntity (Audit timestamps: createdAt, updatedAt, version)
-│   ├── exception/                  # GlobalExceptionHandler, ResourceNotFoundException, BadRequestException, ApiException
+│   ├── exception/                  # GlobalExceptionHandler, ResourceNotFoundException, BadRequestException,
+│   │                               # ApiException, DuplicateVocabularyWordException, EmailAlreadyExistsException,
+│   │                               # InvalidCredentialsException, UserNotFoundException
 │   └── response/                   # ApiResponse<T>, ErrorDetails, ValidationError
 │
 ├── security/                       # Security & JWT Infrastructure
-│   ├── jwt/                        # JwtTokenProvider, JwtAuthenticationFilter, JwtAuthenticationEntryPoint
-│   ├── user/                       # CustomUserDetailsService, UserPrincipal
-│   └── SecurityConfig.java         # Stateless security filter chain & CORS configuration
+│   ├── SecurityConfig.java         # Stateless security filter chain & CORS configuration
+│   ├── package-info.java
+│   ├── jwt/                        # JwtService, JwtAuthenticationFilter, JwtAuthenticationEntryPoint, JwtAccessDeniedHandler
+│   └── user/                       # CustomUserDetailsService, UserPrincipal
 │
 └── modules/
     ├── user/                       # Identity & Learner Domain
+    │   ├── controller/             # AuthController (/api/v1/auth/*), UserController (/api/v1/users/me)
     │   ├── domain/                 # Role, VocabularyLevel
     │   ├── dto/                    # RegistrationRequest, LoginRequest, AuthResponse, UserResponse
     │   ├── entity/                 # User entity (with cascade mappings to gamification profile & ledger)
@@ -80,30 +86,35 @@ com.memora/
     │   └── service/                # UserService, UserServiceImpl, AuthService, AuthServiceImpl
     │
     ├── onboarding/                 # Smart Onboarding Flow (Phase 11 Step 1)
+    │   ├── controller/             # OnboardingController (/api/v1/onboarding/state)
     │   ├── domain/                 # OnboardingState (ONBOARDING_REQUIRED, ASSESSMENT_IN_PROGRESS, LEARNING_PATH_REQUIRED, LEARNING_ACTIVE)
     │   ├── dto/                    # OnboardingStateResponse
-    │   ├── service/                # OnboardingService, OnboardingServiceImpl (domain-driven state derivation)
-    │   └── controller/             # OnboardingController (/api/v1/onboarding/state)
+    │   └── service/                # OnboardingService, OnboardingServiceImpl (domain-driven state derivation)
     │
     ├── vocabulary/                 # Lexical Catalog & Content
+    │   ├── config/                 # VocabularyDataSeeder (curated CEFR word dataset auto-seeding)
+    │   ├── controller/             # VocabularyController (/api/v1/vocabulary/*), UserWordProgressController (/api/v1/progress/*)
     │   ├── domain/                 # DifficultyLevel, WordCategory, ForgettingRisk
     │   ├── dto/                    # VocabularyWordRequest, VocabularyWordResponse, UserWordProgressResponse
     │   ├── entity/                 # VocabularyWord, UserWordProgress
+    │   ├── mapper/                 # VocabularyWordMapper, UserWordProgressMapper
     │   ├── repository/             # VocabularyWordRepository, UserWordProgressRepository
-    │   └── service/                # VocabularyService, UserWordProgressService
+    │   └── service/                # VocabularyService, VocabularyServiceImpl, UserWordProgressService, UserWordProgressServiceImpl
     │
     ├── memory/                     # Adaptive Spaced Repetition Engine (Phase 4)
-    │   ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryCalculationResult
+    │   ├── controller/             # MemoryController (/api/v1/memory/*)
+    │   ├── domain/                 # MemoryAlgorithmType (SM2, LEITNER), MemoryCalculationResult, MemoryInput
     │   ├── dto/                    # WordReviewRequest, WordReviewResponse, MemoryWordResponse
+    │   ├── mapper/                 # MemoryMapper
     │   ├── service/                # MemoryService, MemoryServiceImpl (orchestration layer)
-    │   ├── strategy/               # Strategy Pattern for SRS algorithms
-    │   │   ├── MemoryAlgorithmStrategy.java   # Strategy interface contract
-    │   │   ├── SM2MemoryStrategy.java         # SuperMemo-2 implementation (E-Factor & interval expansion)
-    │   │   ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system implementation
-    │   │   └── MemoryStrategyFactory.java     # Strategy resolution factory
-    │   └── controller/             # MemoryController (/api/v1/memory/*)
+    │   └── strategy/               # Strategy Pattern for SRS algorithms
+    │       ├── MemoryAlgorithmStrategy.java   # Strategy interface contract
+    │       ├── SM2MemoryStrategy.java         # SuperMemo-2 implementation (E-Factor & interval expansion)
+    │       ├── LeitnerMemoryStrategy.java     # 5-Box Leitner system implementation
+    │       └── MemoryStrategyFactory.java     # Strategy resolution factory
     │
     ├── quiz/                       # Quiz & Question Engine (Phase 5)
+    │   ├── controller/             # QuizController (/api/v1/quizzes/*)
     │   ├── domain/                 # QuestionType (MULTIPLE_CHOICE, TRANSLATION, FILL_IN_THE_BLANK)
     │   ├── dto/                    # QuizGenerationRequest, QuizResponse, QuestionResponse, AnswerSubmissionRequest, AnswerResponse, QuizResultResponse, EvaluationResult
     │   ├── entity/                 # Polymorphic Question entities & Historical Attempts
@@ -119,14 +130,14 @@ com.memora/
     │   │   └── QuestionEvaluatorFactory.java  # Resolves QuestionEvaluatorStrategy by QuestionType
     │   ├── repository/             # QuizRepository, QuestionRepository, QuizAttemptRepository, QuestionAttemptRepository
     │   ├── service/                # QuizService, QuizServiceImpl (orchestration, memory & gamification integration)
-    │   ├── strategy/               # Strategy Pattern for polymorphic answer evaluation
-    │   │   ├── QuestionEvaluatorStrategy.java # Evaluator contract
-    │   │   ├── MultipleChoiceEvaluator.java
-    │   │   ├── TranslationEvaluator.java
-    │   │   └── FillInTheBlankEvaluator.java
-    │   └── controller/             # QuizController (/api/v1/quizzes/*)
+    │   └── strategy/               # Strategy Pattern for polymorphic answer evaluation
+    │       ├── QuestionEvaluatorStrategy.java # Evaluator contract
+    │       ├── MultipleChoiceEvaluator.java
+    │       ├── TranslationEvaluator.java
+    │       └── FillInTheBlankEvaluator.java
     │
     ├── assessment/                 # Assessment & Diagnostic Placement Engine (Phase 6 & 11 Step 1)
+    │   ├── controller/             # AssessmentController (/api/v1/assessments/*)
     │   ├── domain/                 # AssessmentStatus, AssessmentPerformance, PlacementResult
     │   ├── dto/                    # AssessmentStartResponse (with answeredQuestions), AssessmentDetailResponse, AssessmentQuestionResponse, AssessmentAnswerRequest, AssessmentAnswerResponse, PlacementResultResponse
     │   ├── entity/                 # Diagnostic entities
@@ -136,25 +147,25 @@ com.memora/
     │   ├── factory/                # PlacementStrategyFactory
     │   ├── repository/             # AssessmentRepository, AssessmentQuestionRepository (JPQL JOIN FETCH), AssessmentAnswerRepository (countByAssessmentId)
     │   ├── service/                # AssessmentService, AssessmentServiceImpl (idempotent start & session resumption), AssessmentQuestionGenerator
-    │   ├── strategy/               # Strategy Pattern for CEFR placement algorithms
-    │   │   ├── PlacementAlgorithmStrategy.java
-    │   │   └── DefaultPlacementStrategy.java  # Deterministic CEFR proficiency estimation & confidence score
-    │   └── controller/             # AssessmentController (/api/v1/assessments/*)
+    │   └── strategy/               # Strategy Pattern for CEFR placement algorithms
+    │       ├── PlacementAlgorithmStrategy.java
+    │       └── DefaultPlacementStrategy.java  # Deterministic CEFR proficiency estimation & confidence score
     │
     ├── learningpath/               # Adaptive Learning Path Engine (Phase 7)
+    │   ├── controller/             # LearningPathController (/api/v1/learning-path/*)
     │   ├── domain/                 # LearningPathStatus, LearningItemType, LearningItemStatus, LearningItemPriority, LearningPathStrategyType, VocabularyWordSummary, LearningPathItemCandidate, LearningPathContext, LearningPathResult
     │   ├── dto/                    # LearningPathResponse, TodayLearningPathResponse, LearningPathItemResponse, LearningItemCompletionRequest, LearningItemCompletionResponse
     │   ├── entity/                 # LearningPath, LearningPathItem
     │   ├── factory/                # LearningPathStrategyFactory
     │   ├── repository/             # LearningPathRepository, LearningPathItemRepository
     │   ├── service/                # LearningPathService, LearningPathServiceImpl (orchestration & gamification integration)
-    │   ├── strategy/               # Strategy Pattern for curriculum generation
-    │   │   ├── LearningPathStrategy.java
-    │   │   └── AdaptiveLearningPathStrategy.java # Dynamic review/new word ratio balancing & stretch word logic
-    │   └── controller/             # LearningPathController (/api/v1/learning-path/*)
+    │   └── strategy/               # Strategy Pattern for curriculum generation
+    │       ├── LearningPathStrategy.java
+    │       └── AdaptiveLearningPathStrategy.java # Dynamic review/new word ratio balancing & stretch word logic
     │
     ├── gamification/               # Gamification & Learner Profile (Phase 8)
     │   ├── config/                 # AchievementDataSeeder (seeds 10 standard achievements)
+    │   ├── controller/             # ProfileController (/api/v1/profile/*), LeaderboardController (/api/v1/leaderboard), AchievementController (/api/v1/achievements)
     │   ├── domain/                 # RewardActivityType, RewardContext, AchievementCode, AchievementEvaluationContext
     │   ├── dto/                    # LearnerProfileResponse, LearnerStatsResponse, XpTransactionResponse, UserAchievementResponse, LeaderboardEntryResponse, GamificationActivityResultResponse
     │   ├── entity/                 # Gamification & Ledger Entities
@@ -181,15 +192,14 @@ com.memora/
     │   │   ├── StreakService.java / StreakServiceImpl.java
     │   │   ├── AchievementService.java / AchievementServiceImpl.java
     │   │   └── GamificationService.java / GamificationServiceImpl.java
-    │   ├── strategy/               # Strategy Pattern for XP reward calculation
-    │   │   ├── RewardStrategy.java            # Strategy interface contract
-    │   │   ├── QuizRewardStrategy.java        # Base 10 + 5 per correct + 15 perfect bonus
-    │   │   ├── LessonRewardStrategy.java      # Base 20 + 2 per item (capped at 50)
-    │   │   ├── ReviewRewardStrategy.java      # Base 15 + 3 per reviewed word
-    │   │   ├── DailyPathRewardStrategy.java   # Base 40 + 10 all-mastered bonus
-    │   │   ├── StreakRewardStrategy.java      # Base 10 + min(streak, 30)*2 bonus
-    │   │   └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
-    │   └── controller/             # ProfileController, LeaderboardController, AchievementController
+    │   └── strategy/               # Strategy Pattern for XP reward calculation
+    │       ├── RewardStrategy.java            # Strategy interface contract
+    │       ├── QuizRewardStrategy.java        # Base 10 + 5 per correct + 15 perfect bonus
+    │       ├── LessonRewardStrategy.java      # Base 20 + 2 per item (capped at 50)
+    │       ├── ReviewRewardStrategy.java      # Base 15 + 3 per reviewed word
+    │       ├── DailyPathRewardStrategy.java   # Base 40 + 10 all-mastered bonus
+    │       ├── StreakRewardStrategy.java      # Base 10 + min(streak, 30)*2 bonus
+    │       └── AssessmentRewardStrategy.java  # Base 50 + CEFR level tier bonuses (A1:10 -> C1:75)
     │
     ├── ai/                         # Multi-Provider AI & Contextual Vocabulary Learning (Phase 10 & 10.5)
     │   ├── cache/                  # AiResponseCache (thread-safe in-memory bounded cache with TTL)
@@ -218,7 +228,8 @@ com.memora/
         ├── config/                 # DictionaryConfig.java (API key, endpoint URL, HTTP/2 RestClient bean, timeouts)
         ├── controller/             # DictionaryController.java (/api/v1/dictionary/*)
         ├── dto/                    # DefinitionDto, DictionaryResponse, PartOfSpeechDto
-        ├── exception/              # Domain exceptions (DictionaryWordNotFoundException, DictionaryRateLimitException, etc.)
+        ├── exception/              # Domain exceptions (DictionaryWordNotFoundException, DictionaryRateLimitException,
+        │                           # DictionaryAuthenticationException, DictionaryServiceUnavailableException, DictionaryTimeoutException)
         └── service/                # Dictionary orchestration & caching
             ├── DictionaryService.java                 # Service interface contract
             └── DictionaryServiceImpl.java             # Bounded in-memory cache, token sanitization, audio CDN URL resolution, spelling suggestions
@@ -240,6 +251,8 @@ frontend/
     ├── App.tsx                     # Top-level route provider (Toast, Auth)
     ├── index.css                   # Tailwind base imports, design system tokens, utility classes
     ├── vite-env.d.ts               # Vite client types & CSS module declarations
+    │
+    ├── assets/                     # Static assets (hero.png, typescript.svg, vite.svg)
     │
     ├── types/                      # Complete TypeScript Interfaces matching Backend DTOs
     │   ├── common.ts               # ApiResponse<T>, PaginatedResponse<T>
@@ -294,7 +307,8 @@ frontend/
     │   │   └── AppShell.tsx        # Responsive application wrapper (Sidebar + TopHeader + Content)
     │   │
     │   ├── vocabulary/             # Vocabulary Study & AI Components
-    │   │   └── WordStudyAiActions.tsx # Deep-dive modal with AI mnemonic, collocations, sentence generator, and audio TTS
+    │   │   ├── WordStudyModal.tsx      # Focused word study dialog (createPortal, 100dvh, scroll lock, audio playback)
+    │   │   └── WordStudyAiActions.tsx  # Deep-dive tabs (Explanation, Example, Memory Tip, Contextual Usage) with multi-provider AI
     │   │
     │   ├── dashboard/              # Learner Dashboard Widgets
     │   │   ├── AiLearningInsightCard.tsx # Real-time adaptive AI learning insights & recommendations
@@ -317,7 +331,7 @@ frontend/
     │   ├── DashboardPage.tsx       # Main hub: daily path, streak, XP status, memory stats, quick actions
     │   ├── AssessmentPage.tsx      # Diagnostic placement test runner with unified state machine (loading, intro, question, error)
     │   ├── AssessmentResultPage.tsx# CEFR placement result showcase with "Build My Learning Path" CTA
-    │   ├── LearningPathPage.tsx    # Daily curriculum roadmap (/learn-path) with AI actions & dynamic completion
+    │   ├── LearningPathPage.tsx    # Daily curriculum roadmap (/learn-path) with WordStudyModal integration & dynamic completion
     │   ├── ReviewPage.tsx          # Interactive SRS flashcard flip with SuperMemo-2 quality ratings & AI tips
     │   ├── QuizPage.tsx            # Polymorphic quiz runner (/quiz, /quiz/:quizId) with instant feedback
     │   ├── DictionaryPage.tsx      # Interactive collegiate dictionary (/dictionary) with native audio playback & suggestions
@@ -675,10 +689,10 @@ erDiagram
 
 ### 10. Finite State Machine & Dynamic Flow Orchestration (Phase 11 Step 1)
 * **Domain-Driven Onboarding State Machine (`OnboardingService`)**: Dynamically resolves the learner's continuation state strictly from persisted domain entities in priority order:
-  1. `ASSESSMENT_IN_PROGRESS` $\rightarrow$ Resumes active diagnostic session at `/assessment/{id}` with previously submitted answers and current question index preserved.
-  2. `LEARNING_ACTIVE` $\rightarrow$ Active or historical curriculum exists; routes directly to `/dashboard`.
-  3. `LEARNING_PATH_REQUIRED` $\rightarrow$ Placement completed but learning path not yet built; routes to `/assessment/result?assessmentId={id}` with primary CTA **"Build My Learning Path"**.
-  4. `ONBOARDING_REQUIRED` $\rightarrow$ Brand-new learner; routes to `/onboarding` ("Welcome to Memora", three core value propositions, and CTA "Start Assessment").
+  1. `ASSESSMENT_IN_PROGRESS` → Resumes active diagnostic session at `/assessment/{id}` with previously submitted answers and current question index preserved.
+  2. `LEARNING_ACTIVE` → Active or historical curriculum exists; routes directly to `/dashboard`.
+  3. `LEARNING_PATH_REQUIRED` → Placement completed but learning path not yet built; routes to `/assessment/result?assessmentId={id}` with primary CTA **"Build My Learning Path"**.
+  4. `ONBOARDING_REQUIRED` → Brand-new learner; routes to `/onboarding` ("Welcome to Memora", three core value propositions, and CTA "Start Assessment").
 * **Frontend Unified State Machine (`AssessmentPage`)**: Replaced fragmented boolean flags (`isLoading`, `started`, `error`, `currentQuestion`) with a disjoint state model (`loading` | `intro` | `question` | `error`). Eliminates inconsistent UI states where error cards were displayed above active questions, provides isolated inline banners for transient submission retries, and synchronizes the URL (`/assessment/{id}`) so browser reloads resume cleanly.
 * **Active Session Idempotency**: `AssessmentService.startAssessment()` checks for an existing `IN_PROGRESS` assessment; if found, it idempotently returns the active session rather than generating duplicate records or resetting learner progress.
 
@@ -689,13 +703,22 @@ erDiagram
 * **N+1 Query Elimination**: Added JPQL `JOIN FETCH aq.question q` to `AssessmentQuestionRepository.findByAssessmentIdOrderByOrderIndexAsc`, `@BatchSize(size = 50)` on `MultipleChoiceQuestion.options`, and `countByAssessmentId` in `AssessmentAnswerRepository`, reducing assessment retrieval from **42 sequential SQL queries (~10.7s) to 3 queries (~350ms)**.
 * **In-Memory Question Progression**: Eliminated redundant sequential `getAssessment` re-fetches during answer submissions, achieving instantaneous **<150ms** question-to-question transitions.
 
-### 12. Provider Pattern & Resilient Client for Dictionary Integration (Phase 12)
+### 12. Modal Architecture, Portal Isolation & Idempotent Word Study (Phase 11 Step 2)
+* **React Portal Stacking Context Isolation (`createPortal`)**: `WordStudyModal` mounts directly onto `document.body` via React Portal. This completely isolates the modal and its backdrop from parent DOM hierarchies that contain CSS animations, `relative` positioning, or nested `z-index` contexts, guaranteeing that the modal overlay (`z-50`) renders strictly above all authenticated application elements, including the fixed mobile tab navigation (`MobileNav` at `z-40`).
+* **Dynamic Viewport Height & Independent Scroll Container**: Bound by `max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]` utilizing modern dynamic viewport units (`dvh`) to prevent address-bar clipping on iOS/Android mobile browsers. The modal features a firmly docked header (`shrink-0`) and docked footer (`shrink-0`), with the middle content area acting as the single independent scrollable element (`flex-1 min-h-0 overflow-y-auto overscroll-contain`).
+* **Background Page Scroll-Lock & Navigation Reset**: Opening the modal sets `overflow: hidden` on both `document.body` and `document.documentElement`, preventing jarring background page scroll-bleed. Opening a new word or transitioning between items resets the modal content scroll position (`contentRef.current.scrollTop = 0`) immediately to ensure the word title and phonetics are always visible first.
+* **Lexical-Audio Decoupling & Proxying**: Queries dictionary pronunciation audio from the backend `/api/v1/dictionary/{word}` endpoint, decoupling vocabulary learning from client-side API keys and caching audio CDN links securely.
+* **Multi-Provider AI Resilience**: Integrates deep-dive AI vocabulary assistance (`WordStudyAiActions`) supporting 4 pedagogical dimensions (Adaptive Explanation, Personalized Example, Memory Tip, Contextual Usage) with automatic failover across Google Gemini, Groq fast-inference, and offline deterministic fallback, supported by a 25-second frontend client timeout.
+* **Spaced-Repetition Memory Synchronization**: Completing a `NEW_WORD` or `REVIEW` learning path item via `POST /api/v1/learning-path/items/{itemId}/complete` automatically invokes `MemoryService.recordReview(...)`, updating the learner's `UserWordProgress` (mastery score, Leitner box, forgetting risk, and SM-2 interval expansion).
+* **Idempotent Completion & Gamification Integrity**: `LearningPathServiceImpl.completeItem` verifies item status (`item.getStatus() == LearningItemStatus.COMPLETED`) before mutating progress or awarding rewards, returning an idempotent response and preventing double XP awards (+15 XP) or duplicate streak updates from rapid consecutive clicks.
+
+### 13. Provider Pattern & Resilient Client for Dictionary Integration (Phase 12)
 * **`DictionaryProvider` Interface Contract**: Decouples the dictionary domain from upstream providers (`fetchWordEntries(String word)`), enabling pluggable dictionary sources and seamless mockability.
 * **`MerriamWebsterDictionaryApiClient`**: Spring `RestClient`-based HTTP client configured with HTTP/2 (`JdkClientHttpRequestFactory`), connection & read timeouts, browser user-agent headers, and safe query parameter construction (preventing API key exposure in logs).
 * **Exception Translation & Error Mapping**: Maps upstream HTTP status codes to expressive domain exceptions (`401`/`403` → `DictionaryAuthenticationException`, `429` → `DictionaryRateLimitException`, `500`/`503` → `DictionaryServiceUnavailableException`, socket timeouts → `DictionaryTimeoutException`, and empty/suggestion-only results → `DictionaryWordNotFoundException`), all unified under `ApiException` and handled by `GlobalExceptionHandler`.
 * **`DictionaryServiceImpl` (Lexical Orchestration & Performance)**:
   - **Thread-Safe Bounded In-Memory Cache**: `ConcurrentHashMap` with 500-entry capacity, 30-minute TTL, and periodic eviction for sub-millisecond repeated query responses.
-  - **Input Validation & Sanitization**: Strict Unicode regex validation (`^[\p{L}\s'’-]+$`, max 64 characters) protecting against injection and malformed requests.
+  - **Input Validation & Sanitization**: Strict Unicode regex validation (`^[\p{L}\s''-]+$`, max 64 characters) protecting against injection and malformed requests.
   - **AST Parser & Data Consolidation**: Parses Merriam-Webster's complex nested JSON tree (`hwi`, `prs`, `sound`, `fl`, `def`, `sseq`, `dt`, `vis`, `et`, `suppl`) into structured DTOs with headword, syllable dots, phonetics, audio URLs, part-of-speech grouped definitions, and contextual examples.
   - **Audio CDN Prefix Resolver**: Automatically constructs official MP3/WAV pronunciation CDN URLs following Merriam-Webster directory rules (`bix`, `gg`, numeric prefixes, and language subpaths).
   - **Spelling Suggestions**: When a search term is misspelled, extracts suggestions array returned by Merriam-Webster to empower quick one-click discovery.
@@ -704,17 +727,20 @@ erDiagram
 
 ## 🌐 Implemented REST API Endpoints
 
-### 1. Authentication (`/api/v1/auth`)
+### 1. Health Check (`/api/v1/health`)
+* `GET  /api/v1/health` — System health check (Public)
+
+### 2. Authentication (`/api/v1/auth`)
 * `POST /api/v1/auth/register` — Register a new learner account
 * `POST /api/v1/auth/login` — Authenticate and retrieve JWT token
 
-### 2. Smart Onboarding Flow (`/api/v1/onboarding`)
+### 3. Smart Onboarding Flow (`/api/v1/onboarding`)
 * `GET  /api/v1/onboarding/state` — Derive active learner onboarding state and prioritized continuation target (`ONBOARDING_REQUIRED`, `ASSESSMENT_IN_PROGRESS`, `LEARNING_PATH_REQUIRED`, `LEARNING_ACTIVE`) along with associated entity IDs (Requires JWT)
 
-### 3. User Profile (`/api/v1/users`)
+### 4. User Profile (`/api/v1/users`)
 * `GET  /api/v1/users/me` — Retrieve active learner profile and identity (Requires JWT)
 
-### 4. Vocabulary Catalog (`/api/v1/vocabulary`)
+### 5. Vocabulary Catalog (`/api/v1/vocabulary`)
 * `GET  /api/v1/vocabulary` — List all vocabulary words (Public)
 * `GET  /api/v1/vocabulary/{id}` — Get word definition and metadata (Public)
 * `GET  /api/v1/vocabulary/search?query=...` — Search vocabulary by keyword (Public)
@@ -722,19 +748,19 @@ erDiagram
 * `GET  /api/v1/vocabulary/category/{category}` — Filter by topic category (Public)
 * `POST /api/v1/vocabulary` — Create a new vocabulary word (Admin/Authenticated)
 
-### 5. User Word Progress (`/api/v1/progress`)
+### 6. User Word Progress (`/api/v1/progress`)
 * `GET  /api/v1/progress/words` — List all progress records for authenticated user
 * `GET  /api/v1/progress/words/{wordId}` — Get progress for a specific word
 * `POST /api/v1/progress/words/{wordId}/init` — Initialize progress tracking for a word
 * `GET  /api/v1/progress/weak` — Retrieve learner's weak words
 * `GET  /api/v1/progress/review` — Retrieve words due for review
 
-### 6. Adaptive Memory Engine (`/api/v1/memory`)
+### 7. Adaptive Memory Engine (`/api/v1/memory`)
 * `POST /api/v1/memory/review` — Record learner review attempt and calculate next review schedule
 * `GET  /api/v1/memory/due` — Retrieve vocabulary words due for spaced repetition review (`nextReviewAt <= now`)
 * `GET  /api/v1/memory/weak` — Retrieve learner's weakest words ranked by forgetting risk and mastery score
 
-### 7. Quiz & Question Engine (`/api/v1/quizzes`)
+### 8. Quiz & Question Engine (`/api/v1/quizzes`)
 * `POST /api/v1/quizzes/generate` — Deterministically generate a new quiz from vocabulary pool
 * `POST /api/v1/quizzes/{quizId}/start` — Start or resume a quiz attempt session
 * `POST /api/v1/quizzes/{quizId}/questions/{questionId}/answer` — Submit answer, evaluate, record latency, update memory retention
@@ -742,7 +768,7 @@ erDiagram
 * `GET  /api/v1/quizzes/{quizId}` — Retrieve quiz details and questions (omits correct answers)
 * `GET  /api/v1/quizzes/{quizId}/result` — Retrieve latest attempt score and performance summary
 
-### 8. Assessment & Placement Engine (`/api/v1/assessments`)
+### 9. Assessment & Placement Engine (`/api/v1/assessments`)
 * `POST /api/v1/assessments/start` — Start or idempotently resume a 20-question diagnostic assessment (4 questions each from A1, A2, B1, B2, C1)
 * `GET  /api/v1/assessments/{assessmentId}` — Retrieve assessment details, progress, and questions without answers (optimized with eager fetch)
 * `POST /api/v1/assessments/{assessmentId}/questions/{questionId}/answer` — Submit answer and latency for a diagnostic question
@@ -750,7 +776,7 @@ erDiagram
 * `GET  /api/v1/assessments/{assessmentId}/result` — Retrieve placement result, CEFR level estimate, and confidence score
 * `GET  /api/v1/assessments/history` — Retrieve all completed historical placement assessments for the learner
 
-### 9. Adaptive Learning Path Engine (`/api/v1/learning-path`)
+### 10. Adaptive Learning Path Engine (`/api/v1/learning-path`)
 * `POST /api/v1/learning-path/start` — Start or resume the active personalized learning path
 * `GET  /api/v1/learning-path/current` — Retrieve active learning path summary and item status
 * `GET  /api/v1/learning-path/today` — Retrieve today's prioritized learning tasks
@@ -759,26 +785,26 @@ erDiagram
 * `POST /api/v1/learning-path/regenerate` — Dynamically regenerate pending items based on latest memory state
 * `GET  /api/v1/learning-path/history` — Retrieve historical learning path records for the learner
 
-### 10. Learner Profile & Gamification (`/api/v1/profile`)
+### 11. Learner Profile & Gamification (`/api/v1/profile`)
 * `GET  /api/v1/profile` — Retrieve current learner gamification profile (total XP, level, current/longest streaks, activity counters) (Requires JWT)
 * `GET  /api/v1/profile/xp-history` — Retrieve paginated immutable audit ledger of all XP transactions (`page`, `size`) (Requires JWT)
 * `GET  /api/v1/profile/achievements` — Retrieve all achievements with the user's unlock status and unlock timestamp (Requires JWT)
 * `GET  /api/v1/profile/stats` — Retrieve aggregated learner statistics (vocabulary counts, quiz performance, streaks) (Requires JWT)
 
-### 11. Global Leaderboard (`/api/v1/leaderboard`)
+### 12. Global Leaderboard (`/api/v1/leaderboard`)
 * `GET  /api/v1/leaderboard?limit=20` — Retrieve deterministic, privacy-preserving leaderboard (Public)
 
-### 12. Achievement Catalog (`/api/v1/achievements`)
+### 13. Achievement Catalog (`/api/v1/achievements`)
 * `GET  /api/v1/achievements` — List full master catalog of all available achievements (Public)
 
-### 13. AI & Contextual Vocabulary Learning (`/api/v1/ai`, `/api/v1/insights`)
+### 14. AI & Contextual Vocabulary Learning (`/api/v1/ai`, `/api/v1/insights`)
 * `POST /api/v1/ai/word-explanation` — Enriched AI word explanation (contextual definition, CEFR-calibrated example, memory tip/mnemonic, collocations, formal/informal register, provider/model metadata) (Requires JWT)
 * `POST /api/v1/ai/example` — Generates a natural, CEFR-calibrated example sentence tailored to the learner's vocabulary level (Requires JWT)
 * `POST /api/v1/ai/memory-tip` — Generates a high-retention cognitive mnemonic hook or associative memory tip (Requires JWT)
 * `POST /api/v1/ai/contextual-usage` — Explains practical contextual usage, formal/informal register, and validated collocations (Requires JWT)
 * `GET  /api/v1/insights/today` — Deterministic adaptive learner insights, memory health diagnosis, and prioritized daily recommendations (Requires JWT)
 
-### 14. Dictionary Lookup (`/api/v1/dictionary`)
+### 15. Dictionary Lookup (`/api/v1/dictionary`)
 * `GET  /api/v1/dictionary/{word}` — Look up rich lexical data from the Merriam-Webster Collegiate Dictionary (syllabified headword, phonetic transcriptions, native pronunciation audio URL, parts of speech, numbered definitions, usage examples, etymology, and alternate spelling suggestions) (Requires JWT)
 
 ---
@@ -828,11 +854,17 @@ MEMORA_DICTIONARY_PROVIDER=merriam-webster
 | `MEMORA_AI_MODEL` | `gemini-3.6-flash` | Gemini model name |
 | `MEMORA_GROQ_API_KEY` | *(empty)* | Groq Cloud API key |
 | `MEMORA_GROQ_MODEL` | `openai/gpt-oss-120b` | Groq LLM model name |
+| `MEMORA_AI_TIMEOUT_MS` | `10000` | AI provider HTTP timeout in milliseconds |
+| `MEMORA_AI_TEMPERATURE` | `0.3` | LLM sampling temperature |
 | `MEMORA_MERRIAM_WEBSTER_API_KEY` | *(empty)* | Merriam-Webster Collegiate Dictionary API key |
 | `MEMORA_DICTIONARY_PROVIDER` | `merriam-webster` | Active dictionary provider |
 | `MEMORA_MERRIAM_WEBSTER_API_URL` | `https://www.dictionaryapi.com/api/v3/references/collegiate/json` | Base Collegiate API endpoint |
 | `MEMORA_DICTIONARY_CONNECT_TIMEOUT_MS` | `5000` | HTTP connection timeout in milliseconds |
 | `MEMORA_DICTIONARY_READ_TIMEOUT_MS` | `10000` | HTTP socket read timeout in milliseconds |
+| `JWT_SECRET` | *(built-in default)* | HMAC-SHA256 secret key for JWT signing |
+| `JWT_EXPIRATION` | `86400000` | JWT token expiration time (24 hours in milliseconds) |
+| `SERVER_PORT` | `8080` | HTTP server port |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173` | Comma-separated CORS allowed origins |
 
 ---
 
@@ -863,7 +895,7 @@ The automated test suite runs completely isolated on in-memory H2 without touchi
 ```powershell
 .\mvnw.cmd test
 ```
-* **Baseline**: **249 tests run across all domain modules (0 failures, 0 errors, 0 skipped)**. External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
+* **Test Suite**: 50 test class files across all domain modules. External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
 
 ### 5. Health Check Verification
 ```powershell
@@ -891,8 +923,8 @@ curl.exe -s http://localhost:8080/api/v1/health
 ## 💻 Getting Started (Frontend)
 
 ### 1. Prerequisites
-* **Node.js**: Node.js 18+ (tested on Node v20.20.0, `node -v`)
-* **npm**: npm 9+ (tested on npm 11.16.0, `npm -v`)
+* **Node.js**: Node.js 18+ (`node -v`)
+* **npm**: npm 9+ (`npm -v`)
 * **Backend**: Spring Boot backend running on `http://localhost:8080`
 
 ### 2. Installation & Setup
@@ -938,10 +970,13 @@ npm run build
    - Learner answers 20 dynamically presented questions across calibrated CEFR tiers `A1` through `C1` (4 questions per level) with millisecond response latency tracking.
    - High-throughput remote PostgreSQL WAN batching and eager fetch joins deliver instantaneous sub-second response times and immediate in-memory question advancing.
    - Evaluated by `DefaultPlacementStrategy`, awarding diagnostic XP and placing the learner at their calibrated CEFR level with confidence score and breakdown.
-4. **Adaptive Learning Path Dashboard (`/dashboard` & `/learn-path`)**:
+4. **Adaptive Learning Path Dashboard & Word Study Experience (`/dashboard` & `/learn-path`)**:
    - Canonical route `/learn-path` renders the daily curriculum (up to 10 balanced items: review words, new words, stretch vocabulary, and consolidating quizzes).
-   - Dynamic item status tracking with instant regeneration capabilities and item completion.
-   - Integrated with **AI Word Study Modal** (`WordStudyAiActions`) for deep-dive contextual explanations, mnemonics, collocations, sentence generators, and text-to-speech audio.
+   - Clear route separation: selecting `REVIEW` items navigates to `/review`, selecting `QUIZ` items navigates to `/quiz`, and selecting `NEW_WORD` items opens the focused **Word Study Experience** (`WordStudyModal`).
+   - **Modern Dialog & Viewport Architecture**: Rendered via React Portal (`createPortal`) directly into `document.body` at `z-50`, isolating the stacking context from parent animations and rendering above fixed mobile tab navigation (`MobileNav` at `z-40`). Constrained to `100dvh` viewport bounds with docked header and footer, background page scroll-locking (`overflow: hidden` on `body`), independent middle content scrolling (`overflow-y-auto overscroll-contain`), and automated scroll-to-top reset on item change.
+   - **Lexical Depth & Audio Integration**: Provides comprehensive vocabulary study: prominent word title, CEFR level badge, syllabification, phonetic IPA transcription, parts of speech, numbered definitions, contextual example sentences with audio, and authentic Merriam-Webster pronunciation audio CDN playback served directly via backend lookup without client-side API key exposure.
+   - **Deep-Dive AI Learning Assistant (`WordStudyAiActions`)**: Offers 4 pedagogical dimensions (Adaptive Explanation, Personalized Example, Memory Tip, Contextual Usage) with automatic failover routing across Google Gemini, Groq fast-inference, and offline deterministic fallback, supported by a 25-second frontend timeout.
+   - **Idempotency & Gamification Sync**: Primary **Mark Complete** action guards against duplicate submissions, records spaced-repetition retention review in `MemoryService`, triggers gamification `LESSON` activity (+15 XP), displays celebratory reward feedback, and enables seamless **Next Word →** navigation.
 5. **Memory Engine Spaced Repetition (`/review`)**:
    - Interactive 3D flip flashcards displaying word details, IPA phonetics, parts of speech, CEFR level, definitions, contextual examples, and AI memory tips.
    - Submits ratings (Again=1, Hard=3, Good=4, Easy=5) to `POST /api/v1/memory/review` using SuperMemo-2 / Leitner algorithms, dynamically recalculating easiness factors and review intervals.

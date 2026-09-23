@@ -58,4 +58,5 @@ export interface LearningItemCompletionResponse {
   completedItems: number;
   totalItems: number;
   message: string;
+  xpEarned?: number;
 }

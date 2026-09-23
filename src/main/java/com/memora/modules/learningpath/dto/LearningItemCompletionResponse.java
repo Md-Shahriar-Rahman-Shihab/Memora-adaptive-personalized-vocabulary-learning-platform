@@ -18,6 +18,7 @@ public class LearningItemCompletionResponse {
     private int completedItems;
     private int totalItems;
     private String message;
+    private Integer xpEarned;
 
     public LearningItemCompletionResponse() {
     }
@@ -25,6 +26,12 @@ public class LearningItemCompletionResponse {
     public LearningItemCompletionResponse(Long itemId, LearningItemStatus status, LearningItemType itemType,
                                           Instant completedAt, boolean pathCompleted, int completedItems,
                                           int totalItems, String message) {
+        this(itemId, status, itemType, completedAt, pathCompleted, completedItems, totalItems, message, null);
+    }
+
+    public LearningItemCompletionResponse(Long itemId, LearningItemStatus status, LearningItemType itemType,
+                                          Instant completedAt, boolean pathCompleted, int completedItems,
+                                          int totalItems, String message, Integer xpEarned) {
         this.itemId = itemId;
         this.status = status;
         this.itemType = itemType;
@@ -33,6 +40,7 @@ public class LearningItemCompletionResponse {
         this.completedItems = completedItems;
         this.totalItems = totalItems;
         this.message = message;
+        this.xpEarned = xpEarned;
     }
 
     public Long getItemId() {
@@ -97,5 +105,13 @@ public class LearningItemCompletionResponse {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Integer getXpEarned() {
+        return xpEarned;
+    }
+
+    public void setXpEarned(Integer xpEarned) {
+        this.xpEarned = xpEarned;
     }
 }

@@ -17,7 +17,8 @@ export const aiApi = {
   ): Promise<ApiResponse<AiExplanationResponse>> => {
     const res = await apiClient.post<ApiResponse<AiExplanationResponse>>(
       '/ai/word-explanation',
-      request
+      request,
+      { timeout: 25000 }
     );
     return res.data;
   },
@@ -27,7 +28,8 @@ export const aiApi = {
   ): Promise<ApiResponse<AiExampleResponse>> => {
     const res = await apiClient.post<ApiResponse<AiExampleResponse>>(
       '/ai/example',
-      request
+      request,
+      { timeout: 25000 }
     );
     return res.data;
   },
@@ -37,7 +39,8 @@ export const aiApi = {
   ): Promise<ApiResponse<AiMemoryTipResponse>> => {
     const res = await apiClient.post<ApiResponse<AiMemoryTipResponse>>(
       '/ai/memory-tip',
-      request
+      request,
+      { timeout: 25000 }
     );
     return res.data;
   },
@@ -47,7 +50,8 @@ export const aiApi = {
   ): Promise<ApiResponse<AiUsageResponse>> => {
     const res = await apiClient.post<ApiResponse<AiUsageResponse>>(
       '/ai/contextual-usage',
-      request
+      request,
+      { timeout: 25000 }
     );
     return res.data;
   },
