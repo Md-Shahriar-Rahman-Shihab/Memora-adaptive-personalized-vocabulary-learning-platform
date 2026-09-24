@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { profileApi } from '../api/profileApi';
 import { useAuth } from '../context/AuthContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import { LearnerProfileResponse, XpTransactionResponse } from '../types/gamification';
 import { AppShell } from '../components/layout/AppShell';
 import { Card } from '../components/ui/Card';
@@ -70,9 +71,12 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
+  const { isLearningUnlocked, onboardingState } = useOnboarding();
+  const isCalibrated = isLearningUnlocked || onboardingState?.state === 'LEARNING_PATH_REQUIRED';
+
   const name = profile?.name || user?.name || 'Learner';
   const email = profile?.email || user?.email || '';
-  const level = profile?.level || user?.currentLevel || 'Unplaced';
+  const level = isCalibrated ? (profile?.level || user?.currentLevel || 'A1') : 'Not calibrated';
 
   return (
     <AppShell title="Learner Profile" subtitle="Manage your profile, statistics, and XP ledger">
@@ -86,7 +90,7 @@ export const ProfilePage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-extrabold text-memora-dark tracking-tight">{name}</h2>
-                <Badge variant="green" size="sm">
+                <Badge variant={isCalibrated ? 'green' : 'neutral'} size="sm">
                   {level}
                 </Badge>
               </div>

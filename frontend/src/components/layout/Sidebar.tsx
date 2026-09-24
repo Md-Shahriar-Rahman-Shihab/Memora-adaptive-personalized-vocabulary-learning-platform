@@ -12,29 +12,45 @@ import {
   LogOut,
   Sparkles,
   BookA,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useOnboarding } from '../../context/OnboardingContext';
+import { useToast } from '../../context/ToastContext';
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
+  requiresLearningUnlocked?: boolean;
 }
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { isLearningUnlocked } = useOnboarding();
+  const { addToast } = useToast();
 
   const navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { label: 'Learn Path', path: '/learn-path', icon: <Compass className="w-5 h-5" /> },
-    { label: 'Review', path: '/review', icon: <RotateCw className="w-5 h-5" /> },
-    { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" /> },
+    { label: 'Learn Path', path: '/learn-path', icon: <Compass className="w-5 h-5" />, requiresLearningUnlocked: true },
+    { label: 'Review', path: '/review', icon: <RotateCw className="w-5 h-5" />, requiresLearningUnlocked: true },
+    { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Dictionary', path: '/dictionary', icon: <BookA className="w-5 h-5" /> },
-    { label: 'Progress', path: '/progress', icon: <TrendingUp className="w-5 h-5" /> },
-    { label: 'Achievements', path: '/achievements', icon: <Award className="w-5 h-5" /> },
+    { label: 'Progress', path: '/progress', icon: <TrendingUp className="w-5 h-5" />, requiresLearningUnlocked: true },
+    { label: 'Achievements', path: '/achievements', icon: <Award className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Leaderboard', path: '/leaderboard', icon: <Crown className="w-5 h-5" /> },
     { label: 'Profile', path: '/profile', icon: <UserIcon className="w-5 h-5" /> },
   ];
+
+  const handleLockedClick = (e: React.MouseEvent, item: NavItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToast({
+      type: 'info',
+      title: `${item.label} is Locked 🔒`,
+      message: 'Complete your 10-question placement assessment first to unlock this feature.',
+    });
+  };
 
   return (
     <aside className="w-64 bg-white border-r border-black/[0.06] flex flex-col justify-between shrink-0 h-screen sticky top-0 hidden md:flex z-30">
@@ -52,22 +68,34 @@ export const Sidebar: React.FC = () => {
 
         {/* Navigation Items */}
         <nav className="p-4 space-y-1.5 flex-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
-                  isActive
-                    ? 'bg-memora-green text-white shadow-sm shadow-memora-green/20'
-                    : 'text-memora-text-muted hover:text-memora-dark hover:bg-stone-100/70'
-                }`
-              }
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const isLocked = item.requiresLearningUnlocked && !isLearningUnlocked;
+
+            return (
+              <NavLink
+                key={item.path}
+                to={isLocked ? '#' : item.path}
+                onClick={isLocked ? (e) => handleLockedClick(e, item) : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+                    isActive
+                      ? 'bg-memora-green text-white shadow-sm shadow-memora-green/20'
+                      : isLocked
+                      ? 'text-stone-400 hover:text-stone-600 hover:bg-stone-50 cursor-pointer'
+                      : 'text-memora-text-muted hover:text-memora-dark hover:bg-stone-100/70'
+                  }`
+                }
+              >
+                {item.icon}
+                <span className="flex-1">{item.label}</span>
+                {isLocked && (
+                  <span className="text-stone-400 p-1" title="Locked until assessment completion">
+                    <Lock className="w-3.5 h-3.5" />
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 

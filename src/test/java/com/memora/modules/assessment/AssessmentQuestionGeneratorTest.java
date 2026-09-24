@@ -42,19 +42,17 @@ class AssessmentQuestionGeneratorTest {
         questionFactory = new QuestionFactory();
         generator = new AssessmentQuestionGenerator(vocabularyWordRepository, questionFactory);
         testUser = new User("Jane", "jane@memora.com", "hash", VocabularyLevel.A1, Role.LEARNER);
-        assessment = new Assessment(testUser, 20);
+        assessment = new Assessment(testUser, 10);
     }
 
     @Test
-    @DisplayName("Generator should produce 20 questions distributed across A1, A2, B1, B2, and C1")
+    @DisplayName("Generator should produce 10 questions distributed across A1, A2, B1, B2, and C1")
     void testGenerateAssessmentQuestionsDistribution() {
         // Mock words for each level
         for (DifficultyLevel level : List.of(DifficultyLevel.A1, DifficultyLevel.A2, DifficultyLevel.B1, DifficultyLevel.B2, DifficultyLevel.C1)) {
             List<VocabularyWord> words = List.of(
                     new VocabularyWord(level.name() + "_word1", "meaning1", "def1", null, "Sentence with " + level.name() + "_word1", level, WordCategory.GENERAL),
-                    new VocabularyWord(level.name() + "_word2", "meaning2", "def2", null, "Sentence with " + level.name() + "_word2", level, WordCategory.GENERAL),
-                    new VocabularyWord(level.name() + "_word3", "meaning3", "def3", null, "Sentence with " + level.name() + "_word3", level, WordCategory.GENERAL),
-                    new VocabularyWord(level.name() + "_word4", "meaning4", "def4", null, "Sentence with " + level.name() + "_word4", level, WordCategory.GENERAL)
+                    new VocabularyWord(level.name() + "_word2", "meaning2", "def2", null, "Sentence with " + level.name() + "_word2", level, WordCategory.GENERAL)
             );
             when(vocabularyWordRepository.findByDifficultyLevel(level)).thenReturn(words);
         }
@@ -62,17 +60,17 @@ class AssessmentQuestionGeneratorTest {
         List<AssessmentQuestion> questions = generator.generateAssessmentQuestions(assessment);
 
         assertNotNull(questions);
-        assertEquals(20, questions.size());
+        assertEquals(10, questions.size());
 
-        // Verify distribution: 4 per level
+        // Verify distribution: 2 per level
         Map<DifficultyLevel, Long> countsByLevel = questions.stream()
                 .collect(Collectors.groupingBy(AssessmentQuestion::getDifficultyLevel, Collectors.counting()));
 
-        assertEquals(4L, countsByLevel.get(DifficultyLevel.A1));
-        assertEquals(4L, countsByLevel.get(DifficultyLevel.A2));
-        assertEquals(4L, countsByLevel.get(DifficultyLevel.B1));
-        assertEquals(4L, countsByLevel.get(DifficultyLevel.B2));
-        assertEquals(4L, countsByLevel.get(DifficultyLevel.C1));
+        assertEquals(2L, countsByLevel.get(DifficultyLevel.A1));
+        assertEquals(2L, countsByLevel.get(DifficultyLevel.A2));
+        assertEquals(2L, countsByLevel.get(DifficultyLevel.B1));
+        assertEquals(2L, countsByLevel.get(DifficultyLevel.B2));
+        assertEquals(2L, countsByLevel.get(DifficultyLevel.C1));
 
         // Verify sequential ordering
         for (int i = 0; i < questions.size(); i++) {

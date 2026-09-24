@@ -30,10 +30,13 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { AiLearningInsightCard } from '../components/dashboard/AiLearningInsightCard';
 import { MemoryHealthWidget } from '../components/dashboard/MemoryHealthWidget';
+import { LockedOnboardingView } from '../components/dashboard/LockedOnboardingView';
+import { useOnboarding } from '../context/OnboardingContext';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { onboardingState, isLoading: onboardingLoading, isLearningUnlocked } = useOnboarding();
 
   const [profile, setProfile] = useState<LearnerProfileResponse | null>(null);
   const [todayPath, setTodayPath] = useState<TodayLearningPathResponse | null>(null);
@@ -50,6 +53,14 @@ export const DashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
+    // Only fetch full learning curriculum if the user has an active learning path
+    if (onboardingLoading) return;
+
+    if (!isLearningUnlocked) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
@@ -78,9 +89,9 @@ export const DashboardPage: React.FC = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [onboardingLoading, isLearningUnlocked]);
 
-  if (isLoading) {
+  if (onboardingLoading || (isLearningUnlocked && isLoading)) {
     return (
       <AppShell title="Dashboard" subtitle="Loading your learning workspace...">
         <div className="py-20 flex justify-center">
@@ -91,6 +102,105 @@ export const DashboardPage: React.FC = () => {
   }
 
   const displayName = profile?.name || user?.name || 'Learner';
+
+  // 1. Locked Onboarding State for new users
+  if (onboardingState?.state === 'ONBOARDING_REQUIRED') {
+    return (
+      <AppShell
+        title={`Welcome, ${displayName.split(' ')[0]}`}
+        subtitle="Establish your baseline to unlock personalized learning"
+      >
+        <LockedOnboardingView
+          userName={displayName}
+          onStartAssessment={() => navigate('/assessment')}
+        />
+      </AppShell>
+    );
+  }
+
+  // 2. In-Progress Assessment resume prompt
+  if (onboardingState?.state === 'ASSESSMENT_IN_PROGRESS') {
+    const targetUrl = onboardingState.assessmentId
+      ? `/assessment/${onboardingState.assessmentId}`
+      : '/assessment';
+
+    return (
+      <AppShell
+        title={`Welcome back, ${displayName.split(' ')[0]}`}
+        subtitle="Complete your in-progress placement test"
+      >
+        <div className="max-w-3xl mx-auto py-8">
+          <Card variant="default" className="p-8 sm:p-10 space-y-6 text-center border-memora-green/30">
+            <div className="w-16 h-16 rounded-3xl bg-memora-green-light text-memora-green flex items-center justify-center mx-auto">
+              <RotateCw className="w-8 h-8 animate-spin-slow" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-memora-dark">
+                Assessment In Progress
+              </h2>
+              <p className="text-sm text-memora-text-muted max-w-lg mx-auto">
+                You have an active diagnostic assessment session. Resume where you left off to establish
+                your baseline CEFR level and build your personalized curriculum.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate(targetUrl)}
+                rightIcon={<ArrowRight className="w-5 h-5" />}
+              >
+                Resume Assessment
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // 3. Completed Assessment, learning path required prompt
+  if (onboardingState?.state === 'LEARNING_PATH_REQUIRED') {
+    const targetUrl = onboardingState.assessmentId
+      ? `/assessment/result?assessmentId=${onboardingState.assessmentId}`
+      : '/assessment/result';
+
+    return (
+      <AppShell
+        title={`Great job, ${displayName.split(' ')[0]}!`}
+        subtitle="Your placement result is ready"
+      >
+        <div className="max-w-3xl mx-auto py-8">
+          <Card variant="default" className="p-8 sm:p-10 space-y-6 text-center border-memora-green/30">
+            <div className="w-16 h-16 rounded-3xl bg-memora-green-light text-memora-green flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-memora-dark">
+                Diagnostic Assessment Completed
+              </h2>
+              <p className="text-sm text-memora-text-muted max-w-lg mx-auto">
+                Your CEFR placement has been calculated. Build your personalized learning path now to
+                unlock all vocabulary study features, flashcards, and quizzes.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate(targetUrl)}
+                rightIcon={<ArrowRight className="w-5 h-5" />}
+              >
+                Build My Learning Path
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // 4. Normal Unlocked Dashboard Experience
   const levelText = profile?.level || user?.currentLevel || 'Unassessed';
   const totalXp = profile?.xp ?? user?.xp ?? 0;
   const streak = profile?.currentStreak ?? user?.streak ?? 0;
@@ -111,7 +221,7 @@ export const DashboardPage: React.FC = () => {
               </span>
               <h3 className="text-lg sm:text-xl font-bold">Discover your CEFR vocabulary level</h3>
               <p className="text-xs sm:text-sm text-emerald-100/90 mt-1 max-w-xl">
-                Take our 20-question diagnostic test to establish your baseline and generate an
+                Take our 10-question diagnostic test to establish your baseline and generate an
                 adaptive learning path tailored to you.
               </p>
             </div>

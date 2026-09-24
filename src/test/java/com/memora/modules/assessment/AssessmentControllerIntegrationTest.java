@@ -143,8 +143,8 @@ class AssessmentControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.status", is("IN_PROGRESS")))
-                .andExpect(jsonPath("$.data.totalQuestions", is(20)))
-                .andExpect(jsonPath("$.data.questions", hasSize(20)))
+                .andExpect(jsonPath("$.data.totalQuestions", is(10)))
+                .andExpect(jsonPath("$.data.questions", hasSize(10)))
                 .andReturn();
 
         JsonNode startData = objectMapper.readTree(startResult.getResponse().getContentAsString()).path("data");
@@ -157,11 +157,11 @@ class AssessmentControllerIntegrationTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.assessmentId", is((int) assessmentId)))
                 .andExpect(jsonPath("$.data.status", is("IN_PROGRESS")))
-                .andExpect(jsonPath("$.data.totalQuestions", is(20)))
+                .andExpect(jsonPath("$.data.totalQuestions", is(10)))
                 .andExpect(jsonPath("$.data.answeredQuestions", is(0)))
-                .andExpect(jsonPath("$.data.remainingQuestions", is(20)));
+                .andExpect(jsonPath("$.data.remainingQuestions", is(10)));
 
-        // 3. Submit Answers for all 20 questions
+        // 3. Submit Answers for all 10 questions
         for (int i = 0; i < questionsJson.size(); i++) {
             JsonNode qNode = questionsJson.get(i);
             long questionId = qNode.path("questionId").asLong();
@@ -195,10 +195,10 @@ class AssessmentControllerIntegrationTest {
                     .andExpect(jsonPath("$.data.responseTimeMs", is(1500)));
         }
 
-        // Verify all 20 questions are now answered
+        // Verify all 10 questions are now answered
         mockMvc.perform(get("/api/v1/assessments/" + assessmentId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.answeredQuestions", is(20)))
+                .andExpect(jsonPath("$.data.answeredQuestions", is(10)))
                 .andExpect(jsonPath("$.data.remainingQuestions", is(0)));
 
         // 4. Complete Assessment
@@ -207,8 +207,8 @@ class AssessmentControllerIntegrationTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.assessmentId", is((int) assessmentId)))
                 .andExpect(jsonPath("$.data.estimatedLevel", is("B1")))
-                .andExpect(jsonPath("$.data.totalQuestions", is(20)))
-                .andExpect(jsonPath("$.data.correctAnswers", is(12)))
+                .andExpect(jsonPath("$.data.totalQuestions", is(10)))
+                .andExpect(jsonPath("$.data.correctAnswers", is(6)))
                 .andExpect(jsonPath("$.data.accuracy", is(60.0)))
                 .andExpect(jsonPath("$.data.confidenceScore", greaterThan(50.0)));
 

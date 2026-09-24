@@ -22,7 +22,7 @@ import java.util.List;
 @Component
 public class AssessmentQuestionGenerator {
 
-    public static final int QUESTIONS_PER_LEVEL = 4;
+    public static final int QUESTIONS_PER_LEVEL = 2;
 
     private static final List<DifficultyLevel> ASSESSMENT_LEVELS = List.of(
             DifficultyLevel.A1,
@@ -49,7 +49,7 @@ public class AssessmentQuestionGenerator {
     }
 
     /**
-     * Generates a 20-question diagnostic assessment evenly distributed across CEFR levels.
+     * Generates a 10-question diagnostic assessment evenly distributed across CEFR levels.
      *
      * @param assessment Owning Assessment entity
      * @return List of newly generated {@link AssessmentQuestion} entities
@@ -73,7 +73,7 @@ public class AssessmentQuestionGenerator {
             int count = Math.min(QUESTIONS_PER_LEVEL, candidates.size());
             for (int i = 0; i < count; i++) {
                 VocabularyWord word = candidates.get(i);
-                QuestionType type = QUESTION_TYPE_CYCLE.get(i % QUESTION_TYPE_CYCLE.size());
+                QuestionType type = QUESTION_TYPE_CYCLE.get((orderIndex - 1) % QUESTION_TYPE_CYCLE.size());
                 Question question = questionFactory.createQuestion(type, word, candidates);
 
                 AssessmentQuestion assessmentQuestion = new AssessmentQuestion(

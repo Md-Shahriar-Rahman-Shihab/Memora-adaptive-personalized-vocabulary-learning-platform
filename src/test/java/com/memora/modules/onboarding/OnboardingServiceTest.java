@@ -81,7 +81,7 @@ class OnboardingServiceTest {
     @Test
     @DisplayName("Should return ASSESSMENT_IN_PROGRESS when learner has an active assessment")
     void shouldReturnAssessmentInProgress() {
-        Assessment assessment = new Assessment(testUser, 20);
+        Assessment assessment = new Assessment(testUser, 10);
         ReflectionTestUtils.setField(assessment, "id", 201L);
 
         when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
@@ -135,7 +135,7 @@ class OnboardingServiceTest {
     @Test
     @DisplayName("Should return LEARNING_PATH_REQUIRED when assessment is completed but learning path does not exist")
     void shouldReturnLearningPathRequiredWhenAssessmentCompleted() {
-        Assessment completed = new Assessment(testUser, 20);
+        Assessment completed = new Assessment(testUser, 10);
         ReflectionTestUtils.setField(completed, "id", 202L);
         completed.setStatus(AssessmentStatus.COMPLETED);
 

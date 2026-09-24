@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, Lock, Mail, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { onboardingApi, getDestinationForOnboardingState } from '../api/onboardingApi';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 
@@ -33,18 +32,8 @@ export const RegisterPage: React.FC = () => {
 
     try {
       await register(name, email, password);
-      // Smart Post-Registration Routing
-      try {
-        const stateRes = await onboardingApi.getState();
-        if (stateRes.success && stateRes.data) {
-          const dest = getDestinationForOnboardingState(stateRes.data);
-          navigate(dest, { replace: true });
-          return;
-        }
-      } catch {
-        // Fallback to /onboarding for newly registered learners
-      }
-      navigate('/onboarding', { replace: true });
+      // Immediately navigate to /dashboard where locked onboarding experience is presented
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const msg =
         err?.response?.data?.message || 'Registration failed. This email may already be registered.';

@@ -16,9 +16,14 @@ import java.util.*;
 public class DefaultPlacementStrategy implements PlacementAlgorithmStrategy {
 
     /**
-     * Minimum accuracy threshold (75%) required to demonstrate proficiency at a CEFR level.
+     * Accuracy threshold required to master a CEFR tier in a compact 2-questions-per-tier assessment (100% = 2/2).
      */
-    public static final double PROFICIENCY_THRESHOLD = 75.0;
+    public static final double TIER_MASTERY_THRESHOLD = 100.0;
+
+    /**
+     * Minimum accuracy threshold (50% = 1/2) to demonstrate emerging capability at a CEFR tier.
+     */
+    public static final double PROFICIENCY_THRESHOLD = 50.0;
 
     private static final List<DifficultyLevel> ORDERED_LEVELS = List.of(
             DifficultyLevel.A1,
@@ -66,16 +71,21 @@ public class DefaultPlacementStrategy implements PlacementAlgorithmStrategy {
                 ? sumResponseTime / countedResponseTimes
                 : 0.0;
 
-        // Determine estimated CEFR level: highest level where accuracy >= threshold sequentially
+        // Determine estimated CEFR level: sequential mastery and learning frontier evaluation
         DifficultyLevel estimatedLevel = DifficultyLevel.A1;
         for (DifficultyLevel level : ORDERED_LEVELS) {
             AssessmentPerformance perf = perfMap.get(level);
             double levelAccuracy = perf != null ? perf.getAccuracy() : 0.0;
 
-            if (levelAccuracy >= PROFICIENCY_THRESHOLD) {
+            if (levelAccuracy >= TIER_MASTERY_THRESHOLD) {
+                // Tier fully mastered (2/2); advance to evaluate next difficulty tier
                 estimatedLevel = level;
+            } else if (levelAccuracy >= PROFICIENCY_THRESHOLD) {
+                // Emerging capability demonstrated (1/2); placed at this tier (frontier), stop advancing
+                estimatedLevel = level;
+                break;
             } else {
-                // Stop advancing once a level fails to meet threshold
+                // Tier not yet demonstrated (< 50% or 0/2); stop advancing
                 break;
             }
         }
@@ -105,11 +115,11 @@ public class DefaultPlacementStrategy implements PlacementAlgorithmStrategy {
                                            double avgResponseTimeMs) {
         double confidence = 65.0;
 
-        // 1. Completeness factor (up to +15 pts)
-        if (totalQuestions >= 20) {
+        // 1. Completeness factor (up to +15 pts for 10-question assessment)
+        if (totalQuestions >= 10) {
             confidence += 15.0;
         } else if (totalQuestions > 0) {
-            confidence += (totalQuestions / 20.0) * 15.0;
+            confidence += (totalQuestions / 10.0) * 15.0;
         }
 
         // 2. Monotonic difficulty decay consistency (up to +10 pts)

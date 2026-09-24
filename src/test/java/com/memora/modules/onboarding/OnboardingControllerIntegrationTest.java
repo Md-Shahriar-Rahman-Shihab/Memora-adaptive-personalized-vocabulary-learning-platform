@@ -106,7 +106,7 @@ class OnboardingControllerIntegrationTest {
     @DisplayName("GET /api/v1/onboarding/state should return ASSESSMENT_IN_PROGRESS when user has in-progress assessment")
     @WithMockUser(username = "userA@memora.com", roles = {"LEARNER"})
     void shouldReturnAssessmentInProgress() throws Exception {
-        Assessment assessment = new Assessment(userA, 20);
+        Assessment assessment = new Assessment(userA, 10);
         assessment.setStatus(AssessmentStatus.IN_PROGRESS);
         Assessment saved = assessmentRepository.save(assessment);
 
@@ -122,7 +122,7 @@ class OnboardingControllerIntegrationTest {
     @DisplayName("GET /api/v1/onboarding/state should return LEARNING_PATH_REQUIRED when assessment completed but no path exists")
     @WithMockUser(username = "userA@memora.com", roles = {"LEARNER"})
     void shouldReturnLearningPathRequired() throws Exception {
-        Assessment assessment = new Assessment(userA, 20);
+        Assessment assessment = new Assessment(userA, 10);
         assessment.setStatus(AssessmentStatus.COMPLETED);
         assessment.setEstimatedLevel(DifficultyLevel.B1);
         Assessment saved = assessmentRepository.save(assessment);

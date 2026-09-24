@@ -117,7 +117,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         // Create new assessment session
-        Assessment assessment = new Assessment(user, 20);
+        Assessment assessment = new Assessment(user, 10);
         List<AssessmentQuestion> questions = questionGenerator.generateAssessmentQuestions(assessment);
         assessment.setTotalQuestions(questions.size());
         for (AssessmentQuestion aq : questions) {

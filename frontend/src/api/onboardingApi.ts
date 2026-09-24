@@ -22,6 +22,6 @@ export function getDestinationForOnboardingState(data: OnboardingStateResponse):
       return '/dashboard';
     case 'ONBOARDING_REQUIRED':
     default:
-      return '/onboarding';
+      return '/dashboard';
   }
 }

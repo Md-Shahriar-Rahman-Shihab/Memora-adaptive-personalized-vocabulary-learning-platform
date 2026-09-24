@@ -13,14 +13,14 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 3** | **Vocabulary & Content Catalog** | ✅ Completed | Curated CEFR vocabulary dataset, automated data seeder, category filtering, `UserWordProgress` entity & progress tracking. |
 | **Phase 4** | **Adaptive Memory SRS Engine** | ✅ Completed | **Strategy Pattern** (`SM2MemoryStrategy`, `LeitnerMemoryStrategy`), **Factory Pattern** (`MemoryStrategyFactory`), incremental latency tracking, mastery scoring, forgetting risk evaluation, `/api/v1/memory/*`. |
 | **Phase 5** | **Quiz & Evaluation Engine** | ✅ Completed | **Polymorphic Question Models** (`MultipleChoiceQuestion`, `TranslationQuestion`, `FillInTheBlankQuestion`), **Factory Pattern** (`QuestionFactory`), **Strategy Pattern** (`QuestionEvaluatorStrategy`, `QuestionEvaluatorFactory`), attempt history, Memory Engine integration, `/api/v1/quizzes/*`. |
-| **Phase 6** | **Assessment & Placement Engine** | ✅ Completed | 20-question multi-tier CEFR diagnostic assessment (`A1`–`C1`), **Strategy Pattern** (`PlacementAlgorithmStrategy`, `DefaultPlacementStrategy`, `PlacementStrategyFactory`), explainable confidence score calculation (0–100), response latency tracking, diagnostic attempt history, memory isolation, `/api/v1/assessments/*`. |
+| **Phase 6** | **Assessment & Placement Engine** | ✅ Completed | Compact 10-question multi-tier CEFR diagnostic assessment (`A1`–`C1`, 2 questions per tier), **Strategy Pattern** (`PlacementAlgorithmStrategy`, `DefaultPlacementStrategy`, `PlacementStrategyFactory`), calibrated 10-question placement math (100% advances, 50% frontier halts, 0% halts), explainable confidence score calculation (0–100), response latency tracking, diagnostic attempt history, memory isolation, `/api/v1/assessments/*`. |
 | **Phase 7** | **Adaptive Learning Path Engine** | ✅ Completed | Personalized daily curriculum (max 10 items), **Strategy Pattern** (`LearningPathStrategy`, `AdaptiveLearningPathStrategy`), **Factory Pattern** (`LearningPathStrategyFactory`), dynamic review/new word balancing, CEFR stretch words, consolidating quizzes, progress tracking, dynamic regeneration, `/api/v1/learning-path/*`. |
 | **Phase 8** | **Gamification & Learner Profile** | ✅ Completed | Extensible XP reward system via **Strategy & Factory Patterns** (`RewardStrategy`, `RewardStrategyFactory`), calendar-day boundary safe daily streaks (`StreakService`), extensible **Achievement Rule Engine** (`AchievementRule`, `AchievementRuleEngine`) with 10 unlockable badges, immutable XP audit ledger (`XpTransaction`), deterministic privacy-preserving leaderboard, learner profile & stats endpoints (`/api/v1/profile/*`, `/api/v1/leaderboard`, `/api/v1/achievements`). |
-| **Phase 9** | **React Frontend & Full API Integration** | ✅ Completed | Production React 19 + TypeScript + Vite + Tailwind CSS application matching approved visual design reference, complete REST API integration with Spring Boot backend, interactive 3D Floating Memory Ecosystem, live Memory Map widget, smooth-scrolling navigation with sticky offset, unified Plus Jakarta Sans typography, 20-question CEFR diagnostic placement (A1–C1), adaptive learning path dashboard, SRS flashcards, polymorphic quiz runner, gamification streaks & badges, auditable XP ledger, and global leaderboard. |
+| **Phase 9** | **React Frontend & Full API Integration** | ✅ Completed | Production React 19 + TypeScript + Vite + Tailwind CSS application matching approved visual design reference, complete REST API integration with Spring Boot backend, interactive 3D Floating Memory Ecosystem, live Memory Map widget, smooth-scrolling navigation with sticky offset, unified Plus Jakarta Sans typography, compact 10-question CEFR diagnostic placement (A1–C1), adaptive learning path dashboard, SRS flashcards, polymorphic quiz runner, gamification streaks & badges, auditable XP ledger, and global leaderboard. |
 | **Phase 10** | **AI Contextual Learning & Gemini Integration** | ✅ Completed | **Provider & Chain of Responsibility Patterns** (`GeminiAiProvider`, `FallbackAiProvider`), multi-model fallback (`gemini-3.6-flash` → `gemini-3.7-flash` → `gemini-3.5-flash`), in-memory caching (`AiResponseCache`), AI mnemonics, contextual collocations, register analysis, adaptive insights (`/api/v1/ai/*`, `/api/v1/insights/*`), and frontend Word Study modal (`WordStudyAiActions`). |
 | **Phase 10.5** | **Multi-Provider AI (Groq + Gemini + Fallback Router)** | ✅ Completed | Multi-provider architecture with **Groq** (`openai/gpt-oss-120b`) via Spring `RestClient`, centralized `AiProviderRouter` (`auto`, `gemini`, `groq`, `fallback`), safe zero-loop fallback chain (Gemini → Groq → Deterministic Fallback), rate-limit safety (max 2 attempts in auto), and context-isolated caching. |
 | **Phase 11 (Infra)** | **Cloud Database Migration (Neon PostgreSQL)** | ✅ Completed | Normal runtime migrated to cloud-hosted **Neon PostgreSQL 18** (`ddl-auto: update`), permanent data persistence across backend restarts, safe environment configuration (`.env` ignored by Git), and isolated in-memory H2 database retained for automated tests. |
-| **Phase 11 Step 1** | **Smart Onboarding Flow & Assessment Optimization** | ✅ Completed | Fully automated, domain-driven learner journey routing via `GET /api/v1/onboarding/state` (`ONBOARDING_REQUIRED` → `ASSESSMENT_IN_PROGRESS` → `LEARNING_PATH_REQUIRED` → `LEARNING_ACTIVE`), dedicated `/onboarding` view, post-auth automatic destination resolution, "Build My Learning Path" CTA, idempotent session resumption, remote Neon WAN performance optimization (`reWriteBatchedInserts`, Hibernate `batch_size: 50`, JPQL `JOIN FETCH`, `@BatchSize(50)` on element collections), and frontend unified state machine (`loading`, `intro`, `question`, `error`) eliminating disjoint error superpositions. |
+| **Phase 11 (UX & Placement)** | **New User Onboarding UX & Compact 10-Question Assessment** | ✅ Completed | Streamlined new user onboarding directly to locked Dashboard (`/dashboard`), eliminating jarring intermediate redirects. Features editorial locked onboarding view (`LockedOnboardingView`) with 10-question diagnostic CTA (~2 min duration), locked feature cards with 🔒 badges, non-intrusive toast notification click prevention, frontend route protection (`LearningRouteGuard`), compact 10-question assessment generation (2 per tier A1–C1), adapted placement strategy (100% mastery advances, 50% emerging frontier stops, 0% unreached stops), mid-session reload resilience, and automatic full platform unlock upon learning path generation. |
 | **Phase 11 Step 2** | **Real Learning / Word Study Experience & UI Stabilization** | ✅ Completed | Dedicated `NEW_WORD` Word Study Modal (`WordStudyModal`) rendered via `createPortal(..., document.body)` with isolated stacking context above mobile navigation (`MobileNav`), responsive viewport bounds (`100dvh`), background scroll-locking, and automatic scroll-to-top reset. Features authentic Merriam-Webster pronunciation audio CDN playback, CEFR level badge, parts of speech, numbered definitions, contextual example sentences with audio, deep-dive AI Learning Assistant (`WordStudyAiActions`) with multi-provider failover routing (Gemini → Groq → Fallback), Spaced-Repetition Memory Engine review integration (`MemoryService.recordReview`), duplicate completion idempotency protection, and real gamification reward feedback (+15 XP). |
 | **Phase 12** | **Collegiate Dictionary Integration (Merriam-Webster)** | ✅ Completed | Production integration with official **Merriam-Webster Collegiate Dictionary API** via Spring `RestClient` (HTTP/2), headword syllabification, written IPA/phonetics, native audio CDN playback, part-of-speech categorization, multi-sense numbered definitions, usage examples, historical etymology, typo spelling suggestions fallback, thread-safe bounded in-memory caching (`DictionaryServiceImpl`), and an interactive frontend `/dictionary` explorer with audio playback and quick discovery chips. |
 
@@ -286,6 +286,7 @@ frontend/
     │
     ├── context/                    # Global React Contexts
     │   ├── AuthContext.tsx         # User authentication state, token persistence, login/logout
+    │   ├── OnboardingContext.tsx   # Global onboarding state derivation, feature locking, refresh trigger
     │   └── ToastContext.tsx        # Toast notification system (success, error, warning, info)
     │
     ├── components/
@@ -302,8 +303,8 @@ frontend/
     │   ├── layout/                 # Application Layout & Navigation
     │   │   ├── Navbar.tsx          # Public landing page navigation
     │   │   ├── TopHeader.tsx       # Authenticated dashboard top navigation with streak & XP badge
-    │   │   ├── Sidebar.tsx         # Collapsible desktop sidebar with active route indicator & Dictionary link
-    │   │   ├── MobileNav.tsx       # Bottom mobile tab navigation with active route indicator
+    │   │   ├── Sidebar.tsx         # Collapsible desktop sidebar with active route indicator, lock indicators (🔒) & toast prevention
+    │   │   ├── MobileNav.tsx       # Bottom mobile tab navigation with active route indicator, lock indicators (🔒) & toast prevention
     │   │   └── AppShell.tsx        # Responsive application wrapper (Sidebar + TopHeader + Content)
     │   │
     │   ├── vocabulary/             # Vocabulary Study & AI Components
@@ -311,6 +312,7 @@ frontend/
     │   │   └── WordStudyAiActions.tsx  # Deep-dive tabs (Explanation, Example, Memory Tip, Contextual Usage) with multi-provider AI
     │   │
     │   ├── dashboard/              # Learner Dashboard Widgets
+    │   │   ├── LockedOnboardingView.tsx  # Editorial locked onboarding view with 10-question placement CTA & feature lock chips
     │   │   ├── AiLearningInsightCard.tsx # Real-time adaptive AI learning insights & recommendations
     │   │   └── MemoryHealthWidget.tsx    # Spaced repetition retention health & due review status
     │   │
@@ -326,10 +328,10 @@ frontend/
     ├── pages/                      # Application Route Views
     │   ├── LandingPage.tsx         # Editorial landing page matching design reference
     │   ├── LoginPage.tsx           # Sign-in with smart onboarding redirection
-    │   ├── RegisterPage.tsx        # Registration with smart onboarding redirection
+    │   ├── RegisterPage.tsx        # Registration with direct-to-dashboard onboarding navigation
     │   ├── OnboardingPage.tsx      # Dedicated smart onboarding view (Phase 11 Step 1)
-    │   ├── DashboardPage.tsx       # Main hub: daily path, streak, XP status, memory stats, quick actions
-    │   ├── AssessmentPage.tsx      # Diagnostic placement test runner with unified state machine (loading, intro, question, error)
+    │   ├── DashboardPage.tsx       # Main hub: locked onboarding view OR daily path, streak, XP status, memory stats, quick actions
+    │   ├── AssessmentPage.tsx      # Compact 10-question diagnostic placement test runner with unified state machine (loading, intro, question, error)
     │   ├── AssessmentResultPage.tsx# CEFR placement result showcase with "Build My Learning Path" CTA
     │   ├── LearningPathPage.tsx    # Daily curriculum roadmap (/learn-path) with WordStudyModal integration & dynamic completion
     │   ├── ReviewPage.tsx          # Interactive SRS flashcard flip with SuperMemo-2 quality ratings & AI tips
@@ -342,6 +344,7 @@ frontend/
     │
     └── routes/                     # Application Route Configurations
         ├── ProtectedRoute.tsx      # Auth guard redirecting unauthenticated users to /login
+        ├── LearningRouteGuard      # Guard redirecting uncalibrated learners away from locked routes to /dashboard
         └── AppRoutes.tsx           # Declarative React Router setup (/onboarding, /dictionary, canonical routes, and aliases)
 ```
 
@@ -650,7 +653,7 @@ erDiagram
 
 ### 5. Strategy Pattern & Diagnostic Placement Engine (Phase 6)
 * **`PlacementAlgorithmStrategy`**: Pluggable algorithm contract `calculate(List<AssessmentPerformance>)` producing `PlacementResult`.
-* **`DefaultPlacementStrategy`**: Rule-based deterministic estimation evaluating sequential CEFR mastery thresholds (`A1` → `A2` → `B1` → `B2` → `C1`) at a 75% accuracy threshold. Computes an explainable confidence score (0–100) based on sample completeness, response latency plausibility, boundary separation, and natural language decay consistency.
+* **`DefaultPlacementStrategy`**: Rule-based deterministic estimation evaluating sequential CEFR mastery thresholds (`A1` → `A2` → `B1` → `B2` → `C1`) across the compact 10-question diagnostic benchmark (2 questions per tier): 100% (2/2) tier mastery advances to the next CEFR tier, 50% (1/2) emerging capability places the learner at their learning frontier and halts advancement, and 0% (0/2) halts advancement at the previous mastered tier. Computes an explainable confidence score (0–100) based on sample completeness (`totalQuestions >= 10`), response latency plausibility, boundary separation, and natural language decay consistency.
 * **`PlacementStrategyFactory`**: Dynamically resolves placement strategies without hardcoding score branching in the service layer.
 * **Separation of Concerns & Memory Isolation**: Diagnostic assessment questions isolate testing from spaced repetition retention tracking (`MemoryService` is NOT invoked during diagnostic assessments).
 
@@ -692,7 +695,7 @@ erDiagram
   1. `ASSESSMENT_IN_PROGRESS` → Resumes active diagnostic session at `/assessment/{id}` with previously submitted answers and current question index preserved.
   2. `LEARNING_ACTIVE` → Active or historical curriculum exists; routes directly to `/dashboard`.
   3. `LEARNING_PATH_REQUIRED` → Placement completed but learning path not yet built; routes to `/assessment/result?assessmentId={id}` with primary CTA **"Build My Learning Path"**.
-  4. `ONBOARDING_REQUIRED` → Brand-new learner; routes to `/onboarding` ("Welcome to Memora", three core value propositions, and CTA "Start Assessment").
+  4. `ONBOARDING_REQUIRED` → Brand-new learner; routes directly to `/dashboard` in **Locked Onboarding State** (`LockedOnboardingView`), welcoming the user, displaying the 10-question placement preview and primary CTA **"Start Assessment →"**, with locked module cards and toast prevention on navigation links (also accessible via dedicated `/onboarding`).
 * **Frontend Unified State Machine (`AssessmentPage`)**: Replaced fragmented boolean flags (`isLoading`, `started`, `error`, `currentQuestion`) with a disjoint state model (`loading` | `intro` | `question` | `error`). Eliminates inconsistent UI states where error cards were displayed above active questions, provides isolated inline banners for transient submission retries, and synchronizes the URL (`/assessment/{id}`) so browser reloads resume cleanly.
 * **Active Session Idempotency**: `AssessmentService.startAssessment()` checks for an existing `IN_PROGRESS` assessment; if found, it idempotently returns the active session rather than generating duplicate records or resetting learner progress.
 
@@ -722,6 +725,40 @@ erDiagram
   - **AST Parser & Data Consolidation**: Parses Merriam-Webster's complex nested JSON tree (`hwi`, `prs`, `sound`, `fl`, `def`, `sseq`, `dt`, `vis`, `et`, `suppl`) into structured DTOs with headword, syllable dots, phonetics, audio URLs, part-of-speech grouped definitions, and contextual examples.
   - **Audio CDN Prefix Resolver**: Automatically constructs official MP3/WAV pronunciation CDN URLs following Merriam-Webster directory rules (`bix`, `gg`, numeric prefixes, and language subpaths).
   - **Spelling Suggestions**: When a search term is misspelled, extracts suggestions array returned by Merriam-Webster to empower quick one-click discovery.
+
+### 14. New User Onboarding UX & Compact 10-Question Placement Engine (Phase 11)
+* **Streamlined First-Run Journey**:
+  - Replaces jarring intermediate redirects (`/onboarding`) with an immediate entry to the primary product interface: `Register → /dashboard (Locked Onboarding State) → Start Assessment → Compact 10-Question Assessment → Assessment Result → Build My Learning Path → Unlocked Dashboard`.
+* **Editorial Locked Dashboard (`LockedOnboardingView`)**:
+  - Implements an inviting, high-conversion first-run experience featuring a dark green editorial hero card with glassmorphism tag (`Step 1 of 2 • Initial Diagnostic Calibration`).
+  - Clear diagnostic preview badges: `10 questions`, `~2 minutes`, and `CEFR A1 – C1`.
+  - Prominent primary CTA button: **"Start Assessment →"**.
+  - Two-step onboarding visualizer: `1. Calibrate Your Level` (Complete the 10-question diagnostic assessment) → `2. Build Your Learning Path` (Memora creates the personalized learning path and unlocks the adaptive learning experience).
+  - Clear pre-assessment state: Level pill in header displays `Not calibrated` rather than implying premature `A1` assessment.
+  - Core learning modules listed with explicit `🔒 Locked` indicators (`Adaptive Learning Path`, `Spaced Repetition Review`, `Polymorphic Quizzes`, `Memory Health & Analytics`, `Gamification & Badges`).
+  - Eliminates jarring empty states, zero-stat charts, and placeholder streaks before calibration.
+  - Highlights open features ready for immediate exploration: **Collegiate Dictionary** and **Community Leaderboard**.
+* **Global Onboarding State & Feature Lock Propagation (`OnboardingContext`)**:
+  - Client-side React Context (`OnboardingContext` + `useOnboarding`) derives the active server state from `GET /api/v1/onboarding/state`.
+  - Exposes `isLearningUnlocked` boolean (`true` only when state is `LEARNING_ACTIVE`).
+  - Automatically synchronizes across page transitions and triggers background state re-evaluation on assessment completion and curriculum generation.
+* **Non-Intrusive Locked Navigation Prevention**:
+  - Both desktop `Sidebar` and mobile `MobileNav` visually mark locked learning features with `🔒` indicators.
+  - Clicking locked navigation items prevents routing transitions and fires a smooth, non-intrusive toast notification (`ToastContext`): *"Complete your 10-question placement assessment first to unlock this feature."* (Strictly avoiding browser `alert()` popups).
+* **Defensive Route Guard (`LearningRouteGuard`)**:
+  - Wraps protected learning routes (`/learn-path`, `/review`, `/quiz`, `/progress`, `/achievements`) in `AppRoutes.tsx`.
+  - Prevents address bar URL bypass attempts by uncalibrated users, cleanly redirecting them back to `/dashboard`.
+* **Compact 10-Question Diagnostic Assessment (`AssessmentQuestionGenerator`)**:
+  - Reduced diagnostic question volume from 20 questions down to a compact **10-question** benchmark (2 questions per CEFR tier across `A1`, `A2`, `B1`, `B2`, `C1`).
+  - Deterministic question-type cycling via `(orderIndex - 1) % QUESTION_TYPE_CYCLE.size()` ensuring rich structural variety (Multiple Choice, Fill-in-the-Blank, Translation) across both questions of each level.
+* **Calibrated 10-Question Placement Mathematics (`DefaultPlacementStrategy`)**:
+  - **Tier Mastery (`100%` / 2 of 2 correct)**: Learner demonstrates full competence and advances to the next CEFR tier.
+  - **Emerging Frontier (`50%` / 1 of 2 correct)**: Learner demonstrates emerging capability at this difficulty; the algorithm places the learner at this frontier tier and halts advancement.
+  - **Unreached Tier (`<50%` / 0 of 2 correct)**: Learner has reached their difficulty ceiling; algorithm halts advancement at the previously mastered tier (or baseline `A1`).
+  - **Confidence Calibration**: Updated completeness bonus threshold to evaluate at `totalQuestions >= 10`, yielding realistic 0–100 confidence ratings.
+* **Mid-Session Resume & State Resilience**:
+  - Fully idempotent session resumption preserves progress across page reloads (e.g. reloading at Question 4 of 10 resumes immediately at Question 4).
+  - Assessment state transitions seamlessly: `ONBOARDING_REQUIRED` → `ASSESSMENT_IN_PROGRESS` → `LEARNING_PATH_REQUIRED` → `LEARNING_ACTIVE`.
 
 ---
 
@@ -769,7 +806,7 @@ erDiagram
 * `GET  /api/v1/quizzes/{quizId}/result` — Retrieve latest attempt score and performance summary
 
 ### 9. Assessment & Placement Engine (`/api/v1/assessments`)
-* `POST /api/v1/assessments/start` — Start or idempotently resume a 20-question diagnostic assessment (4 questions each from A1, A2, B1, B2, C1)
+* `POST /api/v1/assessments/start` — Start or idempotently resume a compact 10-question diagnostic assessment (2 questions each from A1, A2, B1, B2, C1)
 * `GET  /api/v1/assessments/{assessmentId}` — Retrieve assessment details, progress, and questions without answers (optimized with eager fetch)
 * `POST /api/v1/assessments/{assessmentId}/questions/{questionId}/answer` — Submit answer and latency for a diagnostic question
 * `POST /api/v1/assessments/{assessmentId}/complete` — Complete assessment, execute placement algorithm, update learner CEFR level, award XP
@@ -895,7 +932,7 @@ The automated test suite runs completely isolated on in-memory H2 without touchi
 ```powershell
 .\mvnw.cmd test
 ```
-* **Test Suite**: 50 test class files across all domain modules. External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
+* **Test Suite**: 253 automated tests across 50 test class files covering all domain modules (0 failures, 0 errors, 100% passing). External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
 
 ### 5. Health Check Verification
 ```powershell
@@ -960,16 +997,18 @@ npm run build
 1. **Editorial Landing Page (`/`)**:
    - Matches the approved visual design: warm background (`#FBFBF9`), unified typography (*Plus Jakarta Sans*), Memora green accents (`#6A8D2F`, `#557224`), 3D Floating Memory Ecosystem with interactive word nodes, interactive Memory Map widget, 4-stage learning pipeline, and institutional trust badges.
    - **Smooth-Scrolling Navigation**: Nav links (`Home`, `Features`, `How it works`, `About us`) animate smoothly with an 80px offset accounting for the sticky navigation bar.
-2. **Smart Onboarding & Authentication (`/register`, `/login`, `/onboarding`)**:
-   - Learner registers or logs in; the frontend queries `GET /api/v1/onboarding/state` to determine the exact continuation point without UI flickering:
-     - **New Learner (`ONBOARDING_REQUIRED`)**: Routes to `/onboarding`, displaying "Welcome to Memora", three core value propositions (CEFR assessment, personalized path, SRS retention), and primary CTA *"Start Assessment"*.
-     - **In-Progress Assessment (`ASSESSMENT_IN_PROGRESS`)**: Immediately resumes the active diagnostic assessment at `/assessment/{assessmentId}` without resetting progress.
+2. **Streamlined New User Onboarding & Authentication (`/register`, `/login`, `/dashboard`)**:
+   - Learner registers or signs in; the frontend synchronizes via `GET /api/v1/onboarding/state` to determine continuation without jarring redirects:
+     - **New Learner (`ONBOARDING_REQUIRED`)**: Navigates directly to `/dashboard`, rendering the **Locked Onboarding View** (`LockedOnboardingView`). Displays a welcoming editorial setup hero, clear diagnostic preview (10 questions, ~2 min duration), locked feature cards with `🔒` badges, non-intrusive toast click prevention on sidebar/bottom navigation, and primary CTA *"Start Assessment →"*.
+     - **In-Progress Assessment (`ASSESSMENT_IN_PROGRESS`)**: Directs to `/assessment/{assessmentId}` or active session resume card, seamlessly picking up without resetting answered questions.
      - **Completed Assessment, No Path (`LEARNING_PATH_REQUIRED`)**: Directs to `/assessment/result?assessmentId={assessmentId}` with primary CTA *"Build My Learning Path"*.
-     - **Active Learner (`LEARNING_ACTIVE`)**: Bypasses onboarding entirely and routes directly to `/dashboard`.
-3. **Diagnostic Assessment & CEFR Placement (`/assessment`, `/assessment/:assessmentId` & `/assessment/result`)**:
-   - Learner answers 20 dynamically presented questions across calibrated CEFR tiers `A1` through `C1` (4 questions per level) with millisecond response latency tracking.
-   - High-throughput remote PostgreSQL WAN batching and eager fetch joins deliver instantaneous sub-second response times and immediate in-memory question advancing.
-   - Evaluated by `DefaultPlacementStrategy`, awarding diagnostic XP and placing the learner at their calibrated CEFR level with confidence score and breakdown.
+     - **Active Learner (`LEARNING_ACTIVE`)**: Renders the complete, unlocked daily learning dashboard with curriculum, streak status, and learning statistics.
+3. **Compact 10-Question Diagnostic Assessment & CEFR Placement (`/assessment`, `/assessment/:assessmentId` & `/assessment/result`)**:
+   - Learner answers a compact, 10-question placement assessment across calibrated CEFR tiers `A1` through `C1` (2 questions per level) with millisecond response latency tracking.
+   - Deterministic question-type cycling (Multiple Choice, Fill-in-the-Blank, Translation) ensures structural variety while keeping completion time to ~2 minutes.
+   - High-throughput PostgreSQL WAN batching and eager fetch joins deliver instantaneous sub-second response times and immediate question advancing.
+   - Evaluated by `DefaultPlacementStrategy` (100% mastery advances, 50% emerging frontier halts, 0% halts), awarding diagnostic XP and placing the learner at their calibrated CEFR level with confidence score and breakdown.
+   - Clicking *"Build My Learning Path"* generates the personalized daily roadmap, unlocks all navigation links and platform features, and transitions the user to active learning status.
 4. **Adaptive Learning Path Dashboard & Word Study Experience (`/dashboard` & `/learn-path`)**:
    - Canonical route `/learn-path` renders the daily curriculum (up to 10 balanced items: review words, new words, stretch vocabulary, and consolidating quizzes).
    - Clear route separation: selecting `REVIEW` items navigates to `/review`, selecting `QUIZ` items navigates to `/quiz`, and selecting `NEW_WORD` items opens the focused **Word Study Experience** (`WordStudyModal`).

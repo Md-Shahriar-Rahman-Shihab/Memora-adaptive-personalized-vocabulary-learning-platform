@@ -1,7 +1,7 @@
 import React from 'react';
-import { Flame, Sparkles, Compass } from 'lucide-react';
+import { Flame, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 interface TopHeaderProps {
   title: string;
@@ -11,6 +11,10 @@ interface TopHeaderProps {
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, titleClassName }) => {
   const { user } = useAuth();
+  const { isLearningUnlocked, onboardingState } = useOnboarding();
+
+  // A learner is calibrated only if their learning path is active or required after assessment completion
+  const isCalibrated = isLearningUnlocked || onboardingState?.state === 'LEARNING_PATH_REQUIRED';
 
   return (
     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-black/[0.06] px-6 flex items-center justify-between sticky top-0 z-30">
@@ -37,19 +41,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, titleClas
 
         {/* Level Badge */}
         <div className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 bg-stone-100 border border-stone-200 rounded-full text-stone-700 text-xs font-bold">
-          <span>{user?.currentLevel || 'Unplaced'}</span>
+          <span>{isCalibrated ? (user?.currentLevel || 'A1') : 'Not calibrated'}</span>
         </div>
-
-        {/* Diagnostic assessment trigger if not placed */}
-        {(!user?.currentLevel || user?.currentLevel === null) && (
-          <Link
-            to="/assessment"
-            className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold bg-memora-green text-white px-3 py-1.5 rounded-full hover:bg-memora-green-hover transition shadow-sm"
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Take Placement</span>
-          </Link>
-        )}
       </div>
     </header>
   );

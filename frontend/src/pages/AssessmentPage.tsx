@@ -10,20 +10,24 @@ import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorState } from '../components/ui/ErrorState';
+import { useOnboarding } from '../context/OnboardingContext';
 
 type PageStatus = 'loading' | 'intro' | 'question' | 'error';
 
 export const AssessmentPage: React.FC = () => {
   const navigate = useNavigate();
   const { assessmentId: routeAssessmentId } = useParams<{ assessmentId?: string }>();
+  const { onboardingState, refreshOnboardingState } = useOnboarding();
+
+  const hasActiveSession = Boolean(routeAssessmentId || (onboardingState?.state === 'ASSESSMENT_IN_PROGRESS' && onboardingState?.assessmentId));
 
   const [pageStatus, setPageStatus] = useState<PageStatus>(
-    routeAssessmentId ? 'loading' : 'intro'
+    hasActiveSession ? 'loading' : 'intro'
   );
   const [assessmentId, setAssessmentId] = useState<number | null>(
-    routeAssessmentId ? Number(routeAssessmentId) : null
+    routeAssessmentId ? Number(routeAssessmentId) : (onboardingState?.state === 'ASSESSMENT_IN_PROGRESS' ? onboardingState?.assessmentId ?? null : null)
   );
-  const [totalQuestions, setTotalQuestions] = useState<number>(20);
+  const [totalQuestions, setTotalQuestions] = useState<number>(10);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [currentQuestion, setCurrentQuestion] = useState<AssessmentQuestionResponse | null>(null);
   const [questionsList, setQuestionsList] = useState<AssessmentQuestionResponse[]>([]);
@@ -63,7 +67,7 @@ export const AssessmentPage: React.FC = () => {
         const qList = data.questions || [];
         setAssessmentId(data.assessmentId);
         setQuestionsList(qList);
-        setTotalQuestions(data.totalQuestions || qList.length || 20);
+        setTotalQuestions(data.totalQuestions || qList.length || 10);
 
         const nextIdx = data.answeredQuestions || 0;
         if (qList[nextIdx]) {
@@ -73,6 +77,7 @@ export const AssessmentPage: React.FC = () => {
         } else if (nextIdx >= qList.length && qList.length > 0) {
           // All questions already answered, complete session
           await assessmentApi.completeAssessment(data.assessmentId);
+          await refreshOnboardingState();
           navigate(`/assessment/result?assessmentId=${data.assessmentId}`, { replace: true });
         } else {
           setSessionError('No questions found for this assessment session.');
@@ -86,15 +91,17 @@ export const AssessmentPage: React.FC = () => {
       setSessionError(err?.response?.data?.message || 'Could not load existing assessment session.');
       setPageStatus('error');
     }
-  }, [navigate]);
+  }, [navigate, refreshOnboardingState]);
 
   useEffect(() => {
     if (routeAssessmentId) {
       loadExistingSession(Number(routeAssessmentId));
+    } else if (onboardingState?.state === 'ASSESSMENT_IN_PROGRESS' && onboardingState?.assessmentId) {
+      loadExistingSession(onboardingState.assessmentId);
     } else {
       setPageStatus('intro');
     }
-  }, [routeAssessmentId, loadExistingSession]);
+  }, [routeAssessmentId, onboardingState?.state, onboardingState?.assessmentId, loadExistingSession]);
 
   // Start Assessment
   const handleStart = async () => {
@@ -107,13 +114,15 @@ export const AssessmentPage: React.FC = () => {
         const qList = data.questions || (data.firstQuestion ? [data.firstQuestion] : []);
         setQuestionsList(qList);
         setAssessmentId(data.assessmentId);
-        setTotalQuestions(data.totalQuestions || qList.length || 20);
+        setTotalQuestions(data.totalQuestions || qList.length || 10);
 
         const startIdx = data.answeredQuestions || 0;
         if (qList[startIdx]) {
           setCurrentQuestion(qList[startIdx]);
           setCurrentQuestionIndex(startIdx + 1);
           setPageStatus('question');
+          // Refresh onboarding so state reflects ASSESSMENT_IN_PROGRESS
+          refreshOnboardingState();
           // Synchronize URL with active assessment ID without reloading
           navigate(`/assessment/${data.assessmentId}`, { replace: true });
         } else {
@@ -158,6 +167,7 @@ export const AssessmentPage: React.FC = () => {
           // Finalize assessment when all questions are answered
           setPageStatus('loading');
           await assessmentApi.completeAssessment(assessmentId);
+          await refreshOnboardingState();
           navigate(`/assessment/result?assessmentId=${assessmentId}`, { replace: true });
         } else if (questionsList[nextIdx]) {
           // Advance smoothly in-memory without extra round-trip
@@ -196,7 +206,7 @@ export const AssessmentPage: React.FC = () => {
   if (pageStatus === 'error') {
     return (
       <AppShell
-        title="Diagnostic Placement Test"
+        title="Initial Diagnostic Calibration"
         subtitle="Session Error"
       >
         <div className="max-w-2xl mx-auto py-12">
@@ -220,8 +230,8 @@ export const AssessmentPage: React.FC = () => {
   if (pageStatus === 'intro') {
     return (
       <AppShell
-        title="CEFR Diagnostic Placement"
-        subtitle="Establish your initial baseline proficiency"
+        title="Initial Diagnostic Calibration"
+        subtitle="Calibrate your starting level and estimate your learning frontier"
       >
         <div className="max-w-2xl mx-auto py-10">
           <Card variant="default" className="p-8 sm:p-12 text-center space-y-6">
@@ -230,22 +240,22 @@ export const AssessmentPage: React.FC = () => {
             </div>
 
             <h2 className="text-3xl font-extrabold text-memora-dark tracking-tight">
-              Test Your Real Vocabulary Level
+              Calibrate Your Starting Level
             </h2>
 
             <p className="text-sm sm:text-base text-memora-text-muted leading-relaxed max-w-lg mx-auto">
-              Memora's placement engine presents 20 questions spanning CEFR levels A1 through C1.
-              Our algorithm evaluates your accuracy, response latency, and difficulty consistency
-              to generate your personalized learning path.
+              This compact 10-question placement assessment estimates your starting learning frontier
+              across CEFR levels A1 through C1 so we can calibrate your memory engine and build your
+              personalized learning path.
             </p>
 
             <div className="grid grid-cols-3 gap-4 py-4 max-w-md mx-auto text-center border-y border-black/[0.06]">
               <div>
-                <span className="text-xl font-bold text-memora-dark block">20</span>
+                <span className="text-xl font-bold text-memora-dark block">10</span>
                 <span className="text-xs text-memora-text-muted">Questions</span>
               </div>
               <div>
-                <span className="text-xl font-bold text-memora-dark block">~5 min</span>
+                <span className="text-xl font-bold text-memora-dark block">~2 min</span>
                 <span className="text-xs text-memora-text-muted">Duration</span>
               </div>
               <div>
@@ -274,7 +284,7 @@ export const AssessmentPage: React.FC = () => {
   // Active question state
   return (
     <AppShell
-      title="Diagnostic Placement Test"
+      title="Initial Diagnostic Calibration"
       subtitle={`Question ${currentQuestionIndex} of ${totalQuestions}`}
     >
       <div className="max-w-2xl mx-auto py-6 space-y-6">

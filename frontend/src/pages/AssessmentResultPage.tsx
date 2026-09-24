@@ -5,6 +5,7 @@ import { assessmentApi } from '../api/assessmentApi';
 import { learningPathApi } from '../api/learningPathApi';
 import { onboardingApi } from '../api/onboardingApi';
 import { useAuth } from '../context/AuthContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import { PlacementResultResponse } from '../types/assessment';
 import { AppShell } from '../components/layout/AppShell';
 import { Card } from '../components/ui/Card';
@@ -18,6 +19,7 @@ export const AssessmentResultPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+  const { refreshOnboardingState } = useOnboarding();
 
   const assessmentId = searchParams.get('assessmentId');
   const [result, setResult] = useState<PlacementResultResponse | null>(null);
@@ -73,9 +75,11 @@ export const AssessmentResultPage: React.FC = () => {
     setIsStartingPath(true);
     try {
       await learningPathApi.startPath();
+      await refreshOnboardingState();
       navigate('/learn-path');
     } catch {
-      // If already started or race condition, gracefully navigate to learning path
+      // If already started or race condition, gracefully refresh and navigate
+      await refreshOnboardingState();
       navigate('/learn-path');
     } finally {
       setIsStartingPath(false);
@@ -84,9 +88,9 @@ export const AssessmentResultPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <AppShell title="Assessment Result" subtitle="Calculating your CEFR placement...">
+      <AppShell title="Diagnostic Calibration" subtitle="Estimating your starting learning frontier...">
         <div className="py-20 flex justify-center">
-          <LoadingSpinner size="lg" label="Computing explainable CEFR placement algorithm..." />
+          <LoadingSpinner size="lg" label="Computing explainable placement calibration..." />
         </div>
       </AppShell>
     );
@@ -94,14 +98,14 @@ export const AssessmentResultPage: React.FC = () => {
 
   if (error || !result) {
     return (
-      <AppShell title="Assessment Result" subtitle="Error loading result">
+      <AppShell title="Diagnostic Calibration" subtitle="Error loading result">
         <ErrorState message={error || 'Could not find placement result.'} onRetry={() => navigate('/assessment')} />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Diagnostic Results" subtitle="Your personalized CEFR placement is ready">
+    <AppShell title="Diagnostic Calibration Complete" subtitle="Your starting learning frontier is ready">
       <div className="max-w-2xl mx-auto py-6 space-y-8">
         {/* Celebratory Hero Card */}
         <Card variant="default" className="p-8 sm:p-10 text-center space-y-6 shadow-card">
@@ -111,14 +115,14 @@ export const AssessmentResultPage: React.FC = () => {
 
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-memora-green block mb-1">
-              Assessment Completed
+              Calibration Completed
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-memora-dark tracking-tight">
-              Your Memora Level: {result.estimatedLevel}
+              Calibrated Level: {result.estimatedLevel}
             </h2>
             <p className="text-sm text-memora-text-muted mt-2 max-w-md mx-auto">
               Our placement algorithm analyzed your accuracy and response latency across CEFR tiers
-              to place you accurately.
+              to calibrate your starting learning frontier.
             </p>
           </div>
 
@@ -128,7 +132,7 @@ export const AssessmentResultPage: React.FC = () => {
               <span className="text-2xl font-black text-memora-dark block">
                 {result.estimatedLevel}
               </span>
-              <span className="text-xs text-memora-text-muted">Target Level</span>
+              <span className="text-xs text-memora-text-muted">Starting Level</span>
             </div>
             <div>
               <span className="text-2xl font-black text-memora-dark block">
