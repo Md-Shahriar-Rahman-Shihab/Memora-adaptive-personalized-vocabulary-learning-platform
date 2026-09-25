@@ -1,4 +1,4 @@
-# Memora — Controller Layer Audit & Request Object Compliance Report
+# Memora — Controller Layer & Request Object Compliance Report
 
 > **Course / Lab**: Advanced Object-Oriented Programming Laboratory  
 > **Platform**: Memora (Adaptive Personalized Vocabulary Learning Platform)  
