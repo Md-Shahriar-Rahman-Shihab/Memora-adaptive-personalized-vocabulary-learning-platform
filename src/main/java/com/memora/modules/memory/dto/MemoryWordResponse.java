@@ -26,6 +26,9 @@ public class MemoryWordResponse {
     private int consecutiveCorrect;
     private double averageResponseTime;
     private int leitnerBox;
+    private String definition;
+    private String pronunciation;
+    private String exampleSentence;
 
     public MemoryWordResponse() {
     }
@@ -45,6 +48,29 @@ public class MemoryWordResponse {
                               int consecutiveCorrect,
                               double averageResponseTime,
                               int leitnerBox) {
+        this(wordId, word, meaning, difficultyLevel, category, masteryScore, forgettingRisk,
+                nextReviewAt, lastReviewedAt, totalAttempts, correctAttempts, incorrectAttempts,
+                consecutiveCorrect, averageResponseTime, leitnerBox, null, null, null);
+    }
+
+    public MemoryWordResponse(Long wordId,
+                              String word,
+                              String meaning,
+                              DifficultyLevel difficultyLevel,
+                              WordCategory category,
+                              double masteryScore,
+                              ForgettingRisk forgettingRisk,
+                              Instant nextReviewAt,
+                              Instant lastReviewedAt,
+                              int totalAttempts,
+                              int correctAttempts,
+                              int incorrectAttempts,
+                              int consecutiveCorrect,
+                              double averageResponseTime,
+                              int leitnerBox,
+                              String definition,
+                              String pronunciation,
+                              String exampleSentence) {
         this.wordId = wordId;
         this.word = word;
         this.meaning = meaning;
@@ -60,6 +86,9 @@ public class MemoryWordResponse {
         this.consecutiveCorrect = consecutiveCorrect;
         this.averageResponseTime = averageResponseTime;
         this.leitnerBox = leitnerBox;
+        this.definition = definition;
+        this.pronunciation = pronunciation;
+        this.exampleSentence = exampleSentence;
     }
 
     public Long getWordId() {
@@ -180,5 +209,29 @@ public class MemoryWordResponse {
 
     public void setLeitnerBox(int leitnerBox) {
         this.leitnerBox = leitnerBox;
+    }
+
+    public String getDefinition() {
+        return definition;
+    }
+
+    public void setDefinition(String definition) {
+        this.definition = definition;
+    }
+
+    public String getPronunciation() {
+        return pronunciation;
+    }
+
+    public void setPronunciation(String pronunciation) {
+        this.pronunciation = pronunciation;
+    }
+
+    public String getExampleSentence() {
+        return exampleSentence;
+    }
+
+    public void setExampleSentence(String exampleSentence) {
+        this.exampleSentence = exampleSentence;
     }
 }

@@ -1,6 +1,10 @@
 package com.memora.modules.memory.service;
 
 import com.memora.common.exception.ResourceNotFoundException;
+import com.memora.modules.gamification.domain.RewardActivityType;
+import com.memora.modules.gamification.domain.RewardContext;
+import com.memora.modules.gamification.dto.GamificationActivityResultResponse;
+import com.memora.modules.gamification.service.GamificationService;
 import com.memora.modules.memory.domain.MemoryCalculationResult;
 import com.memora.modules.memory.domain.MemoryInput;
 import com.memora.modules.memory.dto.MemoryWordResponse;
@@ -11,10 +15,12 @@ import com.memora.modules.memory.strategy.MemoryAlgorithmStrategy;
 import com.memora.modules.memory.strategy.MemoryStrategyFactory;
 import com.memora.modules.user.entity.User;
 import com.memora.modules.user.repository.UserRepository;
+import com.memora.modules.vocabulary.domain.ForgettingRisk;
 import com.memora.modules.vocabulary.entity.UserWordProgress;
 import com.memora.modules.vocabulary.entity.VocabularyWord;
 import com.memora.modules.vocabulary.repository.UserWordProgressRepository;
 import com.memora.modules.vocabulary.repository.VocabularyWordRepository;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,17 +41,29 @@ public class MemoryServiceImpl implements MemoryService {
     private final UserWordProgressRepository userWordProgressRepository;
     private final MemoryStrategyFactory memoryStrategyFactory;
     private final MemoryMapper memoryMapper;
+    private final GamificationService gamificationService;
 
     public MemoryServiceImpl(UserRepository userRepository,
                              VocabularyWordRepository vocabularyWordRepository,
                              UserWordProgressRepository userWordProgressRepository,
                              MemoryStrategyFactory memoryStrategyFactory,
                              MemoryMapper memoryMapper) {
+        this(userRepository, vocabularyWordRepository, userWordProgressRepository, memoryStrategyFactory, memoryMapper, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public MemoryServiceImpl(UserRepository userRepository,
+                             VocabularyWordRepository vocabularyWordRepository,
+                             UserWordProgressRepository userWordProgressRepository,
+                             MemoryStrategyFactory memoryStrategyFactory,
+                             MemoryMapper memoryMapper,
+                             @Nullable GamificationService gamificationService) {
         this.userRepository = userRepository;
         this.vocabularyWordRepository = vocabularyWordRepository;
         this.userWordProgressRepository = userWordProgressRepository;
         this.memoryStrategyFactory = memoryStrategyFactory;
         this.memoryMapper = memoryMapper;
+        this.gamificationService = gamificationService;
     }
 
     @Override
@@ -103,6 +121,10 @@ public class MemoryServiceImpl implements MemoryService {
         // 5. Execute algorithm calculation
         MemoryCalculationResult result = strategy.calculate(input);
 
+        // Capture previous metrics for delta progress feedback
+        double prevMastery = progress.getMasteryScore();
+        ForgettingRisk prevRisk = progress.getForgettingRisk();
+
         // 6. Update entity state
         progress.setMasteryScore(result.getMasteryScore());
         progress.setForgettingRisk(result.getForgettingRisk());
@@ -113,8 +135,39 @@ public class MemoryServiceImpl implements MemoryService {
         // 7. Persist updated progress
         UserWordProgress savedProgress = userWordProgressRepository.save(progress);
 
-        // 8. Return mapped response DTO
-        return memoryMapper.toReviewResponse(savedProgress, request.getCorrect(), request.getAlgorithm(), result);
+        // 8. Award XP and advance streak if gamification is enabled and requested
+        Integer xpEarned = null;
+        Integer currentStreak = null;
+        Integer totalXp = null;
+        if (gamificationService != null && !Boolean.FALSE.equals(request.getAwardXp())) {
+            try {
+                GamificationActivityResultResponse gamificationResult = gamificationService.recordActivity(
+                        user,
+                        RewardActivityType.REVIEW,
+                        RewardContext.forReview(savedProgress.getId())
+                );
+                if (gamificationResult != null) {
+                    xpEarned = gamificationResult.getXpEarned();
+                    currentStreak = gamificationResult.getCurrentStreak();
+                    totalXp = gamificationResult.getNewTotalXp();
+                }
+            } catch (Exception e) {
+                // Non-blocking gamification fallback
+            }
+        }
+
+        // 9. Return mapped response DTO
+        return memoryMapper.toReviewResponse(
+                savedProgress,
+                request.getCorrect(),
+                request.getAlgorithm(),
+                result,
+                xpEarned,
+                currentStreak,
+                totalXp,
+                prevMastery,
+                prevRisk
+        );
     }
 
     @Override

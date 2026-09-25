@@ -235,7 +235,8 @@ public class LearningPathServiceImpl implements LearningPathService {
                         item.getVocabularyWord().getId(),
                         isCorrect,
                         latency,
-                        algorithm
+                        algorithm,
+                        false
                 ));
             } catch (Exception e) {
                 log.warn("Could not record review with MemoryService for wordId: {}", item.getVocabularyWord().getId(), e);

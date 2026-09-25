@@ -22,6 +22,10 @@ import com.memora.modules.vocabulary.entity.UserWordProgress;
 import com.memora.modules.vocabulary.entity.VocabularyWord;
 import com.memora.modules.vocabulary.repository.UserWordProgressRepository;
 import com.memora.modules.vocabulary.repository.VocabularyWordRepository;
+import com.memora.modules.gamification.domain.RewardActivityType;
+import com.memora.modules.gamification.domain.RewardContext;
+import com.memora.modules.gamification.dto.GamificationActivityResultResponse;
+import com.memora.modules.gamification.service.GamificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,8 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MemoryServiceTest {
@@ -51,6 +54,9 @@ class MemoryServiceTest {
 
     @Mock
     private UserWordProgressRepository userWordProgressRepository;
+
+    @Mock
+    private GamificationService gamificationService;
 
     private MemoryService memoryService;
     private User testUser;
@@ -68,7 +74,8 @@ class MemoryServiceTest {
                 vocabularyWordRepository,
                 userWordProgressRepository,
                 factory,
-                mapper
+                mapper,
+                gamificationService
         );
 
         testUser = new User("Alice", "alice@example.com", "encodedPassword", VocabularyLevel.B1, Role.LEARNER);
@@ -233,5 +240,88 @@ class MemoryServiceTest {
         assertThat(weakList).hasSize(1);
         assertThat(weakList.get(0).getForgettingRisk()).isEqualTo(ForgettingRisk.HIGH);
         assertThat(weakList.get(0).getMasteryScore()).isEqualTo(25.0);
+    }
+
+    @Test
+    @DisplayName("Review completion awards XP and streak via GamificationService")
+    void reviewCompletionAwardsXpAndStreak() {
+        WordReviewRequest request = new WordReviewRequest(10L, true, 1500L, MemoryAlgorithmType.SM2, true);
+
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(testUser));
+        when(vocabularyWordRepository.findById(10L)).thenReturn(Optional.of(testWord));
+        when(userWordProgressRepository.findByUserAndVocabularyWord(testUser, testWord)).thenReturn(Optional.empty());
+        when(userWordProgressRepository.save(any(UserWordProgress.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        GamificationActivityResultResponse gamificationResult = new GamificationActivityResultResponse(
+                5,
+                105,
+                3,
+                5,
+                List.of(),
+                "Activity recorded: +5 XP earned, 3-day streak"
+        );
+        when(gamificationService.recordActivity(eq(testUser), eq(RewardActivityType.REVIEW), any(RewardContext.class)))
+                .thenReturn(gamificationResult);
+
+        WordReviewResponse response = memoryService.recordReview("alice@example.com", request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getXpEarned()).isEqualTo(5);
+        assertThat(response.getCurrentStreak()).isEqualTo(3);
+        assertThat(response.getTotalXp()).isEqualTo(105);
+        assertThat(response.getPreviousMasteryScore()).isEqualTo(0.0);
+        assertThat(response.getPreviousForgettingRisk()).isEqualTo(ForgettingRisk.LOW);
+
+        verify(gamificationService).recordActivity(eq(testUser), eq(RewardActivityType.REVIEW), any(RewardContext.class));
+    }
+
+    @Test
+    @DisplayName("Review completion with awardXp false does not invoke GamificationService")
+    void reviewWithAwardXpFalseDoesNotInvokeGamification() {
+        WordReviewRequest request = new WordReviewRequest(10L, true, 1500L, MemoryAlgorithmType.SM2, false);
+
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(testUser));
+        when(vocabularyWordRepository.findById(10L)).thenReturn(Optional.of(testWord));
+        when(userWordProgressRepository.findByUserAndVocabularyWord(testUser, testWord)).thenReturn(Optional.empty());
+        when(userWordProgressRepository.save(any(UserWordProgress.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        WordReviewResponse response = memoryService.recordReview("alice@example.com", request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getXpEarned()).isNull();
+        verify(gamificationService, never()).recordActivity(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Due reviews include definition, pronunciation, and example sentence")
+    void dueReviewsIncludeLexicalDetails() {
+        UserWordProgress dueProgress = new UserWordProgress(testUser, testWord);
+        dueProgress.setNextReviewAt(Instant.now().minusSeconds(3600));
+
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(testUser));
+        when(userWordProgressRepository.findDueForReview(eq(testUser), any(Instant.class)))
+                .thenReturn(List.of(dueProgress));
+
+        List<MemoryWordResponse> dueList = memoryService.getDueReviews("alice@example.com");
+
+        assertThat(dueList).hasSize(1);
+        MemoryWordResponse word = dueList.get(0);
+        assertThat(word.getWord()).isEqualTo("serendipity");
+        assertThat(word.getMeaning()).isEqualTo("সৌভাগ্যজনক আকস্মিক আবিষ্কার");
+        assertThat(word.getDefinition()).isEqualTo("occurrence of events by chance in a happy way");
+        assertThat(word.getPronunciation()).isEqualTo("/ˌser.ənˈdɪp.ə.ti/");
+        assertThat(word.getExampleSentence()).isEqualTo("A fortunate stroke of serendipity.");
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no reviews are due")
+    void noDueReviewsReturnsEmptyList() {
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(testUser));
+        when(userWordProgressRepository.findDueForReview(eq(testUser), any(Instant.class)))
+                .thenReturn(List.of());
+
+        List<MemoryWordResponse> dueList = memoryService.getDueReviews("alice@example.com");
+
+        assertThat(dueList).isEmpty();
     }
 }

@@ -1016,9 +1016,19 @@ npm run build
    - **Lexical Depth & Audio Integration**: Provides comprehensive vocabulary study: prominent word title, CEFR level badge, syllabification, phonetic IPA transcription, parts of speech, numbered definitions, contextual example sentences with audio, and authentic Merriam-Webster pronunciation audio CDN playback served directly via backend lookup without client-side API key exposure.
    - **Deep-Dive AI Learning Assistant (`WordStudyAiActions`)**: Offers 4 pedagogical dimensions (Adaptive Explanation, Personalized Example, Memory Tip, Contextual Usage) with automatic failover routing across Google Gemini, Groq fast-inference, and offline deterministic fallback, supported by a 25-second frontend timeout.
    - **Idempotency & Gamification Sync**: Primary **Mark Complete** action guards against duplicate submissions, records spaced-repetition retention review in `MemoryService`, triggers gamification `LESSON` activity (+15 XP), displays celebratory reward feedback, and enables seamless **Next Word →** navigation.
-5. **Memory Engine Spaced Repetition (`/review`)**:
-   - Interactive 3D flip flashcards displaying word details, IPA phonetics, parts of speech, CEFR level, definitions, contextual examples, and AI memory tips.
-   - Submits ratings (Again=1, Hard=3, Good=4, Easy=5) to `POST /api/v1/memory/review` using SuperMemo-2 / Leitner algorithms, dynamically recalculating easiness factors and review intervals.
+5. **Adaptive Spaced-Repetition Review Experience (`/review`)**:
+   - **Active Recall Session Pipeline**: Lightweight client-side sessions capped at up to 10 vocabulary items, prioritizing due words (`GET /api/v1/memory/due`) and weak words (`GET /api/v1/memory/weak`).
+   - **Linguistic Word Presentation**: Renders the target word in prominent editorial serif typography alongside CEFR tier badge, grammatical category/part of speech, forgetting risk tag (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), phonetic IPA transcription, and Merriam-Webster native pronunciation audio CDN playback with Web Speech API fallback.
+   - **Active Recall Challenge**: Engages the learner through active retrieval practice via 4 randomized definition options (1 correct definition + 3 plausible distractor definitions drawn dynamically from the vocabulary catalog) with full keyboard accessibility (`1-4` to select, `Enter ↵` to check answer). Includes an alternative "Forgot / Don't Know" self-assessment trigger.
+   - **Immediate Pedagogical Feedback & Memory Impact**:
+     - Visual result banner (*Correct! Spaced repetition updated.* in emerald vs. *Needs practice! Scheduled for earlier review.* in amber).
+     - Color-coded option review highlighting the correct answer and any incorrect selection.
+     - Lexical enrichment panel displaying contextual English definition, Bengali meaning, and illustrative example sentence.
+     - Spaced Repetition delta bar visualizing pre- and post-review metrics: Mastery Score delta (e.g., `+15%`), Forgetting Risk update, recalculated Review Interval, and Retention Engine indicator.
+     - Gamification reward integration: automatically awards `+5 XP` via `ReviewRewardStrategy` with streak indicator and toast notification.
+   - **Deep-Dive Pedagogical AI Drawer (`WordStudyAiActions`)**: Optional expandable learning assistant delivering contextual explanation, personalized example, mnemonic memory tip, and real-world usage on demand without blocking or stalling the core review loop.
+   - **Graceful Progression & Session Completion**: Seamlessly advances through the session with **Next Word →** (`Enter ↵`). Upon completing all words, displays an editorial summary dashboard with real session statistics: words reviewed, correct count, accuracy percentage, total XP gained, list of words scheduled for earlier re-review, and clear navigation actions (*Continue Learning*, *Back to Dashboard*, *Review More*).
+   - **Polished Empty & Error States**: Displays an encouraging *"You're all caught up"* empty state when no retention intervals are due, with non-advancing retry protection on network failure. Tested responsively across desktop (`1440 × 900`) and mobile (`390 × 844`).
 6. **Polymorphic Quiz Engine (`/quiz` & `/quiz/:quizId`)**:
    - Accessing `/quiz` automatically generates and starts an active quiz session, while `/quiz/:quizId` loads an existing session.
    - Presents Multiple Choice, Translation, and Fill-in-the-blank questions with immediate feedback, timer tracking, score breakdown, and XP rewards.

@@ -6,6 +6,9 @@ export interface MemoryWordResponse {
   wordId: number;
   word: string;
   meaning: string;
+  definition?: string;
+  pronunciation?: string;
+  exampleSentence?: string;
   difficultyLevel: DifficultyLevel;
   category: WordCategory;
   masteryScore: number;
@@ -25,16 +28,21 @@ export interface WordReviewRequest {
   correct: boolean;
   responseTimeMs: number;
   algorithm: MemoryAlgorithmType;
+  awardXp?: boolean;
 }
 
 export interface WordReviewResponse {
-  vocabularyWordId: number;
+  wordId: number;
   word: string;
+  correct: boolean;
   masteryScore: number;
   forgettingRisk: ForgettingRisk;
-  easeFactor: number;
   reviewIntervalDays: number;
-  leitnerBox: number;
   nextReviewAt: string;
-  lastReviewedAt: string;
+  algorithm: MemoryAlgorithmType;
+  xpEarned?: number;
+  currentStreak?: number;
+  totalXp?: number;
+  previousMasteryScore?: number;
+  previousForgettingRisk?: ForgettingRisk;
 }

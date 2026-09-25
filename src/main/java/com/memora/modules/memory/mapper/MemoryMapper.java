@@ -21,6 +21,18 @@ public class MemoryMapper {
                                                boolean correct,
                                                MemoryAlgorithmType algorithm,
                                                MemoryCalculationResult result) {
+        return toReviewResponse(progress, correct, algorithm, result, null, null, null, null, null);
+    }
+
+    public WordReviewResponse toReviewResponse(UserWordProgress progress,
+                                               boolean correct,
+                                               MemoryAlgorithmType algorithm,
+                                               MemoryCalculationResult result,
+                                               Integer xpEarned,
+                                               Integer currentStreak,
+                                               Integer totalXp,
+                                               Double previousMasteryScore,
+                                               com.memora.modules.vocabulary.domain.ForgettingRisk previousForgettingRisk) {
         if (progress == null) {
             return null;
         }
@@ -37,7 +49,12 @@ public class MemoryMapper {
                 result.getForgettingRisk(),
                 result.getNextReviewAt(),
                 result.getReviewIntervalDays(),
-                algorithm
+                algorithm,
+                xpEarned,
+                currentStreak,
+                totalXp,
+                previousMasteryScore,
+                previousForgettingRisk
         );
     }
 
@@ -62,7 +79,10 @@ public class MemoryMapper {
                 progress.getIncorrectAttempts(),
                 progress.getConsecutiveCorrect(),
                 progress.getAverageResponseTime(),
-                progress.getLeitnerBox()
+                progress.getLeitnerBox(),
+                word != null ? word.getDefinition() : null,
+                word != null ? word.getPronunciation() : null,
+                word != null ? word.getExampleSentence() : null
         );
     }
 

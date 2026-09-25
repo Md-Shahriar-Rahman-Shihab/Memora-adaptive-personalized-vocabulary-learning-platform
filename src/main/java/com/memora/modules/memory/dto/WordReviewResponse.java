@@ -18,6 +18,11 @@ public class WordReviewResponse {
     private Instant nextReviewAt;
     private int reviewIntervalDays;
     private MemoryAlgorithmType algorithm;
+    private Integer xpEarned;
+    private Integer currentStreak;
+    private Integer totalXp;
+    private Double previousMasteryScore;
+    private ForgettingRisk previousForgettingRisk;
 
     public WordReviewResponse() {
     }
@@ -30,6 +35,23 @@ public class WordReviewResponse {
                               Instant nextReviewAt,
                               int reviewIntervalDays,
                               MemoryAlgorithmType algorithm) {
+        this(wordId, word, correct, masteryScore, forgettingRisk, nextReviewAt, reviewIntervalDays, algorithm,
+                null, null, null, null, null);
+    }
+
+    public WordReviewResponse(Long wordId,
+                              String word,
+                              boolean correct,
+                              double masteryScore,
+                              ForgettingRisk forgettingRisk,
+                              Instant nextReviewAt,
+                              int reviewIntervalDays,
+                              MemoryAlgorithmType algorithm,
+                              Integer xpEarned,
+                              Integer currentStreak,
+                              Integer totalXp,
+                              Double previousMasteryScore,
+                              ForgettingRisk previousForgettingRisk) {
         this.wordId = wordId;
         this.word = word;
         this.correct = correct;
@@ -38,6 +60,11 @@ public class WordReviewResponse {
         this.nextReviewAt = nextReviewAt;
         this.reviewIntervalDays = reviewIntervalDays;
         this.algorithm = algorithm;
+        this.xpEarned = xpEarned;
+        this.currentStreak = currentStreak;
+        this.totalXp = totalXp;
+        this.previousMasteryScore = previousMasteryScore;
+        this.previousForgettingRisk = previousForgettingRisk;
     }
 
     public Long getWordId() {
@@ -102,5 +129,45 @@ public class WordReviewResponse {
 
     public void setAlgorithm(MemoryAlgorithmType algorithm) {
         this.algorithm = algorithm;
+    }
+
+    public Integer getXpEarned() {
+        return xpEarned;
+    }
+
+    public void setXpEarned(Integer xpEarned) {
+        this.xpEarned = xpEarned;
+    }
+
+    public Integer getCurrentStreak() {
+        return currentStreak;
+    }
+
+    public void setCurrentStreak(Integer currentStreak) {
+        this.currentStreak = currentStreak;
+    }
+
+    public Integer getTotalXp() {
+        return totalXp;
+    }
+
+    public void setTotalXp(Integer totalXp) {
+        this.totalXp = totalXp;
+    }
+
+    public Double getPreviousMasteryScore() {
+        return previousMasteryScore;
+    }
+
+    public void setPreviousMasteryScore(Double previousMasteryScore) {
+        this.previousMasteryScore = previousMasteryScore;
+    }
+
+    public ForgettingRisk getPreviousForgettingRisk() {
+        return previousForgettingRisk;
+    }
+
+    public void setPreviousForgettingRisk(ForgettingRisk previousForgettingRisk) {
+        this.previousForgettingRisk = previousForgettingRisk;
     }
 }

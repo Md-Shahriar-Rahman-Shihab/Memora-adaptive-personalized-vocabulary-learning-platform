@@ -23,14 +23,21 @@ public class WordReviewRequest {
     @NotNull(message = "Algorithm type is required")
     private MemoryAlgorithmType algorithm;
 
+    private Boolean awardXp;
+
     public WordReviewRequest() {
     }
 
     public WordReviewRequest(Long vocabularyWordId, Boolean correct, Long responseTimeMs, MemoryAlgorithmType algorithm) {
+        this(vocabularyWordId, correct, responseTimeMs, algorithm, null);
+    }
+
+    public WordReviewRequest(Long vocabularyWordId, Boolean correct, Long responseTimeMs, MemoryAlgorithmType algorithm, Boolean awardXp) {
         this.vocabularyWordId = vocabularyWordId;
         this.correct = correct;
         this.responseTimeMs = responseTimeMs;
         this.algorithm = algorithm;
+        this.awardXp = awardXp;
     }
 
     public Long getVocabularyWordId() {
@@ -63,5 +70,13 @@ public class WordReviewRequest {
 
     public void setAlgorithm(MemoryAlgorithmType algorithm) {
         this.algorithm = algorithm;
+    }
+
+    public Boolean getAwardXp() {
+        return awardXp;
+    }
+
+    public void setAwardXp(Boolean awardXp) {
+        this.awardXp = awardXp;
     }
 }

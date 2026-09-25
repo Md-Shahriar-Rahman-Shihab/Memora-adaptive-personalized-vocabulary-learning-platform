@@ -103,7 +103,8 @@ class MemoryControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.algorithm", is("SM2")))
                 .andExpect(jsonPath("$.data.reviewIntervalDays", is(1)))
                 .andExpect(jsonPath("$.data.masteryScore", greaterThan(0.0)))
-                .andExpect(jsonPath("$.data.nextReviewAt", notNullValue()));
+                .andExpect(jsonPath("$.data.nextReviewAt", notNullValue()))
+                .andExpect(jsonPath("$.data.xpEarned", is(5)));
     }
 
     @Test
@@ -166,7 +167,10 @@ class MemoryControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].word", is("eloquent")));
+                .andExpect(jsonPath("$.data[0].word", is("eloquent")))
+                .andExpect(jsonPath("$.data[0].definition", is("fluent or persuasive in speaking or writing")))
+                .andExpect(jsonPath("$.data[0].pronunciation", is("/ˈel.ə.kwənt/")))
+                .andExpect(jsonPath("$.data[0].exampleSentence", is("An eloquent speech moved the audience.")));
     }
 
     @Test
