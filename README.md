@@ -889,11 +889,18 @@ Every Request DTO enforces strict Jakarta Bean Validation constraints (`@NotBlan
 * Client requests NEVER supply a client-controlled `userId` in request DTOs, preventing horizontal privilege escalation.
 
 ### 6. Thin Controller Architecture
+
 Controllers act purely as HTTP presentation gateways:
-
-$$\text{HTTP Request} \longrightarrow \text{Controller} \xrightarrow[\text{@Valid}]{\text{Request DTO}} \text{Domain Service} \longrightarrow \text{Repository/DB} \longrightarrow \text{Response DTO} \longrightarrow \text{ApiResponse<T>}$$
-
+```mermaid
+flowchart LR
+    A[HTTP Request] --> B[Controller]
+    B -->|"@Valid Request DTO"| C[Domain Service]
+    C --> D[Repository / DB]
+    D --> E[Response DTO]
+    E --> F["ApiResponse&lt;T&gt;"]
+```
 Controllers contain zero business algorithms, memory calculations, or direct database operations.
+
 
 ---
 
