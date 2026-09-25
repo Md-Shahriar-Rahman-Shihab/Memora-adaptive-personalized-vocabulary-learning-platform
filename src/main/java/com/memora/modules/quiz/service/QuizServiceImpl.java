@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service implementation orchestrating the complete Quiz workflow.
@@ -148,7 +149,26 @@ public class QuizServiceImpl implements QuizService {
                     return quizAttemptRepository.save(newAttempt);
                 });
 
-        return mapToQuizResponse(quiz);
+        List<Long> answeredQuestionIds = attempt.getQuestionAttempts().stream()
+                .map(qa -> qa.getQuestion().getId())
+                .toList();
+
+        List<QuestionResponse> questionResponses = new ArrayList<>();
+        if (quiz.getQuestions() != null) {
+            for (Question q : quiz.getQuestions()) {
+                questionResponses.add(mapToQuestionResponse(q));
+            }
+        }
+
+        return new QuizResponse(
+                quiz.getId(),
+                quiz.getTitle(),
+                quiz.getDifficultyLevel(),
+                quiz.getQuestionCount(),
+                questionResponses,
+                attempt.getId(),
+                answeredQuestionIds
+        );
     }
 
     @Override
@@ -176,6 +196,23 @@ public class QuizServiceImpl implements QuizService {
                     return quizAttemptRepository.save(newAttempt);
                 });
 
+        // Check if question was already answered in this attempt (idempotency guard)
+        Optional<QuestionAttempt> existingAttempt = questionAttemptRepository
+                .findByQuizAttemptIdAndQuestionId(quizAttempt.getId(), questionId);
+        if (existingAttempt.isPresent()) {
+            QuestionAttempt prev = existingAttempt.get();
+            return new AnswerResponse(
+                    prev.isCorrect(),
+                    prev.getScore(),
+                    prev.isCorrect() ? "Correct! Well done." : "Incorrect answer.",
+                    0.0,
+                    null,
+                    null,
+                    getQuestionCorrectAnswer(question),
+                    0
+            );
+        }
+
         QuestionEvaluatorStrategy evaluator = evaluatorFactory.getEvaluator(question.getQuestionType());
         EvaluationResult evaluationResult = evaluator.evaluate(question, request.getAnswer());
 
@@ -200,10 +237,15 @@ public class QuizServiceImpl implements QuizService {
         );
         WordReviewResponse reviewResponse = memoryService.recordReview(userEmail, reviewRequest);
 
+        int answerXp = 0;
         if (gamificationService != null && evaluationResult.isCorrect()) {
             try {
-                gamificationService.recordActivity(user, RewardActivityType.QUIZ,
-                        RewardContext.forQuizAnswer(questionAttempt.getId(), true));
+                com.memora.modules.gamification.dto.GamificationActivityResultResponse gamResult =
+                        gamificationService.recordActivity(user, RewardActivityType.QUIZ,
+                                RewardContext.forQuizAnswer(questionAttempt.getId(), true));
+                if (gamResult != null) {
+                    answerXp = gamResult.getXpEarned();
+                }
             } catch (Exception e) {
                 log.warn("Gamification tracking failed for quiz answer: {}", e.getMessage());
             }
@@ -215,7 +257,9 @@ public class QuizServiceImpl implements QuizService {
                 evaluationResult.getFeedback(),
                 reviewResponse.getMasteryScore(),
                 reviewResponse.getForgettingRisk(),
-                reviewResponse.getNextReviewAt()
+                reviewResponse.getNextReviewAt(),
+                getQuestionCorrectAnswer(question),
+                answerXp
         );
     }
 
@@ -234,7 +278,8 @@ public class QuizServiceImpl implements QuizService {
                     return attempts.get(0);
                 });
 
-        if (attempt.getCompletedAt() == null) {
+        boolean alreadyCompleted = attempt.getCompletedAt() != null;
+        if (!alreadyCompleted) {
             attempt.setCompletedAt(Instant.now());
             quizAttemptRepository.save(attempt);
         }
@@ -243,18 +288,35 @@ public class QuizServiceImpl implements QuizService {
                 ? ((double) attempt.getCorrectAnswers() / attempt.getTotalQuestions()) * 100.0
                 : 0.0;
 
-        if (gamificationService != null) {
+        int totalXpEarned = 0;
+        int currentStreak = 0;
+        int totalXp = 0;
+        List<String> newAchievements = new ArrayList<>();
+        boolean pathCompleted = false;
+
+        if (gamificationService != null && !alreadyCompleted) {
             try {
                 boolean isPerfect = attempt.getTotalQuestions() > 0 && attempt.getCorrectAnswers() == attempt.getTotalQuestions();
-                gamificationService.recordActivity(user, RewardActivityType.QUIZ,
-                        RewardContext.forQuizCompletion(quizId, attempt.getCorrectAnswers(), attempt.getTotalQuestions(), isPerfect));
+                com.memora.modules.gamification.dto.GamificationActivityResultResponse gamResult =
+                        gamificationService.recordActivity(user, RewardActivityType.QUIZ,
+                                RewardContext.forQuizCompletion(quizId, attempt.getCorrectAnswers(), attempt.getTotalQuestions(), isPerfect));
+                if (gamResult != null) {
+                    totalXpEarned = gamResult.getXpEarned();
+                    currentStreak = gamResult.getCurrentStreak();
+                    totalXp = gamResult.getNewTotalXp();
+                    if (gamResult.getNewAchievements() != null) {
+                        for (com.memora.modules.gamification.dto.UserAchievementResponse ach : gamResult.getNewAchievements()) {
+                            newAchievements.add(ach.getName());
+                        }
+                    }
+                }
             } catch (Exception e) {
                 log.warn("Gamification tracking failed for quiz completion: {}", e.getMessage());
             }
         }
 
         // Sync with Learning Path if this quiz is part of user's active curriculum
-        if (learningPathItemRepository != null && learningPathRepository != null) {
+        if (learningPathItemRepository != null && learningPathRepository != null && !alreadyCompleted) {
             try {
                 List<com.memora.modules.learningpath.entity.LearningPathItem> pathItems = learningPathItemRepository.findByQuizId(quizId);
                 if (pathItems.isEmpty()) {
@@ -284,6 +346,7 @@ public class QuizServiceImpl implements QuizService {
                     // Completing the consolidating Daily Retention Quiz finishes today's path!
                     path.setStatus(com.memora.modules.learningpath.domain.LearningPathStatus.COMPLETED);
                     learningPathRepository.save(path);
+                    pathCompleted = true;
                     log.info("Concluded learning path ID: {} after daily retention quiz completion", path.getId());
                 }
             } catch (Exception e) {
@@ -291,13 +354,17 @@ public class QuizServiceImpl implements QuizService {
             }
         }
 
-
         return new QuizResultResponse(
                 quizId,
                 attempt.getTotalQuestions(),
                 attempt.getCorrectAnswers(),
                 attempt.getTotalScore(),
-                Math.round(percentage * 100.0) / 100.0
+                Math.round(percentage * 100.0) / 100.0,
+                totalXpEarned,
+                currentStreak,
+                totalXp,
+                newAchievements,
+                pathCompleted
         );
     }
 
@@ -333,6 +400,17 @@ public class QuizServiceImpl implements QuizService {
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found with ID: " + id));
     }
 
+    private String getQuestionCorrectAnswer(Question question) {
+        if (question instanceof MultipleChoiceQuestion mcq) {
+            return mcq.getCorrectOption();
+        } else if (question instanceof TranslationQuestion tq) {
+            return tq.getExpectedAnswer();
+        } else if (question instanceof FillInTheBlankQuestion fib) {
+            return fib.getExpectedAnswer();
+        }
+        return null;
+    }
+
     private QuizResponse mapToQuizResponse(Quiz quiz) {
         List<QuestionResponse> questionResponses = new ArrayList<>();
         if (quiz.getQuestions() != null) {
@@ -366,7 +444,8 @@ public class QuizServiceImpl implements QuizService {
                 question.getQuestionText(),
                 sentence,
                 options,
-                question.getPoints()
+                question.getPoints(),
+                question.getVocabularyWord() != null ? question.getVocabularyWord().getDifficultyLevel() : null
         );
     }
 }

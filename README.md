@@ -1029,9 +1029,27 @@ npm run build
    - **Deep-Dive Pedagogical AI Drawer (`WordStudyAiActions`)**: Optional expandable learning assistant delivering contextual explanation, personalized example, mnemonic memory tip, and real-world usage on demand without blocking or stalling the core review loop.
    - **Graceful Progression & Session Completion**: Seamlessly advances through the session with **Next Word →** (`Enter ↵`). Upon completing all words, displays an editorial summary dashboard with real session statistics: words reviewed, correct count, accuracy percentage, total XP gained, list of words scheduled for earlier re-review, and clear navigation actions (*Continue Learning*, *Back to Dashboard*, *Review More*).
    - **Polished Empty & Error States**: Displays an encouraging *"You're all caught up"* empty state when no retention intervals are due, with non-advancing retry protection on network failure. Tested responsively across desktop (`1440 × 900`) and mobile (`390 × 844`).
-6. **Polymorphic Quiz Engine (`/quiz` & `/quiz/:quizId`)**:
-   - Accessing `/quiz` automatically generates and starts an active quiz session, while `/quiz/:quizId` loads an existing session.
-   - Presents Multiple Choice, Translation, and Fill-in-the-blank questions with immediate feedback, timer tracking, score breakdown, and XP rewards.
+6. **Interactive Quiz Experience & Polymorphic Question Engine (`/quiz` & `/quiz/:quizId`) (Phase 12)**:
+   - **Seamless Learning Path Integration**: Encountering a `LearningItemType.QUIZ` item on `/learn-path` seamlessly launches the quiz session (`/quiz/:quizId`). When completed, it automatically marks the Learning Path item as `COMPLETED`, increments curricular progress, awards completion achievements, and unlocks subsequent daily items.
+   - **Polymorphic Question Interaction**:
+     - *Multiple Choice*: Renders labeled option cards (`A`, `B`, `C`, `D`) with keyboard shortcuts (`1-4`) and selection highlights.
+     - *Translation*: Text-input field with case-insensitive whitespace-trimmed evaluation against the expected translation.
+     - *Fill in the Blank*: Contextual example sentence with visual blank indicators (`___`) and inline input field.
+   - **Authentic Merriam-Webster Audio**: Integrates native audio pronunciation CDN playback with Web Speech API fallback for tested vocabulary words.
+   - **Immediate Pedagogical Feedback & Memory Synchronization**:
+     - Submitting an answer validates against the backend evaluator strategies (`QuestionEvaluatorStrategy`) — React never evaluates answers directly.
+     - *Correct*: Displays emerald feedback banner, `+10 XP` badge, memory retention update, and explanation.
+     - *Needs Practice*: Highlights user's answer vs expected answer, provides concise explanation, and schedules word for earlier spaced repetition.
+     - Submitting answers directly records review in `MemoryService.recordReview(...)`, updating mastery score, Leitner box, forgetting risk, and SM-2 interval expansion.
+   - **One Answer Per Question & Session Resumption**:
+     - Answer controls and submission buttons are disabled upon checking to prevent accidental duplicate submissions.
+     - Resumption support via `answeredQuestionIds` allows learners to safely refresh their browser and resume in-progress attempts at the exact active question.
+   - **Quiz Completion & Reward Consolidation**:
+     - Concluding the quiz triggers `QuizRewardStrategy`, awarding `+10 XP` per correct answer plus `+20 XP` perfect score bonus, streak continuity, and milestone achievements (e.g. `FIRST_QUIZ`, `PERFECT_SCORE`).
+     - Detailed completion view displays questions answered, accuracy percentage, total score, XP earned, streak counter, and an interactive **Review Mistakes** list with user vs expected definitions.
+     - Clear next steps: *Continue Learning Path*, *Review Mistakes*, *Back to Dashboard*, or *Retake Quiz*.
+   - **Non-Blocking AI Assistant (`WordStudyAiActions`)**: Optional pedagogical assistance providing deep-dive explanations, example sentences, and mnemonics without blocking quiz progression.
+   - **Strict Scope & Mobile Responsiveness**: Verified across desktop (`1440 × 900`) and mobile (`390 × 844`) viewports with zero horizontal overflow, touch targets >= 44px, and clean responsive wrapping.
 7. **Gamification, Streaks & Global Leaderboard (`/achievements`, `/leaderboard`, `/profile`, `/progress`)**:
    - Real-time streak tracking with calendar-day boundary safety.
    - Visual achievement badges (unlocked vs. locked) with condition criteria and bonus XP.

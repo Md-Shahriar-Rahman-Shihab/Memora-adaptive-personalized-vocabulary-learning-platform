@@ -10,6 +10,7 @@ export interface QuestionResponse {
   sentence?: string;
   options?: string[];
   points: number;
+  difficultyLevel?: DifficultyLevel;
 }
 
 export interface QuizResponse {
@@ -18,6 +19,8 @@ export interface QuizResponse {
   difficultyLevel: DifficultyLevel;
   questionCount: number;
   questions: QuestionResponse[];
+  activeAttemptId?: number;
+  answeredQuestionIds?: number[];
 }
 
 export interface AnswerSubmissionRequest {
@@ -33,6 +36,8 @@ export interface AnswerResponse {
   masteryScore: number;
   forgettingRisk: ForgettingRisk;
   nextReviewAt?: string;
+  correctAnswer?: string;
+  xpEarned?: number;
 }
 
 export interface QuizResultResponse {
@@ -41,6 +46,11 @@ export interface QuizResultResponse {
   correctAnswers: number;
   totalScore: number;
   percentage: number;
+  xpEarned?: number;
+  currentStreak?: number;
+  totalXp?: number;
+  newAchievements?: string[];
+  learningPathCompleted?: boolean;
 }
 
 export interface QuizGenerationRequest {

@@ -16,18 +16,28 @@ public class AnswerResponse {
     private double masteryScore;
     private ForgettingRisk forgettingRisk;
     private Instant nextReviewAt;
+    private String correctAnswer;
+    private Integer xpEarned;
 
     public AnswerResponse() {
     }
 
     public AnswerResponse(boolean correct, int score, String feedback,
                           double masteryScore, ForgettingRisk forgettingRisk, Instant nextReviewAt) {
+        this(correct, score, feedback, masteryScore, forgettingRisk, nextReviewAt, null, null);
+    }
+
+    public AnswerResponse(boolean correct, int score, String feedback,
+                          double masteryScore, ForgettingRisk forgettingRisk, Instant nextReviewAt,
+                          String correctAnswer, Integer xpEarned) {
         this.correct = correct;
         this.score = score;
         this.feedback = feedback;
         this.masteryScore = masteryScore;
         this.forgettingRisk = forgettingRisk;
         this.nextReviewAt = nextReviewAt;
+        this.correctAnswer = correctAnswer;
+        this.xpEarned = xpEarned;
     }
 
     public boolean isCorrect() {
@@ -76,5 +86,21 @@ public class AnswerResponse {
 
     public void setNextReviewAt(Instant nextReviewAt) {
         this.nextReviewAt = nextReviewAt;
+    }
+
+    public String getCorrectAnswer() {
+        return correctAnswer;
+    }
+
+    public void setCorrectAnswer(String correctAnswer) {
+        this.correctAnswer = correctAnswer;
+    }
+
+    public Integer getXpEarned() {
+        return xpEarned;
+    }
+
+    public void setXpEarned(Integer xpEarned) {
+        this.xpEarned = xpEarned;
     }
 }

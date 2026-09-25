@@ -198,4 +198,47 @@ class QuizServiceTest {
         assertEquals(100.0, result.getPercentage());
         assertNotNull(attempt.getCompletedAt());
     }
+
+    @Test
+    @DisplayName("submitAnswer duplicate call should be idempotent and not re-invoke memory service")
+    void submitAnswerDuplicateCallIsIdempotent() {
+        QuizAttempt attempt = new QuizAttempt(testUser, testQuiz, 1);
+        ReflectionTestUtils.setField(attempt, "id", 500L);
+        QuestionAttempt existing = new QuestionAttempt(attempt, testQuestion, "আপেল", true, 10, 1000L);
+
+        when(userRepository.findByEmail("alice@memora.com")).thenReturn(Optional.of(testUser));
+        when(quizRepository.findById(100L)).thenReturn(Optional.of(testQuiz));
+        when(questionRepository.findById(200L)).thenReturn(Optional.of(testQuestion));
+        when(quizAttemptRepository.findActiveAttempt(100L, 1L)).thenReturn(Optional.of(attempt));
+        when(questionAttemptRepository.findByQuizAttemptIdAndQuestionId(500L, 200L))
+                .thenReturn(Optional.of(existing));
+
+        AnswerSubmissionRequest req = new AnswerSubmissionRequest(200L, "আপেল", 1200L);
+        AnswerResponse response = quizService.submitAnswer("alice@memora.com", 100L, 200L, req);
+
+        assertNotNull(response);
+        assertTrue(response.isCorrect());
+        assertEquals("আপেল", response.getCorrectAnswer());
+        verify(memoryService, never()).recordReview(any(), any());
+    }
+
+    @Test
+    @DisplayName("startQuiz should return answered question IDs when resuming in-progress attempt")
+    void startQuizReturnsAnsweredQuestionIdsWhenResumed() {
+        QuizAttempt attempt = new QuizAttempt(testUser, testQuiz, 1);
+        ReflectionTestUtils.setField(attempt, "id", 500L);
+        QuestionAttempt existing = new QuestionAttempt(attempt, testQuestion, "আপেল", true, 10, 1000L);
+        attempt.addQuestionAttempt(existing);
+
+        when(userRepository.findByEmail("alice@memora.com")).thenReturn(Optional.of(testUser));
+        when(quizRepository.findById(100L)).thenReturn(Optional.of(testQuiz));
+        when(quizAttemptRepository.findActiveAttempt(100L, 1L)).thenReturn(Optional.of(attempt));
+
+        QuizResponse response = quizService.startQuiz("alice@memora.com", 100L);
+
+        assertNotNull(response);
+        assertEquals(500L, response.getActiveAttemptId());
+        assertNotNull(response.getAnsweredQuestionIds());
+        assertTrue(response.getAnsweredQuestionIds().contains(200L));
+    }
 }

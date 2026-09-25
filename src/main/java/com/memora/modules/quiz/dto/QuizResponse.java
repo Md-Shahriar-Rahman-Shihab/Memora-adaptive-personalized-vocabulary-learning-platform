@@ -14,16 +14,25 @@ public class QuizResponse {
     private DifficultyLevel difficultyLevel;
     private int questionCount;
     private List<QuestionResponse> questions;
+    private Long activeAttemptId;
+    private List<Long> answeredQuestionIds;
 
     public QuizResponse() {
     }
 
     public QuizResponse(Long id, String title, DifficultyLevel difficultyLevel, int questionCount, List<QuestionResponse> questions) {
+        this(id, title, difficultyLevel, questionCount, questions, null, null);
+    }
+
+    public QuizResponse(Long id, String title, DifficultyLevel difficultyLevel, int questionCount,
+                        List<QuestionResponse> questions, Long activeAttemptId, List<Long> answeredQuestionIds) {
         this.id = id;
         this.title = title;
         this.difficultyLevel = difficultyLevel;
         this.questionCount = questionCount;
         this.questions = questions;
+        this.activeAttemptId = activeAttemptId;
+        this.answeredQuestionIds = answeredQuestionIds;
     }
 
     public Long getId() {
@@ -64,5 +73,21 @@ public class QuizResponse {
 
     public void setQuestions(List<QuestionResponse> questions) {
         this.questions = questions;
+    }
+
+    public Long getActiveAttemptId() {
+        return activeAttemptId;
+    }
+
+    public void setActiveAttemptId(Long activeAttemptId) {
+        this.activeAttemptId = activeAttemptId;
+    }
+
+    public List<Long> getAnsweredQuestionIds() {
+        return answeredQuestionIds;
+    }
+
+    public void setAnsweredQuestionIds(List<Long> answeredQuestionIds) {
+        this.answeredQuestionIds = answeredQuestionIds;
     }
 }

@@ -19,12 +19,19 @@ public class QuestionResponse {
     private String sentence;
     private List<String> options;
     private int points;
+    private com.memora.modules.vocabulary.domain.DifficultyLevel difficultyLevel;
 
     public QuestionResponse() {
     }
 
     public QuestionResponse(Long id, QuestionType questionType, String word, String questionText,
                             String sentence, List<String> options, int points) {
+        this(id, questionType, word, questionText, sentence, options, points, null);
+    }
+
+    public QuestionResponse(Long id, QuestionType questionType, String word, String questionText,
+                            String sentence, List<String> options, int points,
+                            com.memora.modules.vocabulary.domain.DifficultyLevel difficultyLevel) {
         this.id = id;
         this.questionType = questionType;
         this.word = word;
@@ -32,6 +39,7 @@ public class QuestionResponse {
         this.sentence = sentence;
         this.options = options;
         this.points = points;
+        this.difficultyLevel = difficultyLevel;
     }
 
     public Long getId() {
@@ -88,5 +96,13 @@ public class QuestionResponse {
 
     public void setPoints(int points) {
         this.points = points;
+    }
+
+    public com.memora.modules.vocabulary.domain.DifficultyLevel getDifficultyLevel() {
+        return difficultyLevel;
+    }
+
+    public void setDifficultyLevel(com.memora.modules.vocabulary.domain.DifficultyLevel difficultyLevel) {
+        this.difficultyLevel = difficultyLevel;
     }
 }
