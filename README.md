@@ -890,7 +890,9 @@ Every Request DTO enforces strict Jakarta Bean Validation constraints (`@NotBlan
 
 ### 6. Thin Controller Architecture
 Controllers act purely as HTTP presentation gateways:
-$$\text{HTTP Request} \longrightarrow \text{Controller} \xrightarrow[@Valid]{\text{Request DTO}} \text{Domain Service} \longrightarrow \text{Repository/DB} \longrightarrow \text{Response DTO} \longrightarrow \text{ApiResponse<T>}$$
+
+$$\text{HTTP Request} \longrightarrow \text{Controller} \xrightarrow[\text{@Valid}]{\text{Request DTO}} \text{Domain Service} \longrightarrow \text{Repository/DB} \longrightarrow \text{Response DTO} \longrightarrow \text{ApiResponse<T>}$$
+
 Controllers contain zero business algorithms, memory calculations, or direct database operations.
 
 ---
