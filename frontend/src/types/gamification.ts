@@ -2,24 +2,30 @@ export type BadgeCategory = 'STREAK' | 'MASTERY' | 'QUIZ' | 'EXPLORATION' | 'MIL
 
 export interface UserAchievementResponse {
   code: string;
-  title: string;
+  name?: string;
+  title?: string;
   description: string;
+  icon?: string;
   iconUrl?: string;
-  xpBonus: number;
-  badgeCategory: BadgeCategory;
-  unlocked: boolean;
+  xpBonus?: number;
+  badgeCategory?: BadgeCategory;
+  unlocked?: boolean;
+  earnedAt?: string;
   unlockedAt?: string;
 }
 
 export interface Achievement {
   id: number;
   code: string;
-  title: string;
+  name?: string;
+  title?: string;
   description: string;
+  icon?: string;
   iconUrl?: string;
-  xpBonus: number;
-  badgeCategory: BadgeCategory;
-  orderIndex: number;
+  xpBonus?: number;
+  badgeCategory?: BadgeCategory;
+  active?: boolean;
+  orderIndex?: number;
 }
 
 export interface LearnerProfileResponse {

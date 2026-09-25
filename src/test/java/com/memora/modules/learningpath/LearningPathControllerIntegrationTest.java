@@ -215,4 +215,16 @@ class LearningPathControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/learning-path/today"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @DisplayName("Complete item with invalid request payload should return 400 Bad Request")
+    @WithMockUser(username = "shihab@memora.com", roles = {"LEARNER"})
+    void testCompleteItemValidationFailure() throws Exception {
+        LearningItemCompletionRequest invalidReq = new LearningItemCompletionRequest(true, -100L, null, "Note");
+        mockMvc.perform(post("/api/v1/learning-path/items/1/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
 }

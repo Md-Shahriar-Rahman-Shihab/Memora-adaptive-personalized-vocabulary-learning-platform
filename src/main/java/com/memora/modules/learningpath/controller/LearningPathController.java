@@ -3,6 +3,7 @@ package com.memora.modules.learningpath.controller;
 import com.memora.common.response.ApiResponse;
 import com.memora.modules.learningpath.dto.*;
 import com.memora.modules.learningpath.service.LearningPathService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -73,7 +74,7 @@ public class LearningPathController {
     @PostMapping("/items/{itemId}/complete")
     public ResponseEntity<ApiResponse<LearningItemCompletionResponse>> completeItem(
             @PathVariable Long itemId,
-            @RequestBody(required = false) LearningItemCompletionRequest request,
+            @Valid @RequestBody(required = false) LearningItemCompletionRequest request,
             Authentication authentication) {
         String email = authentication.getName();
         LearningItemCompletionResponse response = learningPathService.completeItem(email, itemId, request);

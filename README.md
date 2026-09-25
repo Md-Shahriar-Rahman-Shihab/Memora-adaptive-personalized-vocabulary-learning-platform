@@ -23,6 +23,7 @@ An AI-powered, memory-adaptive personalized vocabulary learning platform enginee
 | **Phase 11 (UX & Placement)** | **New User Onboarding UX & Compact 10-Question Assessment** | ✅ Completed | Streamlined new user onboarding directly to locked Dashboard (`/dashboard`), eliminating jarring intermediate redirects. Features editorial locked onboarding view (`LockedOnboardingView`) with 10-question diagnostic CTA (~2 min duration), locked feature cards with 🔒 badges, non-intrusive toast notification click prevention, frontend route protection (`LearningRouteGuard`), compact 10-question assessment generation (2 per tier A1–C1), adapted placement strategy (100% mastery advances, 50% emerging frontier stops, 0% unreached stops), mid-session reload resilience, and automatic full platform unlock upon learning path generation. |
 | **Phase 11 Step 2** | **Real Learning / Word Study Experience & UI Stabilization** | ✅ Completed | Dedicated `NEW_WORD` Word Study Modal (`WordStudyModal`) rendered via `createPortal(..., document.body)` with isolated stacking context above mobile navigation (`MobileNav`), responsive viewport bounds (`100dvh`), background scroll-locking, and automatic scroll-to-top reset. Features authentic Merriam-Webster pronunciation audio CDN playback, CEFR level badge, parts of speech, numbered definitions, contextual example sentences with audio, deep-dive AI Learning Assistant (`WordStudyAiActions`) with multi-provider failover routing (Gemini → Groq → Fallback), Spaced-Repetition Memory Engine review integration (`MemoryService.recordReview`), duplicate completion idempotency protection, and real gamification reward feedback (+15 XP). |
 | **Phase 12** | **Collegiate Dictionary Integration (Merriam-Webster)** | ✅ Completed | Production integration with official **Merriam-Webster Collegiate Dictionary API** via Spring `RestClient` (HTTP/2), headword syllabification, written IPA/phonetics, native audio CDN playback, part-of-speech categorization, multi-sense numbered definitions, usage examples, historical etymology, typo spelling suggestions fallback, thread-safe bounded in-memory caching (`DictionaryServiceImpl`), and an interactive frontend `/dictionary` explorer with audio playback and quick discovery chips. |
+| **Phase 13** | **Controller Layer Audit & Request Object Completion** | ✅ Completed | Comprehensive audit across all 16 `@RestController` classes (52 endpoints). Strict encapsulation of structured client payloads via dedicated Request DTOs (`@Valid @RequestBody`), Jakarta validation constraints, natural REST Path Variables & Query Parameters, thin controller design, and server-derived Spring Security context. |
 
 ---
 
@@ -783,6 +784,7 @@ erDiagram
 * `GET  /api/v1/vocabulary/search?query=...` — Search vocabulary by keyword (Public)
 * `GET  /api/v1/vocabulary/level/{level}` — Filter by CEFR difficulty level (`A1`–`C1`) (Public)
 * `GET  /api/v1/vocabulary/category/{category}` — Filter by topic category (Public)
+* `GET  /api/v1/vocabulary/random?limit=10` — Sample random vocabulary words (Public)
 * `POST /api/v1/vocabulary` — Create a new vocabulary word (Admin/Authenticated)
 
 ### 6. User Word Progress (`/api/v1/progress`)
@@ -820,6 +822,7 @@ erDiagram
 * `POST /api/v1/learning-path/items/{itemId}/start` — Mark a learning path item as in-progress
 * `POST /api/v1/learning-path/items/{itemId}/complete` — Mark an item as completed, trigger Memory Engine review, and award XP
 * `POST /api/v1/learning-path/regenerate` — Dynamically regenerate pending items based on latest memory state
+* `POST /api/v1/learning-path/advance` — Advance curriculum to the next calendar day's roadmap
 * `GET  /api/v1/learning-path/history` — Retrieve historical learning path records for the learner
 
 ### 11. Learner Profile & Gamification (`/api/v1/profile`)
@@ -843,6 +846,52 @@ erDiagram
 
 ### 15. Dictionary Lookup (`/api/v1/dictionary`)
 * `GET  /api/v1/dictionary/{word}` — Look up rich lexical data from the Merriam-Webster Collegiate Dictionary (syllabified headword, phonetic transcriptions, native pronunciation audio URL, parts of speech, numbered definitions, usage examples, etymology, and alternate spelling suggestions) (Requires JWT)
+
+---
+
+## 🎮 Controller Layer & Request Objects
+
+Memora strictly follows modern enterprise Spring Boot and RESTful API design standards. The controller layer was comprehensively audited to ensure that all endpoints accepting structured client inputs use dedicated, validated **Request DTOs** rather than loose primitive parameters.
+
+> 📖 **Complete Audit Report**: For the complete endpoint-by-endpoint audit, validation constraints, and architectural evidence, see [`CONTROLLER_REQUEST_OBJECT_AUDIT.md`](./CONTROLLER_REQUEST_OBJECT_AUDIT.md).
+
+### 1. Request DTO & `@Valid @RequestBody` Pattern
+Every endpoint that accepts structured user input encapsulates the payload within a dedicated, strongly typed Request DTO:
+```java
+@PostMapping("/review")
+public ResponseEntity<ApiResponse<WordReviewResponse>> recordReview(
+        @Valid @RequestBody WordReviewRequest request,
+        Authentication authentication) {
+    String email = authentication.getName();
+    WordReviewResponse response = memoryService.recordReview(email, request);
+    return ResponseEntity.ok(ApiResponse.success("Review recorded successfully", response));
+}
+```
+
+### 2. Dedicated Request DTO Inventory
+* **User & Auth**: `RegistrationRequest`, `LoginRequest`
+* **Vocabulary Catalog**: `VocabularyWordRequest`
+* **Memory SRS Engine**: `WordReviewRequest`
+* **Quiz Engine**: `QuizGenerationRequest`, `AnswerSubmissionRequest`
+* **Assessment & Placement**: `AssessmentAnswerRequest`
+* **Adaptive Learning Path**: `LearningItemCompletionRequest`
+* **Multi-Provider AI**: `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`
+
+### 3. Jakarta Bean Validation
+Every Request DTO enforces strict Jakarta Bean Validation constraints (`@NotBlank`, `@NotNull`, `@Size`, `@Positive`, `@PositiveOrZero`, `@Min`, `@Max`, `@Email`). Validation errors trigger a standardized `400 Bad Request` with structured field-level error messages handled centrally by `GlobalExceptionHandler`.
+
+### 4. Natural REST Semantics (Path Variables & Query Parameters)
+* **Path Variables (`@PathVariable`)**: Retained for discrete entity lookups (`/vocabulary/{id}`, `/dictionary/{word}`) and lifecycle actions on existing server-managed entities (`/quizzes/{quizId}/start`, `/quizzes/{quizId}/complete`, `/assessments/{assessmentId}/complete`, `/learning-path/items/{itemId}/start`, `/progress/words/{wordId}/init`).
+* **Query Parameters (`@RequestParam`)**: Retained strictly on HTTP `GET` requests for search filters (`/vocabulary/search?query=...`), random sampling bounds (`/vocabulary/random?limit=10`), audit ledger pagination (`/profile/xp-history?page=0&size=20`), and leaderboard ranking limits (`/leaderboard?limit=20`).
+
+### 5. Authentication & Security Context
+* Learner identity is strictly derived from Spring Security's authenticated principal (`Authentication.getName()`).
+* Client requests NEVER supply a client-controlled `userId` in request DTOs, preventing horizontal privilege escalation.
+
+### 6. Thin Controller Architecture
+Controllers act purely as HTTP presentation gateways:
+$$\text{HTTP Request} \longrightarrow \text{Controller} \xrightarrow[@Valid]{\text{Request DTO}} \text{Domain Service} \longrightarrow \text{Repository/DB} \longrightarrow \text{Response DTO} \longrightarrow \text{ApiResponse<T>}$$
+Controllers contain zero business algorithms, memory calculations, or direct database operations.
 
 ---
 
@@ -932,7 +981,7 @@ The automated test suite runs completely isolated on in-memory H2 without touchi
 ```powershell
 .\mvnw.cmd test
 ```
-* **Test Suite**: 253 automated tests across 50 test class files covering all domain modules (0 failures, 0 errors, 100% passing). External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
+* **Test Suite**: 260 automated tests across 50 test class files covering all domain modules (0 failures, 0 errors, 100% passing). External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
 
 ### 5. Health Check Verification
 ```powershell
@@ -1050,12 +1099,11 @@ npm run build
      - Clear next steps: *Continue Learning Path*, *Review Mistakes*, *Back to Dashboard*, or *Retake Quiz*.
    - **Non-Blocking AI Assistant (`WordStudyAiActions`)**: Optional pedagogical assistance providing deep-dive explanations, example sentences, and mnemonics without blocking quiz progression.
    - **Strict Scope & Mobile Responsiveness**: Verified across desktop (`1440 × 900`) and mobile (`390 × 844`) viewports with zero horizontal overflow, touch targets >= 44px, and clean responsive wrapping.
-7. **Gamification, Streaks & Global Leaderboard (`/achievements`, `/leaderboard`, `/profile`, `/progress`)**:
-   - Real-time streak tracking with calendar-day boundary safety.
-   - Visual achievement badges (unlocked vs. locked) with condition criteria and bonus XP.
-   - Global leaderboard with top-3 podium and deterministic ranking.
-   - Profile view with comprehensive learning statistics and paginated, auditable XP transaction ledger.
-   - Progress dashboard visualizing memory retention curves, CEFR vocabulary distribution, and mastery metrics.
+7. **Gamification, Streaks & Milestone Achievements (`/achievements`, `/leaderboard`, `/profile`, `/progress`) (Phase 13)**:
+   - **Real-Time Achievement Synchronization**: Unlocked achievements (`FIRST_LESSON`, `FIRST_QUIZ`, `PERFECT_SCORE`, etc.) evaluate and persist idempotently via `AchievementRuleEngine` and `UserAchievementRepository`.
+   - **Unified Backend/Frontend Data Model**: Backend entities and DTOs provide seamless getter aliases (`getTitle()`, `isUnlocked()`, `getUnlockedAt()`, `getXpBonus()`, `getBadgeCategory()`), ensuring `/achievements` renders real-time counts (e.g. `3 of 10 unlocked`) and accurate visual card states (emerald unlocked badges, earned dates, XP bonuses).
+   - **Category Filtering & Responsive Layout**: Interactive filter pills (`ALL`, `STREAK`, `MASTERY`, `QUIZ`, `EXPLORATION`, `MILESTONE`) categorize badges deterministically. Tested responsively across desktop (`1440 × 900`) and mobile (`390 × 844`).
+   - **Real-Time Streak & Auditable XP Ledger**: Calendar-day boundary safe streak calculation, global top-20 leaderboard with top-3 podium showcase, profile dashboard, and memory retention curves.
 8. **Collegiate Dictionary Exploration (`/dictionary`)**:
    - Authenticated learners can search and study comprehensive lexical entries in real time with client-side validation and responsive loading states.
    - Interactive HTML5 audio player playing authentic native pronunciations served directly from the official Merriam-Webster audio CDN.

@@ -1,6 +1,8 @@
 package com.memora.modules.learningpath.dto;
 
 import com.memora.modules.memory.domain.MemoryAlgorithmType;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 /**
  * Request payload for completing a learning path item.
@@ -9,8 +11,13 @@ import com.memora.modules.memory.domain.MemoryAlgorithmType;
 public class LearningItemCompletionRequest {
 
     private Boolean correct;
+
+    @PositiveOrZero(message = "Response time must be greater than or equal to 0 ms")
     private Long responseTimeMs;
+
     private MemoryAlgorithmType algorithm;
+
+    @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;
 
     public LearningItemCompletionRequest() {

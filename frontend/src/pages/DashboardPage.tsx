@@ -488,12 +488,12 @@ export const DashboardPage: React.FC = () => {
                           <Award className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-memora-dark">{ach.title}</p>
+                          <p className="text-xs font-bold text-memora-dark">{ach.title || ach.name}</p>
                           <p className="text-[11px] text-memora-text-muted">{ach.description}</p>
                         </div>
                       </div>
                       <span className="text-[11px] font-bold text-memora-green shrink-0">
-                        +{ach.xpBonus} XP
+                        +{ach.xpBonus ?? 25} XP
                       </span>
                     </div>
                   ))

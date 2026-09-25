@@ -37,12 +37,26 @@ export const AchievementsPage: React.FC = () => {
     fetchAchievements();
   }, []);
 
-  const unlockedCodes = new Set(unlocked.filter((u) => u.unlocked).map((u) => u.code));
+  const getCategory = (badge: Achievement): BadgeCategory => {
+    if (badge.badgeCategory) return badge.badgeCategory;
+    const code = badge.code;
+    if (code === 'STREAK_7' || code === 'STREAK_30') return 'STREAK';
+    if (code === 'MEMORY_MASTER' || code === 'WORD_STARTER') return 'MASTERY';
+    if (code === 'FIRST_QUIZ' || code === 'PERFECT_SCORE' || code === 'QUIZ_MASTER') return 'QUIZ';
+    if (code === 'VOCABULARY_EXPLORER' || code === 'CENTURY') return 'EXPLORATION';
+    return 'MILESTONE';
+  };
+
+  const unlockedCodes = new Set(
+    unlocked
+      .filter((u) => u.unlocked !== false)
+      .map((u) => u.code)
+  );
 
   const filteredCatalog =
     selectedCategory === 'ALL'
       ? catalog
-      : catalog.filter((a) => a.badgeCategory === selectedCategory);
+      : catalog.filter((a) => getCategory(a) === selectedCategory);
 
   const categories = ['ALL', 'STREAK', 'MASTERY', 'QUIZ', 'EXPLORATION', 'MILESTONE'];
 
@@ -78,6 +92,10 @@ export const AchievementsPage: React.FC = () => {
             {filteredCatalog.map((badge) => {
               const isUnlocked = unlockedCodes.has(badge.code);
               const userBadge = unlocked.find((u) => u.code === badge.code);
+              const badgeTitle = badge.title || badge.name || badge.code;
+              const badgeXp = badge.xpBonus ?? userBadge?.xpBonus ?? 25;
+              const category = getCategory(badge);
+              const unlockedDate = userBadge?.unlockedAt || userBadge?.earnedAt;
 
               return (
                 <Card
@@ -97,14 +115,16 @@ export const AchievementsPage: React.FC = () => {
                           : 'bg-stone-200 text-stone-500'
                       }`}
                     >
-                      {badge.badgeCategory === 'STREAK' ? (
+                      {category === 'STREAK' ? (
                         <Flame className="w-6 h-6" />
-                      ) : badge.badgeCategory === 'MASTERY' ? (
+                      ) : category === 'MASTERY' ? (
                         <Award className="w-6 h-6" />
-                      ) : badge.badgeCategory === 'EXPLORATION' ? (
+                      ) : category === 'EXPLORATION' ? (
                         <Compass className="w-6 h-6" />
-                      ) : (
+                      ) : category === 'QUIZ' ? (
                         <Sparkles className="w-6 h-6" />
+                      ) : (
+                        <BookOpen className="w-6 h-6" />
                       )}
                     </div>
 
@@ -123,7 +143,7 @@ export const AchievementsPage: React.FC = () => {
 
                   <div>
                     <h4 className="text-base font-extrabold text-memora-dark tracking-tight mb-1">
-                      {badge.title}
+                      {badgeTitle}
                     </h4>
                     <p className="text-xs text-memora-text-muted leading-relaxed">
                       {badge.description}
@@ -131,10 +151,10 @@ export const AchievementsPage: React.FC = () => {
                   </div>
 
                   <div className="pt-3 border-t border-black/[0.04] flex items-center justify-between text-xs">
-                    <span className="font-bold text-memora-green">+{badge.xpBonus} XP</span>
-                    {isUnlocked && userBadge?.unlockedAt && (
+                    <span className="font-bold text-memora-green">+{badgeXp} XP</span>
+                    {isUnlocked && unlockedDate && (
                       <span className="text-[11px] text-stone-400">
-                        Unlocked {new Date(userBadge.unlockedAt).toLocaleDateString()}
+                        Unlocked {new Date(unlockedDate).toLocaleDateString()}
                       </span>
                     )}
                   </div>

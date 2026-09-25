@@ -66,4 +66,41 @@ public class UserAchievementResponse {
     public void setEarnedAt(Instant earnedAt) {
         this.earnedAt = earnedAt;
     }
+
+    public String getTitle() {
+        return name;
+    }
+
+    public boolean isUnlocked() {
+        return true;
+    }
+
+    public Instant getUnlockedAt() {
+        return earnedAt;
+    }
+
+    public int getXpBonus() {
+        if (code == null) return 25;
+        return switch (code) {
+            case "FIRST_LESSON", "FIRST_QUIZ" -> 25;
+            case "WORD_STARTER", "PERFECT_SCORE" -> 50;
+            case "STREAK_7" -> 75;
+            case "VOCABULARY_EXPLORER", "QUIZ_MASTER" -> 100;
+            case "MEMORY_MASTER" -> 150;
+            case "CENTURY" -> 200;
+            case "STREAK_30" -> 250;
+            default -> 25;
+        };
+    }
+
+    public String getBadgeCategory() {
+        if (code == null) return "MILESTONE";
+        return switch (code) {
+            case "STREAK_7", "STREAK_30" -> "STREAK";
+            case "MEMORY_MASTER", "WORD_STARTER" -> "MASTERY";
+            case "FIRST_QUIZ", "PERFECT_SCORE", "QUIZ_MASTER" -> "QUIZ";
+            case "VOCABULARY_EXPLORER", "CENTURY" -> "EXPLORATION";
+            default -> "MILESTONE";
+        };
+    }
 }
