@@ -853,7 +853,7 @@ erDiagram
 
 Memora strictly follows modern enterprise Spring Boot and RESTful API design standards. The controller layer was comprehensively audited to ensure that all endpoints accepting structured client inputs use dedicated, validated **Request DTOs** rather than loose primitive parameters.
 
-> 📖 **Complete Audit Report**: For the complete endpoint-by-endpoint audit, validation constraints, and architectural evidence, see [`CONTROLLER_REQUEST_OBJECT_AUDIT.md`](./CONTROLLER_REQUEST_OBJECT_AUDIT.md).
+> 📖 **Complete Audit Report**: For the complete endpoint-by-endpoint audit, validation constraints, and architectural evidence, see [`CONTROLLER_REQUEST_OBJECT.md`](./CONTROLLER_REQUEST_OBJECT.md).
 
 ### 1. Request DTO & `@Valid @RequestBody` Pattern
 Every endpoint that accepts structured user input encapsulates the payload within a dedicated, strongly typed Request DTO:
