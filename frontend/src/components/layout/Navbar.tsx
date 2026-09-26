@@ -1,13 +1,116 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 
+interface NavItem {
+  id: string;
+  label: string;
+  href?: string;
+  to?: string;
+  sectionId?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: 'Home', href: '#home', sectionId: 'home' },
+  { id: 'features', label: 'Features', href: '#features', sectionId: 'features' },
+  { id: 'how-it-works', label: 'How it works', href: '#how-it-works', sectionId: 'how-it-works' },
+  { id: 'leaderboard', label: 'Leaderboard', to: '/leaderboard' },
+  { id: 'trust', label: 'About us', href: '#trust', sectionId: 'trust' },
+];
+
 export const Navbar: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [dotStyle, setDotStyle] = useState({ left: 0, opacity: 0 });
+  const [isReady, setIsReady] = useState(false);
+
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLElement | null)[]>([]);
+
+  // Sync active section based on current route and scroll position on landing page
+  useEffect(() => {
+    if (location.pathname === '/leaderboard') {
+      setActiveIndex(3);
+      return;
+    }
+
+    if (location.pathname !== '/') {
+      setActiveIndex(-1);
+      return;
+    }
+
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 140;
+
+      // Check sections from bottom to top
+      const sections = [
+        { id: 'trust', index: 4 },
+        { id: 'features', index: 1 },
+        { id: 'how-it-works', index: 2 },
+      ];
+
+      for (const sec of sections) {
+        const el = document.getElementById(sec.id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPos >= top && scrollPos < top + height) {
+            setActiveIndex(sec.index);
+            return;
+          }
+        }
+      }
+
+      if (window.scrollY < 300) {
+        setActiveIndex(0); // Home
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [location.pathname]);
+
+  const targetIndex = hoveredIndex !== null ? hoveredIndex : (activeIndex >= 0 ? activeIndex : 0);
+
+  // Recalculate dot position based on target item's bounding rect
+  const updateDotPosition = useCallback(() => {
+    const navEl = navRef.current;
+    const targetEl = itemRefs.current[targetIndex];
+
+    if (navEl && targetEl) {
+      const navRect = navEl.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+      const center = targetRect.left - navRect.left + targetRect.width / 2;
+
+      setDotStyle({
+        left: center,
+        opacity: activeIndex >= 0 || hoveredIndex !== null ? 1 : 0,
+      });
+      setIsReady(true);
+    }
+  }, [targetIndex, activeIndex, hoveredIndex]);
+
+  useEffect(() => {
+    updateDotPosition();
+
+    // Recompute on window resize and font load
+    const timer = setTimeout(updateDotPosition, 60);
+    window.addEventListener('resize', updateDotPosition);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateDotPosition);
+    };
+  }, [updateDotPosition]);
 
   const scrollToSection = (e: React.MouseEvent, sectionId: string) => {
     e.preventDefault();
@@ -39,6 +142,7 @@ export const Navbar: React.FC = () => {
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setMobileMenuOpen(false);
+    setActiveIndex(0);
 
     if (window.location.pathname !== '/') {
       navigate('/');
@@ -72,43 +176,67 @@ export const Navbar: React.FC = () => {
           <span className="text-xl font-extrabold tracking-tight text-memora-dark">Memora</span>
         </a>
 
-        {/* Desktop Nav Links with Smooth Animation */}
-        <nav className="hidden md:flex items-center gap-8">
-          <a
-            href="#home"
-            onClick={(e) => scrollToSection(e, 'home')}
-            className="text-sm font-semibold text-memora-dark flex flex-col items-center group relative cursor-pointer"
-          >
-            Home
-            <span className="w-1.5 h-1.5 rounded-full bg-memora-green mt-1 inline-block" />
-          </a>
-          <a
-            href="#features"
-            onClick={(e) => scrollToSection(e, 'features')}
-            className="text-sm font-medium text-memora-text-muted hover:text-memora-dark transition cursor-pointer"
-          >
-            Features
-          </a>
-          <a
-            href="#how-it-works"
-            onClick={(e) => scrollToSection(e, 'how-it-works')}
-            className="text-sm font-medium text-memora-text-muted hover:text-memora-dark transition cursor-pointer"
-          >
-            How it works
-          </a>
-          <Link
-            to="/leaderboard"
-            className="text-sm font-medium text-memora-text-muted hover:text-memora-dark transition"
-          >
-            Leaderboard
-          </Link>
-          <a
-            href="#trust"
-            onClick={(e) => scrollToSection(e, 'trust')}
-            className="text-sm font-medium text-memora-text-muted hover:text-memora-dark transition cursor-pointer"
-          >
-            About us
-          </a>
+        {/* Desktop Nav Links with Dynamic Smooth Gliding Indicator */}
+        <nav
+          ref={navRef}
+          onMouseLeave={() => setHoveredIndex(null)}
+          className="hidden md:flex items-center gap-8 relative py-2"
+        >
+          {NAV_ITEMS.map((item, idx) => {
+            const isHighlighted = targetIndex === idx;
+            const commonClasses = `text-sm tracking-tight transition-colors duration-200 cursor-pointer flex flex-col items-center pb-1.5 ${
+              isHighlighted
+                ? 'font-semibold text-memora-dark'
+                : 'font-medium text-memora-text-muted hover:text-memora-dark'
+            }`;
+
+            if (item.to) {
+              return (
+                <Link
+                  key={item.id}
+                  ref={(el) => {
+                    itemRefs.current[idx] = el;
+                  }}
+                  to={item.to}
+                  onMouseEnter={() => setHoveredIndex(idx)}
+                  className={commonClasses}
+                >
+                  {item.label}
+                </Link>
+              );
+            }
+
+            return (
+              <a
+                key={item.id}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
+                href={item.href}
+                onClick={(e) => {
+                  if (item.sectionId) {
+                    scrollToSection(e, item.sectionId);
+                    setActiveIndex(idx);
+                  }
+                }}
+                onMouseEnter={() => setHoveredIndex(idx)}
+                className={commonClasses}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+
+          {/* Dynamic Moving Dot Indicator */}
+          <span
+            aria-hidden="true"
+            className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-full bg-memora-green pointer-events-none transition-all duration-300 ease-out ${
+              isReady && dotStyle.opacity > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
+            }`}
+            style={{
+              transform: `translateX(${dotStyle.left}px) translateX(-50%)`,
+            }}
+          />
         </nav>
 
         {/* Right CTA / Auth buttons */}

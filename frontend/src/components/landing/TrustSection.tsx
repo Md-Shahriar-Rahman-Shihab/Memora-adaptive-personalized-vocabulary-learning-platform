@@ -2,11 +2,31 @@ import React from 'react';
 
 export const TrustSection: React.FC = () => {
   const institutions = [
-    { name: 'United International University', abbr: 'UIU' },
-    { name: 'BRAC University', abbr: 'BRAC' },
-    { name: 'Daffodil International University', abbr: 'DIU' },
-    { name: 'North South University', abbr: 'NSU' },
-    { name: 'Independent University, Bangladesh', abbr: 'IUB' },
+    {
+      name: 'United International University',
+      abbr: 'UIU',
+      logo: '/images/universities/uiu.svg',
+    },
+    {
+      name: 'BRAC University',
+      abbr: 'BRAC',
+      logo: '/images/universities/brac.svg',
+    },
+    {
+      name: 'Daffodil International University',
+      abbr: 'DIU',
+      logo: '/images/universities/diu.svg',
+    },
+    {
+      name: 'North South University',
+      abbr: 'NSU',
+      logo: '/images/universities/nsu.svg',
+    },
+    {
+      name: 'Independent University, Bangladesh',
+      abbr: 'IUB',
+      logo: '/images/universities/iub.svg',
+    },
   ];
 
   return (
@@ -16,15 +36,19 @@ export const TrustSection: React.FC = () => {
           Trusted by learners from top universities and schools
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 opacity-75">
+        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 opacity-80">
           {institutions.map((inst) => (
             <div
               key={inst.abbr}
-              className="flex items-center gap-2 text-stone-500 hover:text-memora-dark hover:opacity-100 transition duration-200 cursor-default select-none"
+              className="flex items-center gap-2.5 text-stone-600 hover:text-memora-dark hover:opacity-100 transition duration-200 cursor-default select-none group"
             >
-              {/* Minimal crest emblem */}
-              <div className="w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-[10px] font-black tracking-tighter">
-                {inst.abbr}
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-transparent">
+                <img
+                  src={inst.logo}
+                  alt={`${inst.name} logo`}
+                  className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                  loading="lazy"
+                />
               </div>
               <span className="text-xs sm:text-sm font-bold tracking-tight">
                 {inst.name}

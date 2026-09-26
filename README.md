@@ -856,7 +856,7 @@ Memora strictly follows modern enterprise Spring Boot and RESTful API design sta
 > 📖 **Complete Audit Report**: For the complete endpoint-by-endpoint audit, validation constraints, and architectural evidence, see [`CONTROLLER_REQUEST_OBJECT.md`](./CONTROLLER_REQUEST_OBJECT.md).
 
 ### 1. Request DTO & `@Valid @RequestBody` Pattern
-Every endpoint that accepts structured user input encapsulates the payload within a dedicated, strongly typed Request DTO:
+Every endpoint that accepts structured user input encapsulates the payload within a dedicated, strongly typed Request DTO. Across the platform, **12 endpoints** declare a `@RequestBody` corresponding 1-to-1 with the **12 Request DTOs** (10 mandatory request bodies and 2 optional request bodies with safe server defaults):
 ```java
 @PostMapping("/review")
 public ResponseEntity<ApiResponse<WordReviewResponse>> recordReview(
@@ -868,14 +868,24 @@ public ResponseEntity<ApiResponse<WordReviewResponse>> recordReview(
 }
 ```
 
-### 2. Dedicated Request DTO Inventory
-* **User & Auth**: `RegistrationRequest`, `LoginRequest`
-* **Vocabulary Catalog**: `VocabularyWordRequest`
-* **Memory SRS Engine**: `WordReviewRequest`
-* **Quiz Engine**: `QuizGenerationRequest`, `AnswerSubmissionRequest`
-* **Assessment & Placement**: `AssessmentAnswerRequest`
-* **Adaptive Learning Path**: `LearningItemCompletionRequest`
-* **Multi-Provider AI**: `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`
+### 2. Dedicated Request DTO Inventory (12 DTOs / 12 Endpoints)
+* **User & Auth (2 Mandatory)**: `RegistrationRequest`, `LoginRequest`
+* **Vocabulary Catalog (1 Mandatory)**: `VocabularyWordRequest`
+* **Memory SRS Engine (1 Mandatory)**: `WordReviewRequest`
+* **Quiz Engine (1 Optional, 1 Mandatory)**: `QuizGenerationRequest` (`required = false`), `AnswerSubmissionRequest`
+* **Assessment & Placement (1 Mandatory)**: `AssessmentAnswerRequest`
+* **Adaptive Learning Path (1 Optional)**: `LearningItemCompletionRequest` (`required = false`)
+* **Multi-Provider AI (4 Mandatory)**: `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`
+
+> ℹ️ **Count Explanation (12 DTOs vs 10 / 11 / 12 Endpoints)**:  
+> * Exactly **12 Request DTO classes** exist across the backend domain modules.  
+> * Exactly **12 endpoints** define a `@RequestBody` parameter matching the 12 DTOs 1-to-1.  
+> * **10 endpoints** strictly require a body (`required = true`), rejecting empty requests with HTTP 400.  
+> * **2 endpoints** use `@Valid @RequestBody(required = false)` with safe server-side fallback behavior:  
+>   - `POST /api/v1/quizzes/generate` (`QuizGenerationRequest`): Defaults to A1 level with 5 questions if omitted.  
+>   - `POST /api/v1/learning-path/items/{itemId}/complete` (`LearningItemCompletionRequest`): Allows standard curriculum item completion without a body, or optional telemetry (`responseTimeMs`, `notes`) for review tasks.  
+> * **Why earlier summaries reported 11**: `POST /learning-path/items/{itemId}/complete` is primarily a path-variable state transition on an identified curriculum item; when categorized under lifecycle action endpoints, the remaining structured data-input endpoints tallied to **11** (10 mandatory + 1 optional generation). Counting strictly mandatory bodies yields **10**, while counting all `@RequestBody` annotations yields **12**. In all cases, 100% of structured client input payloads are encapsulated in dedicated Request DTOs and validated with `@Valid`.
+
 
 ### 3. Jakarta Bean Validation
 Every Request DTO enforces strict Jakarta Bean Validation constraints (`@NotBlank`, `@NotNull`, `@Size`, `@Positive`, `@PositiveOrZero`, `@Min`, `@Max`, `@Email`). Validation errors trigger a standardized `400 Bad Request` with structured field-level error messages handled centrally by `GlobalExceptionHandler`.
@@ -990,7 +1000,7 @@ The automated test suite runs completely isolated on in-memory H2 without touchi
 ```powershell
 .\mvnw.cmd test
 ```
-* **Test Suite**: 260 automated tests across 50 test class files covering all domain modules (0 failures, 0 errors, 100% passing). External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
+* **Test Suite**: 260 automated tests across 50 test class files covering all domain modules (0 failures, 0 errors, 100% passing). This includes **10 core module controller integration test suites** (and 13 total MockMvc controller test suites across the project). External dictionary and AI APIs are mocked with `MockRestServiceServer`/Mockito and are never invoked during tests.
 
 ### 5. Health Check Verification
 ```powershell
