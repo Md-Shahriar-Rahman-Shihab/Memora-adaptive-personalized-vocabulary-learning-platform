@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, Sparkles, ArrowRight, Check } from 'lucide-react';
+import { GitBranch, ArrowRight, Check } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
 export interface WordFamilyTreeProps {
@@ -20,7 +20,6 @@ interface FamilyMember {
 export const WordFamilyTree: React.FC<WordFamilyTreeProps> = ({
   currentWord,
   wordFamily,
-  isAiAssisted = false,
 }) => {
   const navigate = useNavigate();
 
@@ -70,11 +69,6 @@ export const WordFamilyTree: React.FC<WordFamilyTreeProps> = ({
             <GitBranch className="w-3.5 h-3.5 text-memora-green" />
             Grammatical Family Tree
           </span>
-          {isAiAssisted && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-              <Sparkles className="w-2.5 h-2.5" /> AI-assisted
-            </span>
-          )}
         </div>
         <span className="text-[11px] text-stone-400">
           Click any derivative to open its word detail

@@ -65,7 +65,6 @@ export const WordDetailPage: React.FC = () => {
   const [synonymsList, setSynonymsList] = useState<string[]>([]);
   const [antonymsList, setAntonymsList] = useState<string[]>([]);
   const [familyMap, setFamilyMap] = useState<Record<string, string>>({});
-  const [isAiEnriched, setIsAiEnriched] = useState(false);
 
   // Learning completion state
   const [isSubmittingCompletion, setIsSubmittingCompletion] = useState(false);
@@ -235,8 +234,12 @@ export const WordDetailPage: React.FC = () => {
       }
 
       // 5. Initialize synonyms, antonyms, and word family from dictionary data
-      const initialSynonyms = resolvedDictionary?.synonyms || [];
-      const initialAntonyms = resolvedDictionary?.antonyms || [];
+      const initialSynonyms = (resolvedDictionary?.synonyms || []).filter(
+        (s) => s && s.toLowerCase() !== decodedWord.toLowerCase() && s.trim().length > 0
+      );
+      const initialAntonyms = (resolvedDictionary?.antonyms || []).filter(
+        (a) => a && a.toLowerCase() !== decodedWord.toLowerCase() && a.trim().length > 0
+      );
       const initialFamily = resolvedDictionary?.wordFamily || {};
 
       if (isMounted) {
@@ -245,18 +248,32 @@ export const WordDetailPage: React.FC = () => {
         setFamilyMap(initialFamily);
       }
 
-      // 6. If synonyms or antonyms are missing, request AI assistance
+      // 6. Check if AI relations are needed (Priority 2):
+      // If Merriam-Webster already provided both reliable synonyms and antonyms, avoid unnecessary AI calls
       const needsAiRelations =
-        initialSynonyms.length === 0 ||
+        initialSynonyms.length < 2 ||
         initialAntonyms.length === 0 ||
         Object.keys(initialFamily).length <= 1;
 
       if (needsAiRelations) {
         try {
+          const resolvedPos =
+            resolvedDictionary?.partsOfSpeech?.[0]?.partOfSpeech ||
+            (matchedVocab?.category ? matchedVocab.category.toLowerCase().replace('_', ' ') : undefined);
+
+          const resolvedDefinition =
+            resolvedDictionary?.shortDefinitions?.[0] ||
+            resolvedDictionary?.partsOfSpeech?.[0]?.definitions?.[0]?.definition ||
+            matchedVocab?.definition ||
+            matchedVocab?.meaning ||
+            undefined;
+
           const relationsRes = await aiApi.getWordRelations({
             word: decodedWord,
             wordId: matchedVocab?.id,
             cefrLevel: matchedVocab?.difficultyLevel || 'B2',
+            partOfSpeech: resolvedPos,
+            definition: resolvedDefinition,
           });
 
           if (relationsRes.success && relationsRes.data && isMounted) {
@@ -264,23 +281,26 @@ export const WordDetailPage: React.FC = () => {
 
             // Merge AI synonyms if dictionary had none
             if (initialSynonyms.length === 0 && aiData.synonyms && aiData.synonyms.length > 0) {
-              setSynonymsList(aiData.synonyms);
-              setIsAiEnriched(true);
+              const cleanAiSynonyms = aiData.synonyms.filter(
+                (s) => s && s.toLowerCase() !== decodedWord.toLowerCase() && s.trim().length > 0
+              );
+              setSynonymsList(Array.from(new Set(cleanAiSynonyms)));
             }
 
             // Merge AI antonyms if dictionary had none
             if (initialAntonyms.length === 0 && aiData.antonyms && aiData.antonyms.length > 0) {
-              setAntonymsList(aiData.antonyms);
-              setIsAiEnriched(true);
+              const cleanAiAntonyms = aiData.antonyms.filter(
+                (a) => a && a.toLowerCase() !== decodedWord.toLowerCase() && a.trim().length > 0
+              );
+              setAntonymsList(Array.from(new Set(cleanAiAntonyms)));
             }
 
-            // Merge AI word family forms with existing dictionary forms
+            // Merge AI word family forms with existing dictionary forms (dictionary takes precedence)
             if (aiData.wordFamily && Object.keys(aiData.wordFamily).length > 0) {
               setFamilyMap((prev) => ({
                 ...aiData.wordFamily,
                 ...prev, // Dictionary forms take precedence
               }));
-              setIsAiEnriched(true);
             }
           }
         } catch {
@@ -648,11 +668,6 @@ export const WordDetailPage: React.FC = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-memora-text-muted">
                 Synonyms
               </span>
-              {isAiEnriched && synonymsList.length > 0 && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
-                  Linguistic assistance
-                </span>
-              )}
             </div>
 
             {synonymsList.length > 0 ? (
@@ -670,7 +685,7 @@ export const WordDetailPage: React.FC = () => {
               </div>
             ) : (
               <p className="text-xs text-stone-400 italic py-2">
-                No synonyms available for this word.
+                No reliable synonyms available.
               </p>
             )}
           </Card>
@@ -684,11 +699,6 @@ export const WordDetailPage: React.FC = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-memora-text-muted">
                 Antonyms
               </span>
-              {isAiEnriched && antonymsList.length > 0 && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
-                  Linguistic assistance
-                </span>
-              )}
             </div>
 
             {antonymsList.length > 0 ? (
@@ -706,7 +716,7 @@ export const WordDetailPage: React.FC = () => {
               </div>
             ) : (
               <p className="text-xs text-stone-400 italic py-2">
-                No antonyms available for this word.
+                No reliable antonyms available.
               </p>
             )}
           </Card>
@@ -717,7 +727,6 @@ export const WordDetailPage: React.FC = () => {
           <WordFamilyTree
             currentWord={decodedWord}
             wordFamily={familyMap}
-            isAiAssisted={isAiEnriched}
           />
         </section>
 

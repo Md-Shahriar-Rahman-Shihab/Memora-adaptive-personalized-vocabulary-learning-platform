@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, BookOpen, Lightbulb, Compass, Volume2, RefreshCw, AlertCircle, Zap } from 'lucide-react';
+import { Sparkles, BookOpen, Lightbulb, Compass, Volume2, RefreshCw, AlertCircle } from 'lucide-react';
 import { aiApi } from '../../api/aiApi';
 import {
   AiExplanationResponse,
@@ -16,23 +16,6 @@ export interface WordStudyAiActionsProps {
 }
 
 type TabType = 'explanation' | 'example' | 'tip' | 'usage';
-
-const renderAiBadgeText = (provider?: string, model?: string | null): string => {
-  const normProvider = provider ? provider.toLowerCase() : '';
-  if (normProvider === 'groq') {
-    return model ? `Groq · ${model}` : 'Groq AI';
-  }
-  if (normProvider === 'gemini') {
-    return model ? `Gemini · ${model}` : 'Gemini AI';
-  }
-  if (normProvider === 'fallback') {
-    return 'Smart fallback';
-  }
-  if (model) {
-    return `AI · ${model}`;
-  }
-  return provider || 'AI Generated';
-};
 
 export const WordStudyAiActions: React.FC<WordStudyAiActionsProps> = ({
   word,
@@ -223,22 +206,6 @@ export const WordStudyAiActions: React.FC<WordStudyAiActionsProps> = ({
                 <span className="text-[11px] font-bold uppercase tracking-wider text-purple-800">
                   Adaptive Explanation
                 </span>
-                <div className="flex items-center gap-1.5">
-                  {explanation.isFallback ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                      <Zap className="w-2.5 h-2.5" /> Smart fallback
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
-                      <Sparkles className="w-2.5 h-2.5" /> {renderAiBadgeText(explanation.provider, explanation.model)}
-                    </span>
-                  )}
-                  {explanation.cached && (
-                    <span className="text-[10px] text-stone-500 font-mono">
-                      (cached)
-                    </span>
-                  )}
-                </div>
               </div>
               <p className="text-xs sm:text-sm text-stone-800 leading-relaxed font-normal">
                 {explanation.explanation}
@@ -277,22 +244,6 @@ export const WordStudyAiActions: React.FC<WordStudyAiActionsProps> = ({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800">
                     Contextual Example Sentence
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    {example.isFallback ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                        <Zap className="w-2.5 h-2.5" /> Smart fallback
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                        <Sparkles className="w-2.5 h-2.5" /> {renderAiBadgeText(example.provider, example.model)}
-                      </span>
-                    )}
-                    {example.cached && (
-                      <span className="text-[10px] text-stone-500 font-mono">
-                        (cached)
-                      </span>
-                    )}
-                  </div>
                 </div>
                 <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 space-y-1.5">
                   {sentence && (
@@ -346,22 +297,6 @@ export const WordStudyAiActions: React.FC<WordStudyAiActionsProps> = ({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
                     Mnemonic Memory Hack
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    {tip.isFallback ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                        <Zap className="w-2.5 h-2.5" /> Smart fallback
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
-                        <Sparkles className="w-2.5 h-2.5" /> {renderAiBadgeText(tip.provider, tip.model)}
-                      </span>
-                    )}
-                    {tip.cached && (
-                      <span className="text-[10px] text-stone-500 font-mono">
-                        (cached)
-                      </span>
-                    )}
-                  </div>
                 </div>
                 {tipText && (
                   <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80">
@@ -410,27 +345,11 @@ export const WordStudyAiActions: React.FC<WordStudyAiActionsProps> = ({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
                     Context & Collocations
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    {registerText && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-200">
-                        {registerText}
-                      </span>
-                    )}
-                    {usage.isFallback ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                        <Zap className="w-2.5 h-2.5" /> Smart fallback
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <Sparkles className="w-2.5 h-2.5" /> {renderAiBadgeText(usage.provider, usage.model)}
-                      </span>
-                    )}
-                    {usage.cached && (
-                      <span className="text-[10px] text-stone-500 font-mono">
-                        (cached)
-                      </span>
-                    )}
-                  </div>
+                  {registerText && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-200">
+                      {registerText}
+                    </span>
+                  )}
                 </div>
 
                 {notes && (

@@ -300,4 +300,73 @@ class DictionaryServiceTest {
 
         assertThrows(DictionaryServiceUnavailableException.class, () -> dictionaryService.lookupWord("error"));
     }
+
+    @Test
+    @DisplayName("Should extract explicit synonyms and antonyms while ignoring non-synonym hyperlinks and target word")
+    void testDictionarySynonymAndAntonymExtraction() throws Exception {
+        String mwJson = """
+                [
+                  {
+                    "meta": {
+                      "id": "joyous",
+                      "syns": [
+                        ["joyous", "cheerful", "glad"]
+                      ]
+                    },
+                    "hwi": { "hw": "joyous" },
+                    "fl": "adjective",
+                    "def": [
+                      {
+                        "sseq": [
+                          [
+                            [
+                              "sense",
+                              {
+                                "dt": [
+                                  ["text", "{bc}feeling joy {bc}{sx|joyful||} {bc}see {a_link|happiness}"],
+                                  ["uns", [
+                                    [
+                                      ["text", "{bc}{sx|gleeful||}"]
+                                    ]
+                                  ]]
+                                ]
+                              }
+                            ]
+                          ]
+                        ]
+                      }
+                    ],
+                    "ant_list": [
+                      {
+                        "wd": "sorrowful"
+                      },
+                      {
+                        "wd": "miserable"
+                      }
+                    ],
+                    "shortdef": ["feeling or expressing great happiness"]
+                  }
+                ]
+                """;
+
+        when(dictionaryProvider.fetchWordEntries("joyous")).thenReturn(objectMapper.readTree(mwJson));
+
+        DictionaryResponse response = dictionaryService.lookupWord("joyous");
+
+        assertNotNull(response);
+        assertTrue(response.synonyms().contains("joyful"), "Should contain explicit cross-reference sx joyful");
+        assertTrue(response.synonyms().contains("cheerful"), "Should contain syns item cheerful");
+        assertTrue(response.synonyms().contains("glad"), "Should contain syns item glad");
+
+        // Target word itself ("joyous") MUST be excluded
+        assertFalse(response.synonyms().contains("joyous"), "Target word itself must not be in synonyms");
+
+        // Non-synonym hyperlinks ({a_link|happiness}) MUST NOT be treated as synonyms
+        assertFalse(response.synonyms().contains("happiness"), "Regular definition link must not be treated as synonym");
+
+        // Antonyms must be extracted from ant_list
+        assertTrue(response.antonyms().contains("sorrowful"));
+        assertTrue(response.antonyms().contains("miserable"));
+    }
 }
+

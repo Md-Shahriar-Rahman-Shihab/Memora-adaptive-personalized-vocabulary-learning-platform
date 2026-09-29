@@ -259,11 +259,109 @@ public class FallbackExplanationService implements AIExplanationService {
                 family.put("adverb", "meticulously");
             }
             case "happy" -> {
-                synonyms.addAll(List.of("cheerful", "joyful", "delighted", "content"));
-                antonyms.addAll(List.of("sad", "unhappy", "sorrowful", "depressed"));
+                synonyms.addAll(List.of("cheerful", "joyful", "delighted", "content", "glad"));
+                antonyms.addAll(List.of("sad", "unhappy", "sorrowful", "depressed", "miserable"));
                 family.put("noun", "happiness");
                 family.put("adjective", "happy");
                 family.put("adverb", "happily");
+            }
+            case "friend" -> {
+                synonyms.addAll(List.of("companion", "pal", "confidant", "ally", "associate"));
+                antonyms.addAll(List.of("enemy", "foe", "rival", "adversary"));
+                family.put("noun", "friend");
+                family.put("verb", "befriend");
+                family.put("adjective", "friendly");
+            }
+            case "computer" -> {
+                synonyms.addAll(List.of("processor", "machine", "workstation", "calculator"));
+                // Concrete noun: genuine standard English has no opposite
+                family.put("noun", "computer");
+                family.put("verb", "compute");
+            }
+            case "small" -> {
+                synonyms.addAll(List.of("little", "tiny", "compact", "miniature", "petite"));
+                antonyms.addAll(List.of("large", "big", "huge", "enormous", "giant"));
+                family.put("noun", "smallness");
+                family.put("adjective", "small");
+            }
+            case "water" -> {
+                synonyms.addAll(List.of("liquid", "fluid", "aqua"));
+                // Substance noun: no antonyms
+                family.put("noun", "water");
+                family.put("verb", "water");
+                family.put("adjective", "watery");
+            }
+            case "book" -> {
+                synonyms.addAll(List.of("volume", "tome", "publication", "work"));
+                // Concrete noun: no antonyms
+                family.put("noun", "book");
+                family.put("verb", "book");
+                family.put("adjective", "bookish");
+            }
+            case "careful" -> {
+                synonyms.addAll(List.of("cautious", "attentive", "prudent", "wary", "scrupulous"));
+                antonyms.addAll(List.of("careless", "reckless", "heedless", "negligent"));
+                family.put("noun", "carefulness");
+                family.put("verb", "care");
+                family.put("adjective", "careful");
+                family.put("adverb", "carefully");
+            }
+            case "abundant" -> {
+                synonyms.addAll(List.of("plentiful", "copious", "ample", "bountiful", "profuse"));
+                antonyms.addAll(List.of("scarce", "meager", "sparse", "deficient"));
+                family.put("noun", "abundance");
+                family.put("adjective", "abundant");
+                family.put("adverb", "abundantly");
+            }
+            case "reluctant" -> {
+                synonyms.addAll(List.of("unwilling", "hesitant", "disinclined", "loath", "averse"));
+                antonyms.addAll(List.of("willing", "eager", "enthusiastic", "inclined"));
+                family.put("noun", "reluctance");
+                family.put("adjective", "reluctant");
+                family.put("adverb", "reluctantly");
+            }
+            case "persistent" -> {
+                synonyms.addAll(List.of("tenacious", "determined", "resolute", "persevering", "enduring"));
+                antonyms.addAll(List.of("yielding", "quitting", "wavering", "irresolute"));
+                family.put("noun", "persistence");
+                family.put("verb", "persist");
+                family.put("adjective", "persistent");
+                family.put("adverb", "persistently");
+            }
+            case "accurate" -> {
+                synonyms.addAll(List.of("precise", "correct", "exact", "flawless", "truthful"));
+                antonyms.addAll(List.of("inaccurate", "incorrect", "erroneous", "imprecise", "faulty"));
+                family.put("noun", "accuracy");
+                family.put("adjective", "accurate");
+                family.put("adverb", "accurately");
+            }
+            case "essential" -> {
+                synonyms.addAll(List.of("crucial", "vital", "indispensable", "necessary", "fundamental"));
+                antonyms.addAll(List.of("unnecessary", "optional", "nonessential", "superfluous"));
+                family.put("noun", "essential");
+                family.put("adjective", "essential");
+                family.put("adverb", "essentially");
+            }
+            case "inevitable" -> {
+                synonyms.addAll(List.of("unavoidable", "certain", "inescapable", "destined", "fated"));
+                antonyms.addAll(List.of("avoidable", "preventable", "uncertain"));
+                family.put("noun", "inevitability");
+                family.put("adjective", "inevitable");
+                family.put("adverb", "inevitably");
+            }
+            case "candid" -> {
+                synonyms.addAll(List.of("frank", "honest", "straightforward", "forthright", "outspoken"));
+                antonyms.addAll(List.of("guarded", "secretive", "insincere", "deceitful", "disingenuous"));
+                family.put("noun", "candor");
+                family.put("adjective", "candid");
+                family.put("adverb", "candidly");
+            }
+            case "ubiquitous" -> {
+                synonyms.addAll(List.of("omnipresent", "pervasive", "universal", "everywhere"));
+                antonyms.addAll(List.of("rare", "scarce", "uncommon", "isolated"));
+                family.put("noun", "ubiquity");
+                family.put("adjective", "ubiquitous");
+                family.put("adverb", "ubiquitously");
             }
             case "resilience" -> {
                 synonyms.addAll(List.of("fortitude", "toughness", "endurance", "flexibility"));
@@ -301,15 +399,17 @@ public class FallbackExplanationService implements AIExplanationService {
                 family.put("adverb", "serendipitously");
             }
             default -> {
-                if (context.meaning != null && !context.meaning.isBlank()) {
-                    String[] parts = context.meaning.split("[,;]");
-                    for (String p : parts) {
-                        String clean = p.trim().toLowerCase(java.util.Locale.ENGLISH);
-                        if (!clean.isEmpty() && !clean.equalsIgnoreCase(target) && clean.length() < 25) {
-                            synonyms.add(clean);
-                        }
-                    }
-                }
+                // For unknown words without verified relations, return clean empty collections.
+                // Do NOT fabricate words by splitting definitions or adding mechanical prefixes.
+            }
+        }
+
+        // Include current word in family if part of speech is known and not already present
+        String pos = request.partOfSpeech();
+        if (pos != null && !pos.isBlank()) {
+            String norm = normalizePosKey(pos);
+            if (norm != null && !family.containsKey(norm)) {
+                family.put(norm, target);
             }
         }
 
@@ -323,6 +423,16 @@ public class FallbackExplanationService implements AIExplanationService {
                 true,
                 false
         );
+    }
+
+    private String normalizePosKey(String pos) {
+        if (pos == null) return null;
+        String lower = pos.toLowerCase(java.util.Locale.ENGLISH).trim();
+        if (lower.startsWith("noun") || lower.contains("noun")) return "noun";
+        if (lower.startsWith("verb") || lower.contains("verb")) return "verb";
+        if (lower.startsWith("adj") || lower.contains("adjective")) return "adjective";
+        if (lower.startsWith("adv") || lower.contains("adverb")) return "adverb";
+        return null;
     }
 
     private record WordContext(

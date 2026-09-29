@@ -133,4 +133,49 @@ class FallbackExplanationServiceTest {
         assertFalse(response.collocations().isEmpty());
         assertEquals("Academic", response.register());
     }
+
+    @Test
+    @DisplayName("Should return curated sense-accurate relations for friend without including target word")
+    void testWordRelationsFriend() {
+        AiWordRelationsRequest request = new AiWordRelationsRequest(null, "friend", "A1", "noun", "a person whom one knows and with whom one has a bond of mutual affection");
+        AiWordRelationsResponse response = fallbackService.getWordRelations("learner@example.com", request);
+
+        assertNotNull(response);
+        assertEquals("friend", response.word());
+        assertTrue(response.synonyms().contains("companion"));
+        assertTrue(response.synonyms().contains("ally"));
+        assertFalse(response.synonyms().contains("friend"), "Target word must not be in synonyms");
+
+        assertTrue(response.antonyms().contains("enemy"));
+        assertTrue(response.antonyms().contains("foe"));
+        assertFalse(response.antonyms().contains("friend"), "Target word must not be in antonyms");
+
+        assertEquals("friend", response.wordFamily().get("noun"));
+        assertEquals("friendly", response.wordFamily().get("adjective"));
+    }
+
+    @Test
+    @DisplayName("Concrete physical objects like computer must have empty antonyms instead of fabricated opposites")
+    void testWordRelationsConcreteObjectComputer() {
+        AiWordRelationsRequest request = new AiWordRelationsRequest(null, "computer", "A2", "noun", "an electronic device for storing and processing data");
+        AiWordRelationsResponse response = fallbackService.getWordRelations("learner@example.com", request);
+
+        assertNotNull(response);
+        assertEquals("computer", response.word());
+        assertTrue(response.synonyms().contains("PC") || response.synonyms().contains("processor") || response.synonyms().contains("machine"));
+        assertTrue(response.antonyms().isEmpty(), "Concrete noun 'computer' must have empty antonyms");
+    }
+
+    @Test
+    @DisplayName("Unknown words without verified data should return clean empty collections without hallucinating")
+    void testWordRelationsUnknownWordReturnsEmptyLists() {
+        AiWordRelationsRequest request = new AiWordRelationsRequest(null, "xylophonic", "C2", "adjective", "pertaining to a xylophone");
+        AiWordRelationsResponse response = fallbackService.getWordRelations("learner@example.com", request);
+
+        assertNotNull(response);
+        assertTrue(response.synonyms().isEmpty(), "Should not invent synonyms for unknown word");
+        assertTrue(response.antonyms().isEmpty(), "Should not invent antonyms for unknown word");
+        assertEquals("xylophonic", response.wordFamily().get("adjective"));
+    }
 }
+

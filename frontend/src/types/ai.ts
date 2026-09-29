@@ -64,7 +64,10 @@ export interface AiUsageResponse {
   model?: string | null;
 }
 
-export interface AiWordRelationsRequest extends AiBaseRequest {}
+export interface AiWordRelationsRequest extends AiBaseRequest {
+  partOfSpeech?: string;
+  definition?: string;
+}
 
 export interface AiWordRelationsResponse {
   word: string;

@@ -316,17 +316,27 @@ public class DictionaryServiceImpl implements DictionaryService {
                 }
             }
 
-            // Extract synonyms from syns section
+            // Extract synonyms from syns section (synonym essays)
             if (entryNode.hasNonNull("syns") && entryNode.get("syns").isArray()) {
                 for (JsonNode synItem : entryNode.get("syns")) {
                     if (synItem.hasNonNull("pt") && synItem.get("pt").isArray()) {
                         for (JsonNode ptRow : synItem.get("pt")) {
-                            if (ptRow.isArray() && ptRow.size() >= 2 && "text".equals(ptRow.get(0).asText())) {
-                                extractCrossReferenceSynonyms(ptRow.get(1).asText(), synonymsSet, fallbackWord);
+                            if (ptRow.isArray() && ptRow.size() >= 2) {
+                                String ptType = ptRow.get(0).asText();
+                                if ("text".equals(ptType)) {
+                                    extractExplicitSynonyms(ptRow.get(1).asText(), synonymsSet, fallbackWord);
+                                } else if ("sc".equals(ptType)) {
+                                    addCleanRelationWord(synonymsSet, ptRow.get(1).asText(), fallbackWord);
+                                }
                             }
                         }
                     }
                 }
+            }
+
+            // Extract synonyms from syn_list if present
+            if (entryNode.hasNonNull("syn_list") && entryNode.get("syn_list").isArray()) {
+                extractWordList(entryNode.get("syn_list"), synonymsSet, fallbackWord);
             }
 
             // Extract synonyms from meta.syns if present
@@ -334,10 +344,7 @@ public class DictionaryServiceImpl implements DictionaryService {
                 for (JsonNode synGroup : entryNode.get("meta").get("syns")) {
                     if (synGroup.isArray()) {
                         for (JsonNode synWordNode : synGroup) {
-                            String synW = synWordNode.asText("").trim().toLowerCase(Locale.ENGLISH);
-                            if (!synW.isEmpty() && !synW.equalsIgnoreCase(fallbackWord) && synW.length() < 30) {
-                                synonymsSet.add(synW);
-                            }
+                            addCleanRelationWord(synonymsSet, synWordNode.asText(""), fallbackWord);
                         }
                     }
                 }
@@ -345,18 +352,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 
             // Extract antonyms from ant_list if present
             if (entryNode.hasNonNull("ant_list") && entryNode.get("ant_list").isArray()) {
-                for (JsonNode antGroup : entryNode.get("ant_list")) {
-                    if (antGroup.isArray()) {
-                        for (JsonNode antItem : antGroup) {
-                            if (antItem.hasNonNull("wd")) {
-                                String antW = antItem.get("wd").asText("").trim().toLowerCase(Locale.ENGLISH);
-                                if (!antW.isEmpty() && !antW.equalsIgnoreCase(fallbackWord) && antW.length() < 30) {
-                                    antonymsSet.add(antW);
-                                }
-                            }
-                        }
-                    }
-                }
+                extractWordList(entryNode.get("ant_list"), antonymsSet, fallbackWord);
             }
 
             List<DefinitionDto> posDefinitions = posMap.computeIfAbsent(pos, k -> new ArrayList<>());
@@ -373,6 +369,15 @@ public class DictionaryServiceImpl implements DictionaryService {
                                     String itemType = item.get(0).asText();
                                     if ("sense".equals(itemType) || "bs".equals(itemType)) {
                                         JsonNode senseNode = item.get(1);
+
+                                        // Extract sense-level synonyms / antonyms if present
+                                        if (senseNode.hasNonNull("syn_list") && senseNode.get("syn_list").isArray()) {
+                                            extractWordList(senseNode.get("syn_list"), synonymsSet, fallbackWord);
+                                        }
+                                        if (senseNode.hasNonNull("ant_list") && senseNode.get("ant_list").isArray()) {
+                                            extractWordList(senseNode.get("ant_list"), antonymsSet, fallbackWord);
+                                        }
+
                                         if (senseNode.hasNonNull("dt") && senseNode.get("dt").isArray()) {
                                             String defText = null;
                                             List<String> examples = new ArrayList<>();
@@ -382,7 +387,7 @@ public class DictionaryServiceImpl implements DictionaryService {
                                                     String dtType = dtItem.get(0).asText();
                                                     if ("text".equals(dtType)) {
                                                         String rawDt = dtItem.get(1).asText();
-                                                        extractCrossReferenceSynonyms(rawDt, synonymsSet, fallbackWord);
+                                                        extractExplicitSynonyms(rawDt, synonymsSet, fallbackWord);
                                                         if (defText == null) {
                                                             String cleaned = cleanMwTokens(rawDt);
                                                             if (!cleaned.isEmpty()) {
@@ -454,6 +459,21 @@ public class DictionaryServiceImpl implements DictionaryService {
             }
         }
 
+        // Target word sanitization
+        if (resolvedWord != null) {
+            synonymsSet.remove(resolvedWord.toLowerCase(Locale.ENGLISH).trim());
+            antonymsSet.remove(resolvedWord.toLowerCase(Locale.ENGLISH).trim());
+        }
+        synonymsSet.remove(fallbackWord.toLowerCase(Locale.ENGLISH).trim());
+        antonymsSet.remove(fallbackWord.toLowerCase(Locale.ENGLISH).trim());
+
+        // Ensure no overlap between synonyms and antonyms
+        antonymsSet.removeAll(synonymsSet);
+
+        // Limit each set to at most 6 high-confidence items
+        List<String> finalSynonyms = synonymsSet.stream().limit(6).toList();
+        List<String> finalAntonyms = antonymsSet.stream().limit(6).toList();
+
         return new DictionaryResponse(
                 resolvedWord,
                 headword,
@@ -463,8 +483,8 @@ public class DictionaryServiceImpl implements DictionaryService {
                 new ArrayList<>(shortDefsSet),
                 etymology,
                 List.of(),
-                new ArrayList<>(synonymsSet),
-                new ArrayList<>(antonymsSet),
+                finalSynonyms,
+                finalAntonyms,
                 wordFamilyMap
         );
     }
@@ -479,14 +499,43 @@ public class DictionaryServiceImpl implements DictionaryService {
         return null;
     }
 
-    private void extractCrossReferenceSynonyms(String rawText, Set<String> synonymsSet, String targetWord) {
+    private void extractExplicitSynonyms(String rawText, Set<String> synonymsSet, String targetWord) {
         if (rawText == null || rawText.isBlank()) return;
-        java.util.regex.Matcher matcher = Pattern.compile("\\{(?:sx|a_link|d_link)\\|([^}|]+)(?:\\|[^}]*)?\\}").matcher(rawText);
-        while (matcher.find()) {
-            String candidate = matcher.group(1).trim().toLowerCase(Locale.ENGLISH);
-            if (!candidate.isEmpty() && !candidate.equalsIgnoreCase(targetWord) && candidate.length() < 30 && !candidate.contains(":")) {
-                synonymsSet.add(candidate);
+        // Match {sx|word||} explicit synonym cross-references
+        java.util.regex.Matcher sxMatcher = Pattern.compile("\\{sx\\|([^}|]+)(?:\\|[^}]*)?\\}").matcher(rawText);
+        while (sxMatcher.find()) {
+            addCleanRelationWord(synonymsSet, sxMatcher.group(1), targetWord);
+        }
+        // Match {sc}word{/sc} small-caps synonym mentions in synonym paragraphs
+        java.util.regex.Matcher scMatcher = Pattern.compile("\\{sc\\}([^<{}]+)\\{/sc\\}").matcher(rawText);
+        while (scMatcher.find()) {
+            addCleanRelationWord(synonymsSet, scMatcher.group(1), targetWord);
+        }
+    }
+
+    private void extractWordList(JsonNode listNode, Set<String> targetSet, String fallbackWord) {
+        if (listNode == null || !listNode.isArray()) return;
+        for (JsonNode group : listNode) {
+            if (group.isArray()) {
+                for (JsonNode item : group) {
+                    if (item.hasNonNull("wd")) {
+                        addCleanRelationWord(targetSet, item.get("wd").asText(), fallbackWord);
+                    }
+                }
+            } else if (group.hasNonNull("wd")) {
+                addCleanRelationWord(targetSet, group.get("wd").asText(), fallbackWord);
             }
+        }
+    }
+
+    private void addCleanRelationWord(Set<String> set, String raw, String targetWord) {
+        if (raw == null || raw.isBlank()) return;
+        String cleaned = cleanMwTokens(raw).replaceAll("[^\\p{L}\\s'’-]", "").trim().toLowerCase(Locale.ENGLISH);
+        if (cleaned.length() >= 2 && cleaned.length() <= 30
+                && !cleaned.equalsIgnoreCase(targetWord)
+                && !cleaned.contains(" ")
+                && !cleaned.matches(".*\\d.*")) {
+            set.add(cleaned);
         }
     }
 

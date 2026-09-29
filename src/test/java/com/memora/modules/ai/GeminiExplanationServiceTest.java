@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -190,4 +191,98 @@ class GeminiExplanationServiceTest {
         assertFalse(response.collocations().contains("demonstrate meticulous"));
         assertTrue(response.collocations().contains("meticulous research"));
     }
+
+    @Test
+    @DisplayName("getWordRelations parses structured JSON, removes target word and overlap, and validates relations")
+    void testWordRelationsStructuredJsonSuccess() {
+        when(aiConfig.isGeminiConfigured()).thenReturn(true);
+        when(wordRepository.findByWordIgnoreCase("meticulous")).thenReturn(Optional.of(sampleWord));
+
+        String json = """
+                ```json
+                {
+                  "synonyms": ["precise", "exact", "meticulous", "careful", ""],
+                  "antonyms": ["careless", "sloppy", "precise"],
+                  "wordFamily": {
+                    "noun": "meticulousness",
+                    "adjective": "meticulous",
+                    "adverb": "meticulously"
+                  }
+                }
+                ```
+                """;
+
+        when(geminiAiProvider.generate(anyString())).thenReturn(
+                AiGenerationResult.success(json, "gemini", "gemini-3.6-flash")
+        );
+
+        AiWordRelationsRequest request = new AiWordRelationsRequest(null, "meticulous", "B2", "adjective", "very careful and precise");
+        AiWordRelationsResponse response = service.getWordRelations("learner@example.com", request);
+
+        assertNotNull(response);
+        assertEquals("meticulous", response.word());
+        // Target word must be removed
+        assertFalse(response.synonyms().contains("meticulous"));
+        // Valid synonyms retained
+        assertTrue(response.synonyms().contains("precise"));
+        assertTrue(response.synonyms().contains("exact"));
+        assertTrue(response.synonyms().contains("careful"));
+        // Empty strings removed
+        assertFalse(response.synonyms().contains(""));
+
+        // Overlap with synonyms ("precise") must be removed from antonyms
+        assertFalse(response.antonyms().contains("precise"));
+        assertTrue(response.antonyms().contains("careless"));
+        assertTrue(response.antonyms().contains("sloppy"));
+
+        // Word family mapped correctly
+        assertEquals("meticulousness", response.wordFamily().get("noun"));
+        assertEquals("meticulous", response.wordFamily().get("adjective"));
+        assertEquals("meticulously", response.wordFamily().get("adverb"));
+    }
+
+    @Test
+    @DisplayName("getWordRelations delegates to fallback when AI provider returns malformed output")
+    void testWordRelationsFallbackOnMalformedJson() {
+        when(aiConfig.isGeminiConfigured()).thenReturn(true);
+        when(wordRepository.findByWordIgnoreCase("meticulous")).thenReturn(Optional.of(sampleWord));
+
+        when(geminiAiProvider.generate(anyString())).thenReturn(
+                AiGenerationResult.success("I cannot process this request properly.", "gemini", "gemini-3.6-flash")
+        );
+
+        AiWordRelationsResponse fallbackResp = new AiWordRelationsResponse(
+                "meticulous", List.of("precise"), List.of("careless"), java.util.Map.of("adjective", "meticulous"),
+                "fallback", null, true, false
+        );
+        when(fallbackService.getWordRelations(eq("learner@example.com"), any())).thenReturn(fallbackResp);
+
+        AiWordRelationsRequest request = new AiWordRelationsRequest(null, "meticulous", "B2", "adjective", "very careful");
+        AiWordRelationsResponse response = service.getWordRelations("learner@example.com", request);
+
+        assertNotNull(response);
+        assertTrue(response.isFallback());
+        assertEquals("fallback", response.provider());
+    }
+
+    @Test
+    @DisplayName("getWordRelations delegates to fallback when Gemini is not configured")
+    void testWordRelationsFallbackWhenNotConfigured() {
+        when(aiConfig.isGeminiConfigured()).thenReturn(false);
+        when(wordRepository.findByWordIgnoreCase("meticulous")).thenReturn(Optional.of(sampleWord));
+
+        AiWordRelationsResponse fallbackResp = new AiWordRelationsResponse(
+                "meticulous", List.of("precise"), List.of("careless"), java.util.Map.of("adjective", "meticulous"),
+                "fallback", null, true, false
+        );
+        when(fallbackService.getWordRelations(eq("learner@example.com"), any())).thenReturn(fallbackResp);
+
+        AiWordRelationsRequest request = new AiWordRelationsRequest(null, "meticulous", "B2", "adjective", "very careful");
+        AiWordRelationsResponse response = service.getWordRelations("learner@example.com", request);
+
+        assertNotNull(response);
+        assertTrue(response.isFallback());
+        verify(geminiAiProvider, never()).generate(anyString());
+    }
 }
+
