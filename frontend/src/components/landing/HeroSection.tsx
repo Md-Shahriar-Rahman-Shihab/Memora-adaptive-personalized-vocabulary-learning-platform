@@ -74,17 +74,17 @@ export const HeroSection: React.FC = () => {
               <div className="flex -space-x-2.5 overflow-hidden">
                 <img
                   className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover shadow-sm"
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face"
+                  src="/images/avatars/avatar-1.jpg"
                   alt="Learner"
                 />
                 <img
                   className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover shadow-sm"
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+                  src="/images/avatars/avatar-2.jpg"
                   alt="Learner"
                 />
                 <img
                   className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover shadow-sm"
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face"
+                  src="/images/avatars/avatar-3.jpg"
                   alt="Learner"
                 />
               </div>
@@ -112,12 +112,15 @@ export const HeroSection: React.FC = () => {
 
           {/* Central organic 3D brain island visual */}
           <div className="relative w-full max-w-[500px] sm:max-w-[540px] lg:max-w-[600px] flex items-center justify-center">
-            <img
-              src="/hero-brain-ecosystem.png"
-              alt="Organic AI memory island visualization"
-              className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.12)] transition-transform duration-700 hover:scale-[1.02]"
-              loading="eager"
-            />
+            <picture className="w-full flex items-center justify-center">
+              <source srcSet="/hero-brain-ecosystem.webp" type="image/webp" />
+              <img
+                src="/hero-brain-ecosystem.png"
+                alt="Organic AI memory island visualization"
+                className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.12)] transition-transform duration-700 hover:scale-[1.02]"
+                loading="eager"
+              />
+            </picture>
           </div>
 
           {/* Neural Node: Lightning / Fast Learning */}

@@ -121,7 +121,7 @@ export const Navbar: React.FC = () => {
       if (el) {
         const navHeight = 80;
         const elementPosition = el.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - navHeight;
+        const offsetPosition = elementPosition + window.scrollY - navHeight;
         window.scrollTo({
           top: Math.max(0, offsetPosition),
           behavior: 'smooth',

@@ -1,3 +1,20 @@
+# Environment & Secret Configuration
 .env
 .env.*
 !.env.example
+
+# Maven Build Artifacts & Test Dumps
+target/
+*.dumpstream
+
+# Node.js & Frontend Artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Application Logs
+*.log
+logs/
+
+# Scratch & Temporary Files
+*.tmp
+*.bak
