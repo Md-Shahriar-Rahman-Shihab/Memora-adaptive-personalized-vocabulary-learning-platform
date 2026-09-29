@@ -227,6 +227,104 @@ public class FallbackExplanationService implements AIExplanationService {
         return new WordContext(wordText, meaning, definition, category, exampleSentence, cefrLevel, isStruggling);
     }
 
+    @Override
+    public AiWordRelationsResponse getWordRelations(String userEmail, AiWordRelationsRequest request) {
+        WordContext context = resolveWordContext(userEmail, request.wordId(), request.word(), request.cefrLevel());
+        String target = context.wordText.toLowerCase(java.util.Locale.ENGLISH).trim();
+
+        List<String> synonyms = new ArrayList<>();
+        List<String> antonyms = new ArrayList<>();
+        java.util.Map<String, String> family = new java.util.LinkedHashMap<>();
+
+        switch (target) {
+            case "meticulous" -> {
+                synonyms.addAll(List.of("careful", "precise", "thorough", "painstaking", "scrupulous"));
+                antonyms.addAll(List.of("careless", "sloppy", "negligent"));
+                family.put("noun", "meticulousness");
+                family.put("adjective", "meticulous");
+                family.put("adverb", "meticulously");
+            }
+            case "meticulously" -> {
+                synonyms.addAll(List.of("carefully", "thoroughly", "precisely", "scrupulously"));
+                antonyms.addAll(List.of("carelessly", "sloppily"));
+                family.put("noun", "meticulousness");
+                family.put("adjective", "meticulous");
+                family.put("adverb", "meticulously");
+            }
+            case "meticulousness" -> {
+                synonyms.addAll(List.of("precision", "thoroughness", "carefulness"));
+                antonyms.addAll(List.of("carelessness", "negligence"));
+                family.put("noun", "meticulousness");
+                family.put("adjective", "meticulous");
+                family.put("adverb", "meticulously");
+            }
+            case "happy" -> {
+                synonyms.addAll(List.of("cheerful", "joyful", "delighted", "content"));
+                antonyms.addAll(List.of("sad", "unhappy", "sorrowful", "depressed"));
+                family.put("noun", "happiness");
+                family.put("adjective", "happy");
+                family.put("adverb", "happily");
+            }
+            case "resilience" -> {
+                synonyms.addAll(List.of("fortitude", "toughness", "endurance", "flexibility"));
+                antonyms.addAll(List.of("fragility", "vulnerability", "weakness"));
+                family.put("noun", "resilience");
+                family.put("adjective", "resilient");
+                family.put("adverb", "resiliently");
+            }
+            case "eloquent" -> {
+                synonyms.addAll(List.of("articulate", "fluent", "expressive", "persuasive"));
+                antonyms.addAll(List.of("inarticulate", "tongue-tied", "unexpressive"));
+                family.put("noun", "eloquence");
+                family.put("adjective", "eloquent");
+                family.put("adverb", "eloquently");
+            }
+            case "pragmatic" -> {
+                synonyms.addAll(List.of("practical", "realistic", "sensible", "utilitarian"));
+                antonyms.addAll(List.of("idealistic", "impractical", "unrealistic"));
+                family.put("noun", "pragmatism");
+                family.put("adjective", "pragmatic");
+                family.put("adverb", "pragmatically");
+            }
+            case "ephemeral" -> {
+                synonyms.addAll(List.of("transient", "fleeting", "short-lived", "momentary"));
+                antonyms.addAll(List.of("permanent", "eternal", "everlasting", "perpetual"));
+                family.put("noun", "ephemerality");
+                family.put("adjective", "ephemeral");
+                family.put("adverb", "ephemerally");
+            }
+            case "serendipity" -> {
+                synonyms.addAll(List.of("chance", "fortune", "fluke", "happy coincidence"));
+                antonyms.addAll(List.of("misfortune", "bad luck"));
+                family.put("noun", "serendipity");
+                family.put("adjective", "serendipitous");
+                family.put("adverb", "serendipitously");
+            }
+            default -> {
+                if (context.meaning != null && !context.meaning.isBlank()) {
+                    String[] parts = context.meaning.split("[,;]");
+                    for (String p : parts) {
+                        String clean = p.trim().toLowerCase(java.util.Locale.ENGLISH);
+                        if (!clean.isEmpty() && !clean.equalsIgnoreCase(target) && clean.length() < 25) {
+                            synonyms.add(clean);
+                        }
+                    }
+                }
+            }
+        }
+
+        return new AiWordRelationsResponse(
+                context.wordText,
+                synonyms,
+                antonyms,
+                family,
+                "fallback",
+                null,
+                true,
+                false
+        );
+    }
+
     private record WordContext(
             String wordText,
             String meaning,

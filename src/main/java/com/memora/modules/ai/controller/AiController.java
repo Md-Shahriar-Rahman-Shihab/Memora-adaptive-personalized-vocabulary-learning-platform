@@ -87,4 +87,19 @@ public class AiController {
         AiUsageResponse response = aiExplanationService.explainUsage(email, request);
         return ResponseEntity.ok(ApiResponse.success("AI contextual usage generated successfully", response));
     }
+
+    /**
+     * Generates or derives verified linguistic relationships (synonyms, antonyms, word family).
+     */
+    @PostMapping("/word-relations")
+    public ResponseEntity<ApiResponse<AiWordRelationsResponse>> getWordRelations(
+            @Valid @RequestBody AiWordRelationsRequest request,
+            Authentication authentication) {
+        if (!request.isValid()) {
+            throw new BadRequestException("Either wordId or word text must be provided");
+        }
+        String email = authentication != null ? authentication.getName() : "guest";
+        AiWordRelationsResponse response = aiExplanationService.getWordRelations(email, request);
+        return ResponseEntity.ok(ApiResponse.success("AI word relations generated successfully", response));
+    }
 }

@@ -124,6 +124,31 @@ class DictionaryControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should allow unauthenticated access for GET /api/v1/dictionary/public-lookup/{word}")
+    void testPublicDictionaryLookupSucceedsWithoutAuth() throws Exception {
+        when(dictionaryProvider.fetchWordEntries("happy"))
+                .thenReturn(objectMapper.readTree(HAPPY_MW_JSON));
+
+        mockMvc.perform(get("/api/v1/dictionary/public-lookup/happy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.word", is("happy")))
+                .andExpect(jsonPath("$.data.shortDefinitions", hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("Should allow unauthenticated access for GET /api/v1/dictionary/public/{word}")
+    void testPublicDictionaryLookupAliasSucceedsWithoutAuth() throws Exception {
+        when(dictionaryProvider.fetchWordEntries("happy"))
+                .thenReturn(objectMapper.readTree(HAPPY_MW_JSON));
+
+        mockMvc.perform(get("/api/v1/dictionary/public/happy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.word", is("happy")));
+    }
+
+    @Test
     @WithMockUser(username = "learner@memora.com")
     @DisplayName("Should successfully return full dictionary entry for valid word 'happy' without exposing secret keys")
     void testValidWordSearch() throws Exception {

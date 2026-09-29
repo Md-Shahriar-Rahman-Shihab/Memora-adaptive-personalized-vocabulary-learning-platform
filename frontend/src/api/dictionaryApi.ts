@@ -17,7 +17,7 @@ export const dictionaryApi = {
   ): Promise<ApiResponse<DictionaryResponse>> => {
     const trimmed = word.trim();
     const res = await apiClient.get<ApiResponse<DictionaryResponse>>(
-      `/dictionary/${encodeURIComponent(trimmed)}`,
+      `/dictionary/public-lookup/${encodeURIComponent(trimmed)}`,
       { signal }
     );
     return res.data;

@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from '../components/layout/Navbar';
 import HeroSection from '../components/landing/HeroSection';
+import LandingWordSearchSection from '../components/landing/LandingWordSearchSection';
 import HowItWorksSection from '../components/landing/HowItWorksSection';
 import StatisticsSection from '../components/landing/StatisticsSection';
 import GamificationSection from '../components/landing/GamificationSection';
@@ -14,6 +15,7 @@ export const LandingPage: React.FC = () => {
       <Navbar />
       <main className="flex-1">
         <HeroSection />
+        <LandingWordSearchSection />
         <HowItWorksSection />
         <StatisticsSection />
         <GamificationSection />

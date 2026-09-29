@@ -44,4 +44,13 @@ public interface AIExplanationService {
      * @return {@link AiUsageResponse}
      */
     AiUsageResponse explainUsage(String userEmail, AiUsageRequest request);
+
+    /**
+     * Generates relevant synonyms, antonyms, and word family grammatical forms (noun, verb, adjective, adverb).
+     *
+     * @param userEmail Email of the active user (or "guest")
+     * @param request {@link AiWordRelationsRequest}
+     * @return {@link AiWordRelationsResponse}
+     */
+    AiWordRelationsResponse getWordRelations(String userEmail, AiWordRelationsRequest request);
 }

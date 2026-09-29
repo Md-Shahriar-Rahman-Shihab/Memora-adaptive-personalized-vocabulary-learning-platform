@@ -25,12 +25,26 @@ public class DictionaryController {
 
     /**
      * Looks up definitions, pronunciation, audio, examples, and etymology for a given word.
+     * Authenticated endpoint.
      *
      * @param word Search word
      * @return Standard ApiResponse enclosing the DictionaryResponse
      */
     @GetMapping("/{word}")
     public ResponseEntity<ApiResponse<DictionaryResponse>> getWordDetails(@PathVariable String word) {
+        DictionaryResponse response = dictionaryService.lookupWord(word);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * Public read-only endpoint allowing visitors to look up vocabulary words without authentication.
+     * Safe, independent from user progress, and rate-limited via backend cache and boundaries.
+     *
+     * @param word Search word
+     * @return Standard ApiResponse enclosing the DictionaryResponse
+     */
+    @GetMapping({"/public/{word}", "/public-lookup/{word}"})
+    public ResponseEntity<ApiResponse<DictionaryResponse>> getPublicWordDetails(@PathVariable String word) {
         DictionaryResponse response = dictionaryService.lookupWord(word);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

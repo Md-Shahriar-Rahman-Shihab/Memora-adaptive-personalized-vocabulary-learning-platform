@@ -207,6 +207,9 @@ public class DictionaryServiceImpl implements DictionaryService {
 
         Map<String, List<DefinitionDto>> posMap = new LinkedHashMap<>();
         Set<String> shortDefsSet = new LinkedHashSet<>();
+        Set<String> synonymsSet = new LinkedHashSet<>();
+        Set<String> antonymsSet = new LinkedHashSet<>();
+        Map<String, String> wordFamilyMap = new LinkedHashMap<>();
 
         for (JsonNode entryNode : rootNode) {
             if (!entryNode.isObject()) {
@@ -280,6 +283,82 @@ public class DictionaryServiceImpl implements DictionaryService {
                 pos = "general";
             }
 
+            // Record entry's own part of speech in wordFamilyMap
+            String entryPosKey = normalizePosKey(pos);
+            if (entryPosKey != null && !wordFamilyMap.containsKey(entryPosKey)) {
+                String baseWord = (resolvedWord != null && !resolvedWord.isEmpty()) ? resolvedWord : fallbackWord;
+                wordFamilyMap.put(entryPosKey, baseWord);
+            }
+
+            // Extract word family members from undefined run-on entries (uro)
+            if (entryNode.hasNonNull("uro") && entryNode.get("uro").isArray()) {
+                for (JsonNode uroNode : entryNode.get("uro")) {
+                    if (uroNode.hasNonNull("ure") && uroNode.hasNonNull("fl")) {
+                        String ureWord = cleanMwTokens(uroNode.get("ure").asText()).replaceAll("[^\\p{L}\\s'’-]", "").trim();
+                        String uroPosKey = normalizePosKey(uroNode.get("fl").asText());
+                        if (uroPosKey != null && !ureWord.isEmpty() && !wordFamilyMap.containsKey(uroPosKey)) {
+                            wordFamilyMap.put(uroPosKey, ureWord);
+                        }
+                    }
+                }
+            }
+
+            // Extract word family members from defined run-on entries (dro)
+            if (entryNode.hasNonNull("dro") && entryNode.get("dro").isArray()) {
+                for (JsonNode droNode : entryNode.get("dro")) {
+                    if (droNode.hasNonNull("drp") && droNode.hasNonNull("fl")) {
+                        String drpWord = cleanMwTokens(droNode.get("drp").asText()).replaceAll("[^\\p{L}\\s'’-]", "").trim();
+                        String droPosKey = normalizePosKey(droNode.get("fl").asText());
+                        if (droPosKey != null && !drpWord.isEmpty() && !wordFamilyMap.containsKey(droPosKey)) {
+                            wordFamilyMap.put(droPosKey, drpWord);
+                        }
+                    }
+                }
+            }
+
+            // Extract synonyms from syns section
+            if (entryNode.hasNonNull("syns") && entryNode.get("syns").isArray()) {
+                for (JsonNode synItem : entryNode.get("syns")) {
+                    if (synItem.hasNonNull("pt") && synItem.get("pt").isArray()) {
+                        for (JsonNode ptRow : synItem.get("pt")) {
+                            if (ptRow.isArray() && ptRow.size() >= 2 && "text".equals(ptRow.get(0).asText())) {
+                                extractCrossReferenceSynonyms(ptRow.get(1).asText(), synonymsSet, fallbackWord);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Extract synonyms from meta.syns if present
+            if (entryNode.hasNonNull("meta") && entryNode.get("meta").hasNonNull("syns") && entryNode.get("meta").get("syns").isArray()) {
+                for (JsonNode synGroup : entryNode.get("meta").get("syns")) {
+                    if (synGroup.isArray()) {
+                        for (JsonNode synWordNode : synGroup) {
+                            String synW = synWordNode.asText("").trim().toLowerCase(Locale.ENGLISH);
+                            if (!synW.isEmpty() && !synW.equalsIgnoreCase(fallbackWord) && synW.length() < 30) {
+                                synonymsSet.add(synW);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Extract antonyms from ant_list if present
+            if (entryNode.hasNonNull("ant_list") && entryNode.get("ant_list").isArray()) {
+                for (JsonNode antGroup : entryNode.get("ant_list")) {
+                    if (antGroup.isArray()) {
+                        for (JsonNode antItem : antGroup) {
+                            if (antItem.hasNonNull("wd")) {
+                                String antW = antItem.get("wd").asText("").trim().toLowerCase(Locale.ENGLISH);
+                                if (!antW.isEmpty() && !antW.equalsIgnoreCase(fallbackWord) && antW.length() < 30) {
+                                    antonymsSet.add(antW);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             List<DefinitionDto> posDefinitions = posMap.computeIfAbsent(pos, k -> new ArrayList<>());
 
             // Parse detailed definitions and examples from def -> sseq -> sense -> dt
@@ -301,10 +380,14 @@ public class DictionaryServiceImpl implements DictionaryService {
                                             for (JsonNode dtItem : senseNode.get("dt")) {
                                                 if (dtItem.isArray() && dtItem.size() >= 2) {
                                                     String dtType = dtItem.get(0).asText();
-                                                    if ("text".equals(dtType) && defText == null) {
-                                                        String cleaned = cleanMwTokens(dtItem.get(1).asText());
-                                                        if (!cleaned.isEmpty()) {
-                                                            defText = cleaned;
+                                                    if ("text".equals(dtType)) {
+                                                        String rawDt = dtItem.get(1).asText();
+                                                        extractCrossReferenceSynonyms(rawDt, synonymsSet, fallbackWord);
+                                                        if (defText == null) {
+                                                            String cleaned = cleanMwTokens(rawDt);
+                                                            if (!cleaned.isEmpty()) {
+                                                                defText = cleaned;
+                                                            }
                                                         }
                                                     } else if ("vis".equals(dtType) && dtItem.get(1).isArray()) {
                                                         for (JsonNode visItem : dtItem.get(1)) {
@@ -355,6 +438,14 @@ public class DictionaryServiceImpl implements DictionaryService {
             headword = resolvedWord;
         }
 
+        // Ensure wordFamilyMap has at least the main word if a POS was resolved
+        for (String posKey : posMap.keySet()) {
+            String norm = normalizePosKey(posKey);
+            if (norm != null && !wordFamilyMap.containsKey(norm)) {
+                wordFamilyMap.put(norm, resolvedWord);
+            }
+        }
+
         // Convert grouped parts of speech map to PartOfSpeechDto list
         List<PartOfSpeechDto> partsOfSpeech = new ArrayList<>();
         for (Map.Entry<String, List<DefinitionDto>> entry : posMap.entrySet()) {
@@ -371,8 +462,32 @@ public class DictionaryServiceImpl implements DictionaryService {
                 partsOfSpeech,
                 new ArrayList<>(shortDefsSet),
                 etymology,
-                List.of()
+                List.of(),
+                new ArrayList<>(synonymsSet),
+                new ArrayList<>(antonymsSet),
+                wordFamilyMap
         );
+    }
+
+    private String normalizePosKey(String pos) {
+        if (pos == null) return null;
+        String lower = pos.toLowerCase(Locale.ENGLISH).trim();
+        if (lower.startsWith("noun") || lower.contains("noun")) return "noun";
+        if (lower.startsWith("verb") || lower.contains("verb")) return "verb";
+        if (lower.startsWith("adj") || lower.contains("adjective")) return "adjective";
+        if (lower.startsWith("adv") || lower.contains("adverb")) return "adverb";
+        return null;
+    }
+
+    private void extractCrossReferenceSynonyms(String rawText, Set<String> synonymsSet, String targetWord) {
+        if (rawText == null || rawText.isBlank()) return;
+        java.util.regex.Matcher matcher = Pattern.compile("\\{(?:sx|a_link|d_link)\\|([^}|]+)(?:\\|[^}]*)?\\}").matcher(rawText);
+        while (matcher.find()) {
+            String candidate = matcher.group(1).trim().toLowerCase(Locale.ENGLISH);
+            if (!candidate.isEmpty() && !candidate.equalsIgnoreCase(targetWord) && candidate.length() < 30 && !candidate.contains(":")) {
+                synonymsSet.add(candidate);
+            }
+        }
     }
 
     public void clearCache() {

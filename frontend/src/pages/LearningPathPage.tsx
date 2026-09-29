@@ -107,13 +107,14 @@ export const LearningPathPage: React.FC = () => {
   };
 
   const handleOpenStudy = (item: LearningPathItemResponse) => {
-    setStudyingItem(item);
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('study', item.id.toString());
-    setSearchParams(newParams, { replace: true });
-
     if (item.status === 'PENDING') {
       handleStartItem(item.id);
+    }
+    const targetWord = item.word || '';
+    if (targetWord) {
+      navigate(`/word/${encodeURIComponent(targetWord)}?pathItemId=${item.id}&from=learning-path`);
+    } else {
+      setStudyingItem(item);
     }
   };
 

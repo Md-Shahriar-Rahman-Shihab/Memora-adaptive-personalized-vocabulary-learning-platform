@@ -19,6 +19,7 @@ import LeaderboardPage from '../pages/LeaderboardPage';
 import ProfilePage from '../pages/ProfilePage';
 import DictionaryPage from '../pages/DictionaryPage';
 import OnboardingPage from '../pages/OnboardingPage';
+import WordDetailPage from '../pages/WordDetailPage';
 
 import { Outlet } from 'react-router-dom';
 import { useOnboarding } from '../context/OnboardingContext';
@@ -82,6 +83,8 @@ export const AppRoutes: React.FC = () => {
         />
         {/* Public Routes with fallback */}
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/word/:word" element={<WordDetailPage />} />
+        <Route path="/words/:word" element={<WordDetailPage />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

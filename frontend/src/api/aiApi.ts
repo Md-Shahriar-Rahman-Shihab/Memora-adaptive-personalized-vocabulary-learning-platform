@@ -55,4 +55,15 @@ export const aiApi = {
     );
     return res.data;
   },
+
+  getWordRelations: async (
+    request: import('../types/ai').AiWordRelationsRequest
+  ): Promise<ApiResponse<import('../types/ai').AiWordRelationsResponse>> => {
+    const res = await apiClient.post<ApiResponse<import('../types/ai').AiWordRelationsResponse>>(
+      '/ai/word-relations',
+      request,
+      { timeout: 25000 }
+    );
+    return res.data;
+  },
 };

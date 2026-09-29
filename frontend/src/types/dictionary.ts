@@ -17,4 +17,7 @@ export interface DictionaryResponse {
   shortDefinitions: string[];
   etymology?: string | null;
   suggestions: string[];
+  synonyms?: string[];
+  antonyms?: string[];
+  wordFamily?: Record<string, string>;
 }

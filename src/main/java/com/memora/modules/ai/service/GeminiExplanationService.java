@@ -325,6 +325,114 @@ public class GeminiExplanationService implements AIExplanationService {
         }
     }
 
+    @Override
+    public AiWordRelationsResponse getWordRelations(String userEmail, AiWordRelationsRequest request) {
+        WordMetadata meta = resolveMetadata(userEmail, request.wordId(), request.word(), request.cefrLevel());
+        String cacheKey = "relations:" + meta.wordText().toLowerCase(java.util.Locale.ENGLISH);
+
+        AiWordRelationsResponse cached = responseCache.get(cacheKey, AiWordRelationsResponse.class);
+        if (cached != null) {
+            return new AiWordRelationsResponse(
+                    cached.word(),
+                    cached.synonyms(),
+                    cached.antonyms(),
+                    cached.wordFamily(),
+                    cached.provider(),
+                    cached.model(),
+                    cached.isFallback(),
+                    true
+            );
+        }
+
+        if (!isProviderConfigured()) {
+            return fallbackService.getWordRelations(userEmail, request);
+        }
+
+        try {
+            String prompt = """
+                    You are an expert English lexicographer and linguist.
+                    For the target English word "%s" (CEFR level: %s), provide verified linguistic relationships.
+                    Return ONLY a JSON object in this exact format:
+                    {
+                      "synonyms": ["synonym1", "synonym2", "synonym3", "synonym4"],
+                      "antonyms": ["antonym1", "antonym2", "antonym3"],
+                      "wordFamily": {
+                        "noun": "...",
+                        "verb": "...",
+                        "adjective": "...",
+                        "adverb": "..."
+                      }
+                    }
+                    Rules:
+                    1. Do NOT invent fake words. If a grammatical form does not exist in standard English, omit its key or set to null.
+                    2. If no reliable antonyms exist, return an empty array for "antonyms": [].
+                    3. Return ONLY valid JSON, no markdown formatting or commentary.
+                    """.formatted(meta.wordText(), meta.cefrLevel());
+
+            AiGenerationResult aiResult = aiProvider.generate(prompt);
+            if (aiResult == null || aiResult.isFallback() || aiResult.text() == null || aiResult.text().isBlank()) {
+                return fallbackService.getWordRelations(userEmail, request);
+            }
+
+            String rawJson = CollocationValidator.cleanJsonText(aiResult.text());
+            List<String> synonyms = new ArrayList<>();
+            List<String> antonyms = new ArrayList<>();
+            java.util.Map<String, String> wordFamily = new java.util.LinkedHashMap<>();
+
+            try {
+                JsonNode root = objectMapper.readTree(rawJson);
+                if (root.has("synonyms") && root.get("synonyms").isArray()) {
+                    for (JsonNode syn : root.get("synonyms")) {
+                        String s = syn.asText("").trim().toLowerCase(java.util.Locale.ENGLISH);
+                        if (!s.isEmpty() && !s.equalsIgnoreCase(meta.wordText())) {
+                            synonyms.add(s);
+                        }
+                    }
+                }
+                if (root.has("antonyms") && root.get("antonyms").isArray()) {
+                    for (JsonNode ant : root.get("antonyms")) {
+                        String a = ant.asText("").trim().toLowerCase(java.util.Locale.ENGLISH);
+                        if (!a.isEmpty() && !a.equalsIgnoreCase(meta.wordText())) {
+                            antonyms.add(a);
+                        }
+                    }
+                }
+                if (root.has("wordFamily") && root.get("wordFamily").isObject()) {
+                    JsonNode famNode = root.get("wordFamily");
+                    for (String posKey : List.of("noun", "verb", "adjective", "adverb")) {
+                        if (famNode.hasNonNull(posKey)) {
+                            String val = famNode.get(posKey).asText("").trim().toLowerCase(java.util.Locale.ENGLISH);
+                            if (!val.isEmpty()) {
+                                wordFamily.put(posKey, val);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception parseEx) {
+                log.debug("Failed parsing AI word relations JSON: {}", parseEx.getMessage());
+                return fallbackService.getWordRelations(userEmail, request);
+            }
+
+            AiWordRelationsResponse response = new AiWordRelationsResponse(
+                    meta.wordText(),
+                    synonyms,
+                    antonyms,
+                    wordFamily,
+                    aiResult.provider(),
+                    aiResult.model(),
+                    false,
+                    false
+            );
+
+            responseCache.put(cacheKey, response);
+            return response;
+
+        } catch (Exception e) {
+            log.warn("AI word relations generation failed: {}. Falling back.", e.getMessage());
+            return fallbackService.getWordRelations(userEmail, request);
+        }
+    }
+
     private WordMetadata resolveMetadata(String userEmail, Long wordId, String rawWord, String requestedLevel) {
         Optional<VocabularyWord> wordOpt = Optional.empty();
         if (wordId != null && wordId > 0) {

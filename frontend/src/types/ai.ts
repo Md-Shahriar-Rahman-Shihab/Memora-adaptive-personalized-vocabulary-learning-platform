@@ -63,3 +63,16 @@ export interface AiUsageResponse {
   cached: boolean;
   model?: string | null;
 }
+
+export interface AiWordRelationsRequest extends AiBaseRequest {}
+
+export interface AiWordRelationsResponse {
+  word: string;
+  synonyms: string[];
+  antonyms: string[];
+  wordFamily: Record<string, string>;
+  provider: string;
+  isFallback: boolean;
+  cached: boolean;
+  model?: string | null;
+}
