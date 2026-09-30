@@ -220,7 +220,8 @@ export const LandingWordSearchSection: React.FC = () => {
   );
 
   return (
-    <section id="explore-word" className="relative py-16 sm:py-20 border-t border-black/[0.06] overflow-hidden">
+    <section id="word-search" className="relative py-16 sm:py-20 border-t border-black/[0.06] overflow-hidden">
+      <span id="explore-word" className="sr-only" aria-hidden="true" />
       {/* Soft background ambient gradient */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-emerald-100/50 via-amber-50/40 to-emerald-100/50 rounded-full blur-3xl -z-10 pointer-events-none" />
 

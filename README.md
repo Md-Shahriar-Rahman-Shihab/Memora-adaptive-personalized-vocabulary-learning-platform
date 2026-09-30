@@ -79,7 +79,7 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
 2. **Tier 2: API Gateway, Security & Thin Controller Layer (Spring Web + Spring Security)**:
    - Security Filter Chain: Stateless JWT authentication filter (`JwtAuthenticationFilter`), BCrypt password encoder, CORS filter (`CORS_ALLOWED_ORIGINS`), unauthorized access handlers (`JwtAuthenticationEntryPoint`, `JwtAccessDeniedHandler`).
    - 16 `@RestController` Presentation Gateways: Strictly validate request payloads and delegate business orchestration to domain services. Zero direct database queries or algorithm logic in controllers.
-   - Validation & Error Interception: 12 Request DTOs annotated with Jakarta Bean Validation (`@Valid`). Centralized `GlobalExceptionHandler` intercepting validation, resource, and authentication exceptions into standardized `ApiResponse<T>` envelopes.
+   - Validation & Error Interception: 13 Request DTOs annotated with Jakarta Bean Validation (`@Valid`). Centralized `GlobalExceptionHandler` intercepting validation, resource, and authentication exceptions into standardized `ApiResponse<T>` envelopes.
 3. **Tier 3: Domain Service Layer (11 Business Modules)**:
    - `AuthService`, `UserService`, `OnboardingService`, `VocabularyService`, `UserWordProgressService`, `MemoryService`, `QuizService`, `AssessmentService`, `LearningPathService`, `GamificationService`, `StreakService`, `AchievementService`, `AIExplanationService`, `DictionaryService`, `AdaptiveInsightService`.
 4. **Tier 4: Advanced OOP Principles & Design Patterns Layer**:
@@ -277,12 +277,12 @@ Memora strictly follows modern enterprise Spring Boot and RESTful API standards.
 
 ### Controller Inventory Summary:
 * **Total `@RestController` Classes**: Exactly **16 controllers** across 9 modules.
-* **Total REST Endpoints**: Exactly **52 endpoints** (21 HTTP POST, 31 HTTP GET).
-* **Dedicated Request DTOs**: Exactly **12 Request DTO classes** mapped 1-to-1 to endpoints accepting structured request bodies:
-  - **10 Mandatory Request-Body Endpoints (`required = true`)**: `RegistrationRequest`, `LoginRequest`, `VocabularyWordRequest`, `WordReviewRequest`, `AnswerSubmissionRequest`, `AssessmentAnswerRequest`, `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`.
+* **Total REST Endpoints**: Exactly **54 endpoints** (22 HTTP POST, 32 HTTP GET).
+* **Dedicated Request DTOs**: Exactly **13 Request DTO classes** mapped 1-to-1 to endpoints accepting structured request bodies:
+  - **11 Mandatory Request-Body Endpoints (`required = true`)**: `RegistrationRequest`, `LoginRequest`, `VocabularyWordRequest`, `WordReviewRequest`, `AnswerSubmissionRequest`, `AssessmentAnswerRequest`, `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`, `AiWordRelationsRequest`.
   - **2 Optional Request-Body Endpoints (`@Valid @RequestBody(required = false)`)**: `QuizGenerationRequest` (defaults to A1 with 5 questions if omitted), `LearningItemCompletionRequest` (allows simple curriculum item completion without body or optional review telemetry).
 * **No Primitive Parameter Anti-Patterns**: No endpoint accepts loose primitive arguments (e.g. `@RequestParam Long wordId, @RequestParam int quality`) for data-submission endpoints.
-* **Path Variables (`@PathVariable`)**: 16 endpoints use path variables strictly for discrete resource identification (`/vocabulary/{id}`, `/dictionary/{word}`) and lifecycle actions on existing entities (`/quizzes/{quizId}/start`, `/quizzes/{quizId}/complete`, `/assessments/{assessmentId}/complete`, `/learning-path/items/{itemId}/start`).
+* **Path Variables (`@PathVariable`)**: 17 endpoints use path variables strictly for discrete resource identification (`/vocabulary/{id}`, `/dictionary/{word}`, `/dictionary/public/{word}`) and lifecycle actions on existing entities (`/quizzes/{quizId}/start`, `/quizzes/{quizId}/complete`, `/assessments/{assessmentId}/complete`, `/learning-path/items/{itemId}/start`).
 * **Query Parameters (`@RequestParam`)**: Retained strictly on idempotent HTTP `GET` endpoints for search filtering (`/vocabulary/search?query=...`), random sampling limits (`/vocabulary/random?limit=10`), audit ledger pagination (`/profile/xp-history?page=0&size=20`), and leaderboard ranking limits (`/leaderboard?limit=20`).
 * **Authentication Derived from Security Context**: All authenticated endpoints resolve learner identity strictly from Spring Security's authenticated principal (`Authentication.getName()`). Request DTOs never accept client-supplied `userId` fields, preventing identity spoofing.
 * **Thin Controller Architecture**: Controllers contain zero business algorithms, memory math, or direct database queries; they act solely as presentation gateways delegating to domain services and wrapping responses in `ApiResponse<T>`.
@@ -291,7 +291,7 @@ Memora strictly follows modern enterprise Spring Boot and RESTful API standards.
 
 ## 🌐 REST API Documentation
 
-Below is the concise catalog of all 52 implemented endpoints organized by domain module:
+Below is the concise catalog of all 54 implemented endpoints organized by domain module:
 
 ### 1. System Health
 * `GET  /api/v1/health` — Liveness diagnostic probe & service version metadata (Public)
@@ -364,10 +364,12 @@ Below is the concise catalog of all 52 implemented endpoints organized by domain
 * `POST /api/v1/ai/example` — CEFR-calibrated example sentence generation (`AiExampleRequest`) (JWT required)
 * `POST /api/v1/ai/memory-tip` — Cognitive mnemonic retention tip generation (`AiMemoryTipRequest`) (JWT required)
 * `POST /api/v1/ai/contextual-usage` — Contextual register & collocation analysis (`AiUsageRequest`) (JWT required)
+* `POST /api/v1/ai/word-relations` — Linguistic relations (synonyms, antonyms, word families) (`AiWordRelationsRequest`) (JWT required)
 * `GET  /api/v1/insights/today` — Deterministic adaptive learner insights & memory health diagnosis (JWT required)
 
 ### 12. Collegiate Dictionary (`/api/v1/dictionary`)
 * `GET  /api/v1/dictionary/{word}` — Real-time Merriam-Webster lookup with phonetics and native audio CDN stream (JWT required)
+* `GET  /api/v1/dictionary/public/{word}` — Public dictionary lookup without authentication (Public)
 
 ---
 
@@ -428,7 +430,7 @@ Memora/
 │   │   │   └── resources/
 │   │   │       ├── application.yml             # Core config with env var placeholders
 │   │   │       └── application-dev.yml         # Dev profile settings
-│   │   └── test/                               # 50 test classes (260 automated tests, H2 DB)
+│   │   └── test/                               # 51 test classes (269 automated tests, H2 DB)
 │   ├── mvnw / mvnw.cmd                         # Maven wrapper executables
 │   ├── pom.xml                                 # Maven dependencies and build plugins
 │   ├── run-backend.ps1 / run-backend.cmd       # Local development runner scripts
@@ -457,7 +459,7 @@ Memora/
 │       ├── system-architecture.png             # Rendered 2x System Architecture Diagram
 │       └── memora-erd.png                      # Rendered 2x Relational ERD Diagram (20 tables)
 │
-├── CONTROLLER_REQUEST_OBJECT.md                # 16-controller, 52-endpoint request object audit
+├── CONTROLLER_REQUEST_OBJECT.md                # 16-controller, 54-endpoint request object audit
 ├── ERD.md                                      # Complete data dictionary & database specification
 ├── .env.example                                # Safe environment variable template (No secrets)
 ├── .gitignore                                  # Git exclusion rules (.env, target, dist, node_modules)
@@ -552,12 +554,12 @@ The Memora platform has undergone complete regression and end-to-end verificatio
   [INFO] -------------------------------------------------------
   [INFO]  T E S T S
   [INFO] -------------------------------------------------------
-  [INFO] Tests run: 260, Failures: 0, Errors: 0, Skipped: 0
+  [INFO] Tests run: 269, Failures: 0, Errors: 0, Skipped: 0
   [INFO] -------------------------------------------------------
   [INFO] BUILD SUCCESS
   [INFO] -------------------------------------------------------
   ```
-* **Coverage**: All 50 test classes across all 9 domain modules passed cleanly, including **10 core module controller integration test suites** and 13 MockMvc controller test suites.
+* **Coverage**: All 51 test classes across all 9 domain modules passed cleanly, including **10 core module controller integration test suites** and 13 MockMvc controller test suites.
 * **Test Isolation**: All tests execute on embedded in-memory H2 database (`MODE=PostgreSQL`) with zero external network or database calls. External AI and dictionary HTTP clients are mocked using `MockRestServiceServer`.
 
 ### 2. Frontend TypeScript Compilation
@@ -570,7 +572,7 @@ npx tsc --noEmit
 ```bash
 npm run build
 ```
-* **Result**: **2529 modules transformed**, production bundle compiled in `dist/` with exit code 0.
+* **Result**: **2533 modules transformed**, production bundle compiled in `dist/` in 14.23s with exit code 0.
 
 ### 4. Runtime Cloud Persistence
 * Normal application runtime has been verified against remote cloud **Neon Serverless PostgreSQL 18** with active statement batching (`reWriteBatchedInserts=true`).
@@ -660,4 +662,4 @@ The following architectural and product enhancements are identified for future d
 * **Course**: Advanced Object-Oriented Programming Laboratory
 * **Platform**: Memora (Adaptive Personalized Vocabulary Learning Platform)
 * **Status**: **Fully Verified & Ready for University Submission**
-* **Verification**: 260/260 Backend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified
+* **Verification**: 269/269 Backend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified

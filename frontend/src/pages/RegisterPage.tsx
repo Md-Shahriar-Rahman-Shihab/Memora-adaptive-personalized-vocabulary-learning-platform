@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, Lock, Mail, User, AlertCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, Lock, Mail, User, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -45,6 +45,17 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FBFBF9] flex flex-col justify-center py-12 px-6 lg:px-8">
+      {/* Back to Home Navigation */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md mb-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-memora-text-muted hover:text-memora-dark transition-colors px-2 py-1 -ml-2 rounded-lg hover:bg-stone-200/50 w-fit"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
+
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
         <Link to="/" className="inline-flex items-center gap-2.5 mb-4 group">

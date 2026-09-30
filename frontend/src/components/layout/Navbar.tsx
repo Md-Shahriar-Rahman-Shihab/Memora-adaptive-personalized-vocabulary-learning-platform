@@ -14,8 +14,9 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', href: '#home', sectionId: 'home' },
-  { id: 'features', label: 'Features', href: '#features', sectionId: 'features' },
+  { id: 'word-search', label: 'Word Search', href: '#word-search', sectionId: 'word-search' },
   { id: 'how-it-works', label: 'How it works', href: '#how-it-works', sectionId: 'how-it-works' },
+  { id: 'features', label: 'Features', href: '#features', sectionId: 'features' },
   { id: 'leaderboard', label: 'Leaderboard', to: '/leaderboard' },
   { id: 'trust', label: 'About us', href: '#trust', sectionId: 'trust' },
 ];
@@ -37,7 +38,7 @@ export const Navbar: React.FC = () => {
   // Sync active section based on current route and scroll position on landing page
   useEffect(() => {
     if (location.pathname === '/leaderboard') {
-      setActiveIndex(3);
+      setActiveIndex(4);
       return;
     }
 
@@ -51,13 +52,14 @@ export const Navbar: React.FC = () => {
 
       // Check sections from bottom to top
       const sections = [
-        { id: 'trust', index: 4 },
-        { id: 'features', index: 1 },
+        { id: 'trust', index: 5 },
+        { id: 'features', index: 3 },
         { id: 'how-it-works', index: 2 },
+        { id: 'word-search', index: 1 },
       ];
 
       for (const sec of sections) {
-        const el = document.getElementById(sec.id);
+        const el = document.getElementById(sec.id) || (sec.id === 'word-search' ? document.getElementById('explore-word') : null);
         if (el) {
           const top = el.offsetTop;
           const height = el.offsetHeight;
@@ -292,11 +294,11 @@ export const Navbar: React.FC = () => {
               Home
             </a>
             <a
-              href="#features"
-              onClick={(e) => scrollToSection(e, 'features')}
+              href="#word-search"
+              onClick={(e) => scrollToSection(e, 'word-search')}
               className="text-base font-medium text-memora-text-muted py-2 cursor-pointer"
             >
-              Features
+              Word Search
             </a>
             <a
               href="#how-it-works"
@@ -304,6 +306,13 @@ export const Navbar: React.FC = () => {
               className="text-base font-medium text-memora-text-muted py-2 cursor-pointer"
             >
               How it works
+            </a>
+            <a
+              href="#features"
+              onClick={(e) => scrollToSection(e, 'features')}
+              className="text-base font-medium text-memora-text-muted py-2 cursor-pointer"
+            >
+              Features
             </a>
             <Link
               to="/leaderboard"
