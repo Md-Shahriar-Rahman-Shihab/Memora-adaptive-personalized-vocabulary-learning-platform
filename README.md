@@ -60,6 +60,7 @@ Traditional language and vocabulary learning applications suffer from three crit
 | **Gamification & Profile** | Multi-activity XP rewards (`QuizRewardStrategy`, `LessonRewardStrategy`, etc.), calendar-day safe daily streaks (`StreakService`), 10 unlockable milestone badges (`AchievementRuleEngine`), immutable XP transaction audit ledger (`XpTransaction`), global top-20 leaderboard with podium showcase, profile stats. |
 | **Collegiate Dictionary** | Real-time Merriam-Webster Collegiate Dictionary lookup (`/dictionary`), HTTP/2 `RestClient`, written IPA/phonetics, syllabification dots, multi-sense definitions, etymology, alternate spelling suggestion chips, bounded thread-safe in-memory cache (30-min TTL). |
 | **Multi-Provider AI Assistant** | Centralized router (`AiProviderRouter`) supporting `auto`, `gemini`, `groq`, `fallback` policies, multi-model Google Gemini fallback chain (`gemini-3.6-flash`), Groq fast-inference client (`openai/gpt-oss-120b`), deterministic offline educational generator, grammatical collocation validation (`CollocationValidator`), in-memory cache (`AiResponseCache`). |
+| **Learning Partners & Social Duels** | Exact email partner search, canonical pairing state machine (`PENDING` → `ACCEPTED`/`REJECTED`/`CANCELLED`), privacy-safe progress sharing, synchronous competitive vocabulary challenges with shared question sets, pair-only partner leaderboard, and chronological partner activity feed with deterministic deduplication. |
 | **Adaptive Insights** | Real-time cognitive load & retention health diagnostics (`/api/v1/insights/today`), retention probability metrics, prioritized daily study recommendations. |
 | **Cloud Persistence** | Neon Serverless PostgreSQL 18 (AWS Cloud) via HikariCP, `reWriteBatchedInserts=true` multi-row statement batch rewriting, Hibernate JDBC batching (`batch_size: 50`), N+1 query elimination via JPQL `JOIN FETCH` and `@BatchSize(50)`, isolated in-memory H2 database for test execution. |
 
@@ -73,15 +74,15 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
 
 ### Architectural Tiers:
 1. **Tier 1: Client Application Layer (React 19 + TypeScript + Vite 8 + Tailwind CSS v4)**:
-   - Responsive presentation views: Landing Page (3D floating memory ecosystem), Locked/Unlocked Dashboard, Diagnostic Assessment Runner (10-Q), Word Study Modal (React Portal), Spaced Repetition Review (`/review`), Polymorphic Quiz Runner (`/quiz/:id`), Collegiate Dictionary Explorer (`/dictionary`), and Gamification Leaderboard/Achievements.
+   - Responsive presentation views: Landing Page, Dashboard, Diagnostic Assessment Runner (10-Q), Word Study Modal (React Portal), Spaced Repetition Review (`/review`), Polymorphic Quiz Runner (`/quiz/:id`), Collegiate Dictionary Explorer (`/dictionary`), Gamification Leaderboard/Achievements, and Learning Partners Hub (`/partners`) with competitive duels and activity feed.
    - State management: `AuthContext` (token persistence & user profile), `OnboardingContext` (global state & feature locking), `ToastContext` (non-intrusive notifications).
    - Audio: Native HTML5 Audio integrating Merriam-Webster pronunciation audio CDN with Web Speech API fallback.
 2. **Tier 2: API Gateway, Security & Thin Controller Layer (Spring Web + Spring Security)**:
    - Security Filter Chain: Stateless JWT authentication filter (`JwtAuthenticationFilter`), BCrypt password encoder, CORS filter (`CORS_ALLOWED_ORIGINS`), unauthorized access handlers (`JwtAuthenticationEntryPoint`, `JwtAccessDeniedHandler`).
-   - 16 `@RestController` Presentation Gateways: Strictly validate request payloads and delegate business orchestration to domain services. Zero direct database queries or algorithm logic in controllers.
-   - Validation & Error Interception: 13 Request DTOs annotated with Jakarta Bean Validation (`@Valid`). Centralized `GlobalExceptionHandler` intercepting validation, resource, and authentication exceptions into standardized `ApiResponse<T>` envelopes.
-3. **Tier 3: Domain Service Layer (11 Business Modules)**:
-   - `AuthService`, `UserService`, `OnboardingService`, `VocabularyService`, `UserWordProgressService`, `MemoryService`, `QuizService`, `AssessmentService`, `LearningPathService`, `GamificationService`, `StreakService`, `AchievementService`, `AIExplanationService`, `DictionaryService`, `AdaptiveInsightService`.
+   - 18 `@RestController` Presentation Gateways: Strictly validate request payloads and delegate business orchestration to domain services. Zero direct database queries or algorithm logic in controllers.
+   - Validation & Error Interception: 16 Request DTOs annotated with Jakarta Bean Validation (`@Valid`). Centralized `GlobalExceptionHandler` intercepting validation, resource, and authentication exceptions into standardized `ApiResponse<T>` envelopes.
+3. **Tier 3: Domain Service Layer (13 Business Modules)**:
+   - `AuthService`, `UserService`, `OnboardingService`, `VocabularyService`, `UserWordProgressService`, `MemoryService`, `QuizService`, `AssessmentService`, `LearningPathService`, `GamificationService`, `StreakService`, `AchievementService`, `PartnerService`, `PartnerLeaderboardService`, `PartnerActivityService`, `VocabularyChallengeService`, `AIExplanationService`, `DictionaryService`, `AdaptiveInsightService`.
 4. **Tier 4: Advanced OOP Principles & Design Patterns Layer**:
    - Strategy Pattern implementations for question evaluation, memory algorithms, placement estimation, curriculum generation, XP rewards, and milestone rules.
    - Factory Pattern implementations for polymorphic question creation and strategy resolution.
@@ -89,7 +90,7 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
    - Provider / Adapter Pattern for dictionary integration.
    - JPA Joined Table Inheritance for polymorphic database entities.
 5. **Tier 5: Persistence & Cloud Infrastructure Layer**:
-   - 13 Spring Data JPA Repositories interacting with Neon PostgreSQL 18 via HikariCP connection pool.
+   - 21 Spring Data JPA Repositories interacting with Neon PostgreSQL 18 via HikariCP connection pool.
    - High-throughput JDBC batch rewriting (`reWriteBatchedInserts=true`, `hibernate.jdbc.batch_size=50`) dropping WAN round-trip latency by over 90%.
    - Isolated in-memory H2 database executing automated unit and integration tests with zero external cloud dependencies.
 
@@ -97,11 +98,11 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
 
 ## 🗄️ Entity Relationship Diagram (ERD)
 
-The following ERD represents the current persistent relational data model of Memora across all **20 database tables** and 5 subsystems, managed by Hibernate / JPA 3.x on PostgreSQL:
+The following ERD represents the current persistent relational data model of Memora across all **25 database tables** and 6 subsystems, managed by Hibernate / JPA 3.x on PostgreSQL:
 
 ![Memora Entity Relationship Diagram](docs/diagrams/memora-erd.png)
 
-### Database Schema Breakdown (20 Tables Across 5 Subsystems):
+### Database Schema Breakdown (25 Tables Across 6 Subsystems):
 
 ```text
 1. User Management & Gamification Subsystem (5 Tables)
@@ -133,6 +134,13 @@ The following ERD represents the current persistent relational data model of Mem
 5. Adaptive Learning Path Curriculum Subsystem (2 Tables)
    ├── learning_paths (Learner daily roadmap: target level, current day index, total items, completed items)
    └── learning_path_items (Scheduled curriculum items: NEW_WORD, REVIEW_WORD, QUIZ_CHECKPOINT, priority, scheduled timestamp)
+
+6. Learning Partner & Competitive Challenge Subsystem (5 Tables)
+   ├── partner_relationships (Canonical pair ordering userOne.id < userTwo.id, status PENDING/ACCEPTED/REJECTED/CANCELLED)
+   ├── vocabulary_challenges (Head-to-head competitive duels, CEFR tier, question count, shared quiz reference, scores, winner)
+   ├── challenge_attempts (Participant-specific duel attempt tracking, score, correct count, start & completion timestamps)
+   ├── challenge_question_attempts (Granular question-by-question duel answers, correctness, score, and response latency ms)
+   └── partner_activities (Privacy-safe social activity feed, deterministic event identity, XP awards, and audit trail)
 ```
 
 ### Relational Integrity & Key Constraints:
@@ -276,14 +284,14 @@ Memora strictly follows modern enterprise Spring Boot and RESTful API standards.
 > 📖 **Comprehensive Audit Document**: For the complete endpoint-by-endpoint audit, constraint declarations, and architectural justifications, refer to [`CONTROLLER_REQUEST_OBJECT.md`](./CONTROLLER_REQUEST_OBJECT.md) (formerly `CONTROLLER_REQUEST_OBJECT_AUDIT.md`).
 
 ### Controller Inventory Summary:
-* **Total `@RestController` Classes**: Exactly **16 controllers** across 9 modules.
-* **Total REST Endpoints**: Exactly **54 endpoints** (22 HTTP POST, 32 HTTP GET).
-* **Dedicated Request DTOs**: Exactly **13 Request DTO classes** mapped 1-to-1 to endpoints accepting structured request bodies:
-  - **11 Mandatory Request-Body Endpoints (`required = true`)**: `RegistrationRequest`, `LoginRequest`, `VocabularyWordRequest`, `WordReviewRequest`, `AnswerSubmissionRequest`, `AssessmentAnswerRequest`, `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`, `AiWordRelationsRequest`.
+* **Total `@RestController` Classes**: Exactly **18 controllers** across 10 modules.
+* **Total REST Endpoints**: Exactly **76 endpoints** (30 HTTP POST, 45 HTTP GET, 1 HTTP DELETE).
+* **Dedicated Request DTOs**: Exactly **16 Request DTO classes** mapped to endpoints accepting structured request bodies:
+  - **14 Mandatory Request-Body Endpoints (`required = true`)**: `RegistrationRequest`, `LoginRequest`, `VocabularyWordRequest`, `WordReviewRequest`, `AnswerSubmissionRequest`, `AssessmentAnswerRequest`, `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`, `AiWordRelationsRequest`, `SendPartnerRequestDto`, `CreateChallengeRequest`, `SubmitChallengeRequest`.
   - **2 Optional Request-Body Endpoints (`@Valid @RequestBody(required = false)`)**: `QuizGenerationRequest` (defaults to A1 with 5 questions if omitted), `LearningItemCompletionRequest` (allows simple curriculum item completion without body or optional review telemetry).
-* **No Primitive Parameter Anti-Patterns**: No endpoint accepts loose primitive arguments (e.g. `@RequestParam Long wordId, @RequestParam int quality`) for data-submission endpoints.
-* **Path Variables (`@PathVariable`)**: 17 endpoints use path variables strictly for discrete resource identification (`/vocabulary/{id}`, `/dictionary/{word}`, `/dictionary/public/{word}`) and lifecycle actions on existing entities (`/quizzes/{quizId}/start`, `/quizzes/{quizId}/complete`, `/assessments/{assessmentId}/complete`, `/learning-path/items/{itemId}/start`).
-* **Query Parameters (`@RequestParam`)**: Retained strictly on idempotent HTTP `GET` endpoints for search filtering (`/vocabulary/search?query=...`), random sampling limits (`/vocabulary/random?limit=10`), audit ledger pagination (`/profile/xp-history?page=0&size=20`), and leaderboard ranking limits (`/leaderboard?limit=20`).
+* **No Primitive Parameter Anti-Patterns**: No endpoint accepts loose primitive arguments for data-submission endpoints.
+* **Path Variables (`@PathVariable`)**: 23 endpoints use path variables strictly for discrete resource identification (`/vocabulary/{id}`, `/dictionary/{word}`, `/partners/{partnerId}`, `/partners/challenges/{id}`) and lifecycle actions on existing entities (`/quizzes/{quizId}/start`, `/partners/challenges/{id}/accept`, etc.).
+* **Query Parameters (`@RequestParam`)**: Retained strictly on idempotent HTTP `GET` endpoints for search filtering (`/partners/search?email=...`, `/vocabulary/search?query=...`), limits (`/partners/activity?limit=20`, `/leaderboard?limit=20`), and status filters (`/partners/challenges?status=ACCEPTED`).
 * **Authentication Derived from Security Context**: All authenticated endpoints resolve learner identity strictly from Spring Security's authenticated principal (`Authentication.getName()`). Request DTOs never accept client-supplied `userId` fields, preventing identity spoofing.
 * **Thin Controller Architecture**: Controllers contain zero business algorithms, memory math, or direct database queries; they act solely as presentation gateways delegating to domain services and wrapping responses in `ApiResponse<T>`.
 
@@ -291,7 +299,7 @@ Memora strictly follows modern enterprise Spring Boot and RESTful API standards.
 
 ## 🌐 REST API Documentation
 
-Below is the concise catalog of all 54 implemented endpoints organized by domain module:
+Below is the concise catalog of all 76 implemented endpoints organized by domain module:
 
 ### 1. System Health
 * `GET  /api/v1/health` — Liveness diagnostic probe & service version metadata (Public)
@@ -370,6 +378,30 @@ Below is the concise catalog of all 54 implemented endpoints organized by domain
 ### 12. Collegiate Dictionary (`/api/v1/dictionary`)
 * `GET  /api/v1/dictionary/{word}` — Real-time Merriam-Webster lookup with phonetics and native audio CDN stream (JWT required)
 * `GET  /api/v1/dictionary/public/{word}` — Public dictionary lookup without authentication (Public)
+
+### 13. Learning Partners, Competitive Duels & Activity Feed (`/api/v1/partners`)
+* `GET  /api/v1/partners` — List all active accepted learning partners (JWT required)
+* `GET  /api/v1/partners/search?query=...` — Broad partner discovery by name (JWT required)
+* `GET  /api/v1/partners/search?email=...` — Exact case-insensitive partner discovery by email (JWT required)
+* `POST /api/v1/partners/requests` — Send partner connection request (`SendPartnerRequestDto`) (JWT required)
+* `GET  /api/v1/partners/requests/incoming` — List pending incoming partner requests (JWT required)
+* `GET  /api/v1/partners/requests/outgoing` — List pending outgoing partner requests (JWT required)
+* `POST /api/v1/partners/requests/{id}/accept` — Accept partner invitation (JWT required)
+* `POST /api/v1/partners/requests/{id}/reject` — Reject partner invitation (JWT required)
+* `POST /api/v1/partners/requests/{id}/cancel` — Cancel sent partner request (JWT required)
+* `DELETE /api/v1/partners/{partnerId}` — Terminate learning partnership (JWT required)
+* `GET  /api/v1/partners/{partnerId}/progress` — View privacy-safe partner progress (JWT required)
+* `GET  /api/v1/partners/leaderboard` — Pair-only learning partner leaderboard ranked by Total XP (JWT required)
+* `GET  /api/v1/partners/activity` — Chronological partner activity feed with deterministic deduplication (JWT required)
+* `POST /api/v1/partners/challenges` — Initiate competitive vocabulary duel (`CreateChallengeRequest`) (JWT required)
+* `GET  /api/v1/partners/challenges` — List user's active/historical challenges (`status` optional) (JWT required)
+* `GET  /api/v1/partners/challenges/{id}` — Get challenge details (JWT required)
+* `POST /api/v1/partners/challenges/{id}/accept` — Accept pending challenge invitation (JWT required)
+* `POST /api/v1/partners/challenges/{id}/decline` — Decline pending challenge invitation (JWT required)
+* `POST /api/v1/partners/challenges/{id}/cancel` — Cancel created challenge (JWT required)
+* `GET  /api/v1/partners/challenges/{id}/questions` — Retrieve challenge questions with answer keys hidden (JWT required)
+* `POST /api/v1/partners/challenges/{id}/submit` — Submit duel attempt (`SubmitChallengeRequest`) (JWT required)
+* `GET  /api/v1/partners/challenges/{id}/result` — Retrieve duel outcome, winner/draw, score breakdown (JWT required)
 
 ---
 
@@ -554,12 +586,12 @@ The Memora platform has undergone complete regression and end-to-end verificatio
   [INFO] -------------------------------------------------------
   [INFO]  T E S T S
   [INFO] -------------------------------------------------------
-  [INFO] Tests run: 269, Failures: 0, Errors: 0, Skipped: 0
+  [INFO] Tests run: 384, Failures: 0, Errors: 0, Skipped: 0
   [INFO] -------------------------------------------------------
   [INFO] BUILD SUCCESS
   [INFO] -------------------------------------------------------
   ```
-* **Coverage**: All 51 test classes across all 9 domain modules passed cleanly, including **10 core module controller integration test suites** and 13 MockMvc controller test suites.
+* **Coverage**: All 58 test classes across all 13 domain modules passed cleanly, including core module controller integration test suites, partner integration tests, horizontal privilege escalation isolation tests, and MockMvc controller test suites.
 * **Test Isolation**: All tests execute on embedded in-memory H2 database (`MODE=PostgreSQL`) with zero external network or database calls. External AI and dictionary HTTP clients are mocked using `MockRestServiceServer`.
 
 ### 2. Frontend TypeScript Compilation
@@ -572,7 +604,7 @@ npx tsc --noEmit
 ```bash
 npm run build
 ```
-* **Result**: **2533 modules transformed**, production bundle compiled in `dist/` in 14.23s with exit code 0.
+* **Result**: **2536 modules transformed**, production bundle compiled in `dist/` with exit code 0.
 
 ### 4. Runtime Cloud Persistence
 * Normal application runtime has been verified against remote cloud **Neon Serverless PostgreSQL 18** with active statement batching (`reWriteBatchedInserts=true`).
@@ -662,4 +694,4 @@ The following architectural and product enhancements are identified for future d
 * **Course**: Advanced Object-Oriented Programming Laboratory
 * **Platform**: Memora (Adaptive Personalized Vocabulary Learning Platform)
 * **Status**: **Fully Verified & Ready for University Submission**
-* **Verification**: 269/269 Backend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified
+* **Verification**: 384/384 Backend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified

@@ -23,18 +23,19 @@ This document provides a comprehensive Entity-Relationship Diagram (ERD) and rel
 
 ## 🧭 Architectural Overview
 
-The Memora persistence tier is built on **PostgreSQL** with **Hibernate / JPA 3.x**. The schema comprises **20 database tables** organized across five bounded domains:
+The Memora persistence tier is built on **PostgreSQL** with **Hibernate / JPA 3.x**. The schema comprises **25 database tables** organized across six bounded domains:
 
 - **Audit & Concurrency Foundation**: Every core entity inherits from `BaseEntity` (`@MappedSuperclass`), providing auto-incrementing ID (`IDENTITY`), UTC timestamping (`created_at`, `updated_at`), and optimistic locking via `@Version` (`version`).
 - **Polymorphic Question Hierarchy**: Question types implement JPA `InheritanceType.JOINED`, cleanly separating the polymorphic base table `quiz_questions` from concrete subtypes (`quiz_multiple_choice_questions`, `quiz_translation_questions`, `quiz_fill_in_the_blank_questions`).
 - **Granular Progress & Retention**: Spaced repetition tracking (`user_word_progress`) implements the Leitner box model (1–5) and dynamic forgetting risk metrics (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
 - **Auditable Gamification**: User profiles, cumulative XP transaction ledgers, daily streak maintenance, and idempotent achievement unlocking.
+- **Learning Partner, Challenge & Social Subsystem**: Canonical paired learner relationships (`partner_relationships`), synchronous competitive duels (`vocabulary_challenges`, `challenge_attempts`, `challenge_question_attempts`), and deterministic privacy-safe activity feeds (`partner_activities`).
 
 ---
 
 ## 🌐 Global Entity-Relationship Diagram (Full System)
 
-Below is the complete database schema with all 20 tables, primary keys, foreign keys, unique constraints, and cardinalities:
+Below is the complete database schema with all 25 tables, primary keys, foreign keys, unique constraints, and cardinalities:
 
 ```mermaid
 erDiagram
@@ -69,6 +70,20 @@ erDiagram
     learning_paths ||--o{ learning_path_items : "schedules (1:N)"
     vocabulary_words ||--o{ learning_path_items : "introduces (1:N)"
     quizzes ||--o{ learning_path_items : "consolidates (1:N)"
+
+    users ||--o{ partner_relationships : "user_one (1:N)"
+    users ||--o{ partner_relationships : "user_two (1:N)"
+    users ||--o{ partner_relationships : "requested_by (1:N)"
+    partner_relationships ||--o{ vocabulary_challenges : "hosts (1:N)"
+    users ||--o{ vocabulary_challenges : "challenger (1:N)"
+    users ||--o{ vocabulary_challenges : "challenged (1:N)"
+    quizzes ||--o{ vocabulary_challenges : "provides_questions (1:N)"
+    vocabulary_challenges ||--o{ challenge_attempts : "records_attempts (1:N)"
+    users ||--o{ challenge_attempts : "submitted_by (1:N)"
+    challenge_attempts ||--o{ challenge_question_attempts : "contains (1:N)"
+    quiz_questions ||--o{ challenge_question_attempts : "evaluates (1:N)"
+    partner_relationships ||--o{ partner_activities : "logs (1:N)"
+    users ||--o{ partner_activities : "actor (1:N)"
 
     users {
         bigint id PK
@@ -304,6 +319,78 @@ erDiagram
         timestamp completed_at
         int order_index
         text notes
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    partner_relationships {
+        bigint id PK
+        bigint user_one_id FK
+        bigint user_two_id FK
+        bigint requested_by_id FK
+        varchar status
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    vocabulary_challenges {
+        bigint id PK
+        bigint relationship_id FK
+        bigint challenger_id FK
+        bigint challenged_user_id FK
+        varchar status
+        varchar cefr_level
+        int question_count
+        bigint quiz_id FK
+        int challenger_score
+        int challenged_score
+        timestamp challenger_completed_at
+        timestamp challenged_completed_at
+        bigint winner_id FK
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    challenge_attempts {
+        bigint id PK
+        bigint challenge_id FK
+        bigint user_id FK
+        int score
+        int correct_answers
+        int total_questions
+        timestamp started_at
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    challenge_question_attempts {
+        bigint id PK
+        bigint challenge_attempt_id FK
+        bigint question_id FK
+        text user_answer
+        boolean is_correct
+        int score
+        bigint response_time_ms
+        timestamp answered_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    partner_activities {
+        bigint id PK
+        bigint relationship_id FK
+        bigint actor_id FK
+        varchar activity_type
+        varchar title
+        varchar details
+        int xp_earned
+        bigint source_entity_id
         timestamp created_at
         timestamp updated_at
         bigint version
@@ -637,9 +724,119 @@ erDiagram
 
 ---
 
+### 6. Learning Partner, Vocabulary Challenge & Social Activity Subsystem
+
+Manages bidirectional canonical partner pairings (`userOne.id < userTwo.id`), live synchronous vocabulary duels, participant attempts, and privacy-safe activity feeds with deterministic event deduplication.
+
+```mermaid
+erDiagram
+    users ||--o{ partner_relationships : "user_one"
+    users ||--o{ partner_relationships : "user_two"
+    users ||--o{ partner_relationships : "requested_by"
+    partner_relationships ||--o{ vocabulary_challenges : "hosts"
+    users ||--o{ vocabulary_challenges : "challenger"
+    users ||--o{ vocabulary_challenges : "challenged"
+    quizzes ||--o{ vocabulary_challenges : "provides questions"
+    vocabulary_challenges ||--o{ challenge_attempts : "attempts"
+    users ||--o{ challenge_attempts : "submits"
+    challenge_attempts ||--o{ challenge_question_attempts : "contains"
+    quiz_questions ||--o{ challenge_question_attempts : "evaluates"
+    partner_relationships ||--o{ partner_activities : "logs"
+    users ||--o{ partner_activities : "actor"
+
+    partner_relationships {
+        bigint id PK
+        bigint user_one_id FK "Canonical userOne.id < userTwo.id"
+        bigint user_two_id FK
+        bigint requested_by_id FK "Initiating user"
+        varchar status "PENDING, ACCEPTED, REJECTED, CANCELLED"
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    vocabulary_challenges {
+        bigint id PK
+        bigint relationship_id FK "FK -> partner_relationships.id"
+        bigint challenger_id FK "FK -> users.id"
+        bigint challenged_user_id FK "FK -> users.id"
+        varchar status "PENDING, ACCEPTED, DECLINED, COMPLETED, CANCELLED"
+        varchar cefr_level "A1, A2, B1, B2, C1"
+        int question_count "Questions in duel"
+        bigint quiz_id FK "Shared deterministic quiz instance"
+        int challenger_score "Score of challenger"
+        int challenged_score "Score of challenged user"
+        timestamp challenger_completed_at
+        timestamp challenged_completed_at
+        bigint winner_id FK "FK -> users.id (nullable for draw)"
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    challenge_attempts {
+        bigint id PK
+        bigint challenge_id FK "FK -> vocabulary_challenges.id"
+        bigint user_id FK "FK -> users.id"
+        int score "Earned score"
+        int correct_answers "Correct count"
+        int total_questions "Total questions"
+        timestamp started_at
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    challenge_question_attempts {
+        bigint id PK
+        bigint challenge_attempt_id FK "FK -> challenge_attempts.id"
+        bigint question_id FK "FK -> quiz_questions.id"
+        text user_answer "Submitted answer text"
+        boolean is_correct "Evaluation outcome"
+        int score "Points awarded"
+        bigint response_time_ms "Latency in milliseconds"
+        timestamp answered_at
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+
+    partner_activities {
+        bigint id PK
+        bigint relationship_id FK "FK -> partner_relationships.id (ON DELETE CASCADE)"
+        bigint actor_id FK "FK -> users.id (ON DELETE CASCADE)"
+        varchar activity_type "PARTNER_CONNECTED, CHALLENGE_CREATED, CHALLENGE_ACCEPTED, etc."
+        varchar title "Descriptive headline"
+        varchar details "Contextual summary"
+        int xp_earned "XP earned"
+        bigint source_entity_id "Deterministic event source ID"
+        timestamp created_at
+        timestamp updated_at
+        bigint version
+    }
+```
+
+---
+
 ## 🔗 Relational Integrity & Foreign Key Mapping Matrix
 
 | Source Table | Source Column | Target Table | Target Column | Cardinality | Cascade / Action | Constraint Name |
+| :--- | :--- | :--- | :--- | :---: | :--- | :--- |
+| `partner_relationships` | `user_one_id` | `users` | `id` | `N : 1` | `RESTRICT` | `idx_partner_user_one` |
+| `partner_relationships` | `user_two_id` | `users` | `id` | `N : 1` | `RESTRICT` | `idx_partner_user_two` |
+| `partner_relationships` | `requested_by_id` | `users` | `id` | `N : 1` | `RESTRICT` | `fk_partner_requested_by` |
+| `vocabulary_challenges` | `relationship_id` | `partner_relationships` | `id` | `N : 1` | `RESTRICT` | `idx_vocab_challenge_rel` |
+| `vocabulary_challenges` | `challenger_id` | `users` | `id` | `N : 1` | `RESTRICT` | `idx_vocab_challenge_challenger` |
+| `vocabulary_challenges` | `challenged_user_id`| `users` | `id` | `N : 1` | `RESTRICT` | `idx_vocab_challenge_challenged` |
+| `vocabulary_challenges` | `quiz_id` | `quizzes` | `id` | `N : 1` | `RESTRICT` | `fk_vocab_challenge_quiz` |
+| `vocabulary_challenges` | `winner_id` | `users` | `id` | `N : 1` | `RESTRICT` | `fk_vocab_challenge_winner` |
+| `challenge_attempts` | `challenge_id` | `vocabulary_challenges` | `id` | `N : 1` | `RESTRICT` | `idx_ch_attempt_challenge` |
+| `challenge_attempts` | `user_id` | `users` | `id` | `N : 1` | `RESTRICT` | `idx_ch_attempt_user` |
+| `challenge_question_attempts` | `challenge_attempt_id` | `challenge_attempts` | `id` | `N : 1` | `CASCADE (orphanRemoval)` | `fk_ch_qattempt_attempt` |
+| `challenge_question_attempts` | `question_id` | `quiz_questions` | `id` | `N : 1` | `RESTRICT` | `fk_ch_qattempt_question` |
+| `partner_activities` | `relationship_id` | `partner_relationships` | `id` | `N : 1` | `ON DELETE CASCADE` | `idx_partner_act_rel` |
+| `partner_activities` | `actor_id` | `users` | `id` | `N : 1` | `ON DELETE CASCADE` | `fk_partner_act_actor` |
 | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
 | `user_gamification_profiles` | `user_id` | `users` | `id` | `1 : 1` | `ON DELETE CASCADE` | `uk_gamification_profile_user` |
 | `xp_transactions` | `user_id` | `users` | `id` | `N : 1` | `ON DELETE CASCADE` | `fk_xp_transactions_user` |

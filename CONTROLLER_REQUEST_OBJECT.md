@@ -43,9 +43,11 @@ A complete inspection of the backend source code (`com.memora`) identified exact
 | 14 | `DictionaryController` | `com.memora.modules.dictionary.controller` | 2 | Merriam-Webster Collegiate Dictionary real-time lexical lookup (authenticated & public lookup) |
 | 15 | `AiController` | `com.memora.modules.ai.controller` | 5 | AI vocabulary explanations, contextual examples, mnemonic tips, register/usage analysis, and linguistic relations |
 | 16 | `AdaptiveInsightController` | `com.memora.modules.ai.controller` | 1 | Server-side adaptive insights and prioritized daily recommendations |
+| 17 | `PartnerController` | `com.memora.modules.partner.controller` | 13 | Learning partner discovery by email/query, requests, progress sharing, pair leaderboard, and activity feed |
+| 18 | `VocabularyChallengeController` | `com.memora.modules.partner.challenge.controller` | 9 | Competitive vocabulary duel creation, accept/decline, synchronized questions, answer evaluation, and results |
 
-* **Total Controllers**: 16  
-* **Total Endpoints**: 54 (22 POST, 32 GET)  
+* **Total Controllers**: 18  
+* **Total Endpoints**: 76 (30 POST, 45 GET, 1 DELETE)  
 
 ---
 
@@ -109,6 +111,28 @@ Below is the comprehensive audit of all **54 endpoints** in the platform:
 | `AiController` | POST | `/api/v1/ai/contextual-usage` | Principal + Request Body | `AiUsageRequest` | `@Valid` | `Authentication` | PASS |
 | `AiController` | POST | `/api/v1/ai/word-relations` | Principal + Request Body | `AiWordRelationsRequest` | `@Valid` | `Authentication` | PASS |
 | `AdaptiveInsightController` | GET | `/api/v1/insights/today` | Authentication Principal | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners` | Authentication Principal | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/search` (query) | Query Parameter (`query`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/search` (email) | Query Parameter (`email`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | POST | `/api/v1/partners/requests` | Principal + Request Body | `SendPartnerRequestDto` | `@Valid` | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/requests/incoming` | Authentication Principal | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/requests/outgoing` | Authentication Principal | None | N/A | `Authentication` | PASS |
+| `PartnerController` | POST | `/api/v1/partners/requests/{id}/accept` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | POST | `/api/v1/partners/requests/{id}/reject` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | POST | `/api/v1/partners/requests/{id}/cancel` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | DELETE | `/api/v1/partners/{partnerId}` | Path Variable (`partnerId`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/{partnerId}/progress` | Path Variable (`partnerId`) | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/leaderboard` | Authentication Principal | None | N/A | `Authentication` | PASS |
+| `PartnerController` | GET | `/api/v1/partners/activity` | Query Parameter (`limit`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | POST | `/api/v1/partners/challenges` | Principal + Request Body | `CreateChallengeRequest` | `@Valid` | `Authentication` | PASS |
+| `VocabularyChallengeController` | GET | `/api/v1/partners/challenges` | Query Parameter (`status`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | GET | `/api/v1/partners/challenges/{id}` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | POST | `/api/v1/partners/challenges/{id}/accept` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | POST | `/api/v1/partners/challenges/{id}/decline` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | POST | `/api/v1/partners/challenges/{id}/cancel` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | GET | `/api/v1/partners/challenges/{id}/questions` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
+| `VocabularyChallengeController` | POST | `/api/v1/partners/challenges/{id}/submit` | Path Variable + Body | `SubmitChallengeRequest` | `@Valid` | `Authentication` | PASS |
+| `VocabularyChallengeController` | GET | `/api/v1/partners/challenges/{id}/result` | Path Variable (`id`) | None | N/A | `Authentication` | PASS |
 
 ---
 
@@ -131,8 +155,11 @@ Every Request DTO utilized by backend controllers is documented below with its e
 | `AiMemoryTipRequest` | `com.memora.modules.ai.dto` | `AiController` | `POST /api/v1/ai/memory-tip` | AI mnemonic retention tip generation | `@Size(max = 100)` on `word`<br>`isValid()` ensures `wordId > 0` or non-blank `word` |
 | `AiUsageRequest` | `com.memora.modules.ai.dto` | `AiController` | `POST /api/v1/ai/contextual-usage` | AI collocations, register, and formal/informal usage | `@Size(max = 100)` on `word`<br>`isValid()` ensures `wordId > 0` or non-blank `word` |
 | `AiWordRelationsRequest` | `com.memora.modules.ai.dto` | `AiController` | `POST /api/v1/ai/word-relations` | AI linguistic relations (synonyms, antonyms, word families) | `@Size(max = 100)` on `word`<br>`isValid()` ensures `wordId > 0` or non-blank `word` |
+| `SendPartnerRequestDto` | `com.memora.modules.partner.dto` | `PartnerController` | `POST /api/v1/partners/requests` | Learning partner pairing request submission | `@NotNull`, `@Positive` on `targetUserId` |
+| `CreateChallengeRequest` | `com.memora.modules.partner.challenge.dto` | `VocabularyChallengeController` | `POST /api/v1/partners/challenges` | Vocabulary duel initiation | `@NotNull` on `challengedUserId`<br>`@NotBlank` on `cefrLevel`<br>`@Min(1)`, `@Max(20)` on `questionCount` |
+| `SubmitChallengeRequest` | `com.memora.modules.partner.challenge.dto` | `VocabularyChallengeController` | `POST /api/v1/partners/challenges/{id}/submit` | Competitive challenge duel answer submission | `@NotEmpty` on `answers` (`List<ChallengeAnswerRequest>`) |
 
-* **Total Dedicated Request DTOs**: 13  
+* **Total Dedicated Request DTOs**: 16  
 * **Validation Enforcement**: 100% of Request DTOs contain declared Jakarta validation constraints or validation methods.
 
 ---

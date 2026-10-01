@@ -20,6 +20,7 @@ import ProfilePage from '../pages/ProfilePage';
 import DictionaryPage from '../pages/DictionaryPage';
 import OnboardingPage from '../pages/OnboardingPage';
 import WordDetailPage from '../pages/WordDetailPage';
+import PartnersPage from '../pages/PartnersPage';
 
 import { Outlet } from 'react-router-dom';
 import { useOnboarding } from '../context/OnboardingContext';
@@ -95,6 +96,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/assessment/result" element={<AssessmentResultPage />} />
           <Route path="/dictionary" element={<DictionaryPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/partners" element={<PartnersPage />} />
 
           {/* Locked Core Learning Routes Guard */}
           <Route element={<LearningRouteGuard />}>
