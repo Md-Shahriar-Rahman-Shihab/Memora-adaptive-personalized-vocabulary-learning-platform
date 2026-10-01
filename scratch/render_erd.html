@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memora Relational ERD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: #060913;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #e2e8f0;
+    padding: 30px 35px;
+    width: 2500px;
+  }
+
+  .canvas {
+    background: #080d1a;
+    border: 1px solid #1e293b;
+    border-radius: 24px;
+    padding: 28px 32px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+  }
+
+  .title-group h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .title-group p {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+
+  .badges {
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+  .badge-purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+  /* Subsystems Layout Grid */
+  .subsystems-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .subsystem-card {
+    background: #0d1527;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .subsystem-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 10px;
+  }
+
+  .subsystem-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .subsystem-meta {
+    font-size: 10.5px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #64748b;
+  }
+
+  .tables-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Table Node */
+  .db-table {
+    background: #111a33;
+    border: 1px solid #233354;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .db-table-header {
+    background: #162244;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: #f8fafc;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #233354;
+  }
+
+  .db-table-header span.tag {
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #233354;
+    color: #94a3b8;
+  }
+
+  .db-table-body {
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    line-height: 1.6;
+    color: #cbd5e1;
+  }
+
+  .col-row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .col-name { color: #e2e8f0; }
+  .col-type { color: #64748b; font-size: 10px; }
+  .key-pk { color: #f59e0b; font-weight: bold; }
+  .key-fk { color: #38bdf8; font-weight: bold; }
+  .key-uk { color: #a855f7; font-weight: bold; }
+
+  .joined-indicator {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border-left: 2px solid #38bdf8;
+    padding-left: 6px;
+    margin: 4px 0;
+    font-size: 9.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="title-group">
+      <h1>🏛️ Memora — Relational Entity Relationship Diagram (ERD)</h1>
+      <p>Complete Data Model & Foreign Key Relationships across 6 Subsystems • PostgreSQL 18 / Hibernate 6 • Verified Source-of-Truth</p>
+    </div>
+    <div class="badges">
+      <div class="badge badge-green">25 PHYSICAL TABLES</div>
+      <div class="badge badge-blue">6 BOUNDED SUBSYSTEMS</div>
+      <div class="badge badge-purple">JPA JOINED HIERARCHY</div>
+    </div>
+  </div>
+
+  <div class="subsystems-grid">
+
+    <!-- SUBSYSTEM 1 -->
+    <div class="subsystem-card">
+      <div class="subsystem-header">
+        <div class="subsystem-title" style="color: #60a5fa;">
+          <span>01. User Identity & Gamification</span>
+        </div>
+        <div class="subsystem-meta">5 Tables</div>
+      </div>
+      <div class="tables-flex">
+        <div class="db-table">
+          <div class="db-table-header">users <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-uk">UK</span> email</span><span class="col-type">VARCHAR(255)</span></div>
+            <div class="col-row"><span class="col-name">name, password_hash, role</span><span class="col-type">VARCHAR</span></div>
+            <div class="col-row"><span class="col-name">current_level, xp, streak</span><span class="col-type">VARCHAR / INT</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">user_gamification_profiles <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK,UK</span> user_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">total_xp, current_streak, longest_streak</span><span class="col-type">INT</span></div>
+            <div class="col-row"><span class="col-name">last_activity_date</span><span class="col-type">DATE</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">xp_transactions <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> user_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">amount, activity_type, balance_after</span><span class="col-type">INT / VARCHAR</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">achievements & user_achievements <span class="tag">2 Tables</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name">achievements: <span class="key-pk">PK</span> id, <span class="key-uk">UK</span> code, name, icon</span><span class="col-type">BIGINT / VARCHAR</span></div>
+            <div class="col-row"><span class="col-name">user_achievements: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> user_id, <span class="key-fk">FK</span> achievement_id</span><span class="col-type">BIGINT</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBSYSTEM 2 -->
+    <div class="subsystem-card">
+      <div class="subsystem-header">
+        <div class="subsystem-title" style="color: #34d399;">
+          <span>02. Vocabulary Catalog & Retention</span>
+        </div>
+        <div class="subsystem-meta">2 Tables</div>
+      </div>
+      <div class="tables-flex">
+        <div class="db-table">
+          <div class="db-table-header">vocabulary_words <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-uk">UK</span> word</span><span class="col-type">VARCHAR(100)</span></div>
+            <div class="col-row"><span class="col-name">meaning, definition, pronunciation</span><span class="col-type">TEXT / VARCHAR</span></div>
+            <div class="col-row"><span class="col-name">difficulty_level (A1–C1), category</span><span class="col-type">VARCHAR(10)</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">user_word_progress <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> user_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> vocabulary_word_id &rarr; vocabulary_words(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">total_attempts, correct_attempts, mastery_score</span><span class="col-type">INT / DOUBLE</span></div>
+            <div class="col-row"><span class="col-name">forgetting_risk, leitner_box (1–5)</span><span class="col-type">VARCHAR / INT</span></div>
+            <div class="col-row"><span class="col-name">next_review_at, last_reviewed_at</span><span class="col-type">TIMESTAMP</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBSYSTEM 3 -->
+    <div class="subsystem-card">
+      <div class="subsystem-header">
+        <div class="subsystem-title" style="color: #fbbf24;">
+          <span>03. Adaptive Learning Curriculum</span>
+        </div>
+        <div class="subsystem-meta">2 Tables</div>
+      </div>
+      <div class="tables-flex">
+        <div class="db-table">
+          <div class="db-table-header">learning_paths <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> user_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">status (ACTIVE, COMPLETED)</span><span class="col-type">VARCHAR(20)</span></div>
+            <div class="col-row"><span class="col-name">target_level, current_day, total_items</span><span class="col-type">VARCHAR / INT</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">learning_path_items <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> learning_path_id &rarr; learning_paths(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> vocabulary_word_id &rarr; vocabulary_words(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> quiz_id &rarr; quizzes(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">item_type, priority, status, order_index</span><span class="col-type">VARCHAR / INT</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBSYSTEM 4 -->
+    <div class="subsystem-card">
+      <div class="subsystem-header">
+        <div class="subsystem-title" style="color: #a855f7;">
+          <span>04. Diagnostic Placement Assessment</span>
+        </div>
+        <div class="subsystem-meta">3 Tables</div>
+      </div>
+      <div class="tables-flex">
+        <div class="db-table">
+          <div class="db-table-header">assessments <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> user_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">status, estimated_level, confidence_score</span><span class="col-type">VARCHAR / DOUBLE</span></div>
+            <div class="col-row"><span class="col-name">total_questions, correct_answers, accuracy</span><span class="col-type">INT / DOUBLE</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">assessment_questions & assessment_answers <span class="tag">2 Tables</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name">questions: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> assessment_id, <span class="key-fk">FK</span> question_id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">answers: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> assessment_id, <span class="key-fk">FK</span> question_id, is_correct</span><span class="col-type">BIGINT / BOOL</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBSYSTEM 5 -->
+    <div class="subsystem-card">
+      <div class="subsystem-header">
+        <div class="subsystem-title" style="color: #ec4899;">
+          <span>05. Polymorphic Quiz & Question Engine</span>
+        </div>
+        <div class="subsystem-meta">8 Tables</div>
+      </div>
+      <div class="tables-flex">
+        <div class="db-table">
+          <div class="db-table-header">quizzes & quiz_questions <span class="tag">Base / Root</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name">quizzes: <span class="key-pk">PK</span> id, title, difficulty_level, count</span><span class="col-type">BIGINT / VARCHAR</span></div>
+            <div class="col-row"><span class="col-name">quiz_questions: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> quiz_id, question_type</span><span class="col-type">BIGINT / VARCHAR</span></div>
+          </div>
+        </div>
+        <div class="joined-indicator">JPA InheritanceType.JOINED Subtypes:</div>
+        <div class="db-table">
+          <div class="db-table-header">quiz_multiple_choice_questions & quiz_mcq_options <span class="tag">MCQ + Col</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK,FK</span> id &rarr; quiz_questions(id), correct_option</span><span class="col-type">BIGINT / VARCHAR</span></div>
+            <div class="col-row"><span class="col-name">quiz_mcq_options: <span class="key-fk">FK</span> question_id, option_text, order</span><span class="col-type">BIGINT / VARCHAR</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">quiz_translation & quiz_fill_in_the_blank <span class="tag">Subtypes</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name">translation: <span class="key-pk">PK,FK</span> id &rarr; quiz_questions(id), expected_answer</span><span class="col-type">BIGINT / VARCHAR</span></div>
+            <div class="col-row"><span class="col-name">fill_blank: <span class="key-pk">PK,FK</span> id &rarr; quiz_questions(id), sentence, expected</span><span class="col-type">BIGINT / VARCHAR</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">quiz_attempts & quiz_question_attempts <span class="tag">Sessions</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name">quiz_attempts: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> user_id, <span class="key-fk">FK</span> quiz_id, score</span><span class="col-type">BIGINT / INT</span></div>
+            <div class="col-row"><span class="col-name">question_attempts: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> attempt_id, is_correct, time</span><span class="col-type">BIGINT / BOOL</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBSYSTEM 6 -->
+    <div class="subsystem-card" style="border-color: #0284c7;">
+      <div class="subsystem-header">
+        <div class="subsystem-title" style="color: #38bdf8;">
+          <span>06. Learning Partners & Challenges (NEW)</span>
+        </div>
+        <div class="subsystem-meta" style="color: #38bdf8;">5 Tables</div>
+      </div>
+      <div class="tables-flex">
+        <div class="db-table">
+          <div class="db-table-header">partner_relationships <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> user_one_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> user_two_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> requested_by_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">status (PENDING, ACCEPTED, REJECTED, CANCELLED)</span><span class="col-type">VARCHAR(20)</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">vocabulary_challenges <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> relationship_id &rarr; partner_relationships(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> challenger_id &rarr; users(id), <span class="key-fk">FK</span> challenged_id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> quiz_id &rarr; quizzes(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">status (PENDING, ACCEPTED, IN_PROGRESS, COMPLETED)</span><span class="col-type">VARCHAR(20)</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> winner_id &rarr; users(id), is_draw</span><span class="col-type">BIGINT / BOOL</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">challenge_attempts & question_attempts <span class="tag">Attempts</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name">challenge_attempts: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> challenge_id, <span class="key-fk">FK</span> user_id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">score, duration_seconds, submitted_at</span><span class="col-type">INT / TIMESTAMP</span></div>
+            <div class="col-row"><span class="col-name">question_attempts: <span class="key-pk">PK</span> id, <span class="key-fk">FK</span> attempt_id, <span class="key-fk">FK</span> question_id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">selected_answer, is_correct, response_time_ms</span><span class="col-type">VARCHAR / BOOL</span></div>
+          </div>
+        </div>
+        <div class="db-table">
+          <div class="db-table-header">partner_activities <span class="tag">BaseEntity</span></div>
+          <div class="db-table-body">
+            <div class="col-row"><span class="col-name"><span class="key-pk">PK</span> id</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> relationship_id &rarr; partner_relationships(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name"><span class="key-fk">FK</span> actor_id &rarr; users(id)</span><span class="col-type">BIGINT</span></div>
+            <div class="col-row"><span class="col-name">activity_type, details, source_entity_id</span><span class="col-type">VARCHAR / BIGINT</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

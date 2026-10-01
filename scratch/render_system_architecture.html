@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memora System Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: #060913;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #e2e8f0;
+    padding: 36px 40px;
+    width: 1720px;
+    margin: 0 auto;
+  }
+
+  .canvas {
+    background: #0a0e1c;
+    border: 1px solid #1e293b;
+    border-radius: 24px;
+    padding: 32px 36px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 24px;
+    margin-bottom: 28px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+  }
+
+  .logo-icon svg {
+    width: 26px;
+    height: 26px;
+    stroke: #ffffff;
+    fill: none;
+    stroke-width: 2.5;
+  }
+
+  .brand-text h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(to right, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .brand-text p {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .badges {
+    display: flex;
+    gap: 10px;
+  }
+
+  .badge {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge-spring {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .badge-react {
+    background: rgba(59, 130, 246, 0.12);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+
+  .badge-neon {
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+  }
+
+  /* Tiers */
+  .tier-container {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .tier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .tier-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tier-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .dot-cyan { background: #06b6d4; box-shadow: 0 0 10px #06b6d4; }
+  .dot-purple { background: #a855f7; box-shadow: 0 0 10px #a855f7; }
+  .dot-emerald { background: #10b981; box-shadow: 0 0 10px #10b981; }
+  .dot-amber { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+  .dot-blue { background: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
+
+  .tier-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #f1f5f9;
+  }
+
+  .tier-meta {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #64748b;
+  }
+
+  /* Connectors */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: -6px 0 10px 0;
+    position: relative;
+  }
+
+  .connector-line {
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: #1e293b;
+    z-index: 1;
+  }
+
+  .connector-pill {
+    position: relative;
+    z-index: 2;
+    background: #060913;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 3px 14px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+  }
+
+  /* Grids */
+  .grid-5 {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .grid-4x3 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  /* Cards */
+  .card {
+    background: #131d36;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 14px;
+    transition: all 0.2s ease;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tag {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    background: #1e293b;
+    color: #cbd5e1;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .tag-accent {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .tag-cyan {
+    background: rgba(6, 182, 212, 0.15);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+  }
+
+  .tag-purple {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+  }
+
+  /* Mini Module Card */
+  .mod-card {
+    background: #111a30;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .mod-num {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: #10b981;
+    margin-bottom: 2px;
+  }
+
+  .mod-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+  }
+
+  .mod-text {
+    font-size: 10.5px;
+    color: #94a3b8;
+    line-height: 1.4;
+  }
+
+  /* Pattern Card */
+  .pattern-card {
+    background: #111a33;
+    border: 1px solid #233354;
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+
+  .pattern-card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pattern-card ul {
+    list-style: none;
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .pattern-card li {
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 4px;
+  }
+
+  .pattern-card li::before {
+    content: "•";
+    position: absolute;
+    left: 2px;
+    color: #0284c7;
+    font-weight: bold;
+  }
+
+  .code-token {
+    font-family: 'JetBrains Mono', monospace;
+    color: #e2e8f0;
+    font-size: 10.5px;
+  }
+
+  /* Persistence / Footer */
+  .footer-layer {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .db-card {
+    background: linear-gradient(135deg, #111936 0%, #151b3b 100%);
+    border: 1px solid #2e3c63;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .db-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .db-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #a78bfa;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ext-card {
+    background: #0e162b;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+
+  .ext-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .ext-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ext-item {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    background: #141f38;
+    border: 1px solid #233354;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: #93c5fd;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ext-item span {
+    color: #64748b;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>Memora — System Architecture</h1>
+        <p>AI Memory-Based Adaptive Vocabulary Learning Platform • Verified Source-of-Truth Architecture</p>
+      </div>
+    </div>
+    <div class="badges">
+      <div class="badge badge-spring">SPRING BOOT 3.3.4</div>
+      <div class="badge badge-react">REACT 19 + TYPESCRIPT</div>
+      <div class="badge badge-neon">NEON POSTGRESQL 18</div>
+    </div>
+  </div>
+
+  <!-- TIER 1 -->
+  <div class="tier-container">
+    <div class="tier-header">
+      <div class="tier-title-wrap">
+        <div class="tier-dot dot-cyan"></div>
+        <div class="tier-title">Tier 1: Client Application & UI Presentation Layer</div>
+      </div>
+      <div class="tier-meta">React 19 • Vite 8 • TypeScript ~6.0 • Tailwind CSS v4 • Lucide • 17 Pages • 15 API Modules</div>
+    </div>
+    <div class="grid-5">
+      <div class="card">
+        <div class="card-title">Landing & Onboarding</div>
+        <div class="card-desc">Diagnostic placement CTA, 4-step onboarding state machine, auth gating.</div>
+        <div class="card-tags">
+          <span class="tag">/</span>
+          <span class="tag">/login</span>
+          <span class="tag">/onboarding</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Diagnostic Placement</div>
+        <div class="card-desc">10-item CEFR benchmark test, placement engine, initial level calibration.</div>
+        <div class="card-tags">
+          <span class="tag">/assessment</span>
+          <span class="tag">/result</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Curriculum & Words</div>
+        <div class="card-desc">Adaptive daily path, word details, MW audio CDN, contextual AI insights.</div>
+        <div class="card-tags">
+          <span class="tag">/learning</span>
+          <span class="tag">/word/:word</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Memory & Quiz Engine</div>
+        <div class="card-desc">Active recall review (SM-2, Leitner), polymorphic questions, scoring.</div>
+        <div class="card-tags">
+          <span class="tag">/review</span>
+          <span class="tag">/quiz/:id</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Partners & Duels</div>
+        <div class="card-desc">Email discovery, privacy progress, synchronized duels, pair leaderboard.</div>
+        <div class="card-tags">
+          <span class="tag tag-accent">/partners</span>
+          <span class="tag tag-cyan">Activity</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONNECTOR 1 -->
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-pill">REST API • JSON • STATELESS JWT BEARER • AXIOS TIMEOUT / INTERCEPTOR</div>
+  </div>
+
+  <!-- TIER 2 -->
+  <div class="tier-container">
+    <div class="tier-header">
+      <div class="tier-title-wrap">
+        <div class="tier-dot dot-purple"></div>
+        <div class="tier-title">Tier 2: API Security & Thin Controller Layer</div>
+      </div>
+      <div class="tier-meta">Spring Web • Spring Security 6 • 18 @RestControllers • 74 Endpoints • 16 Request DTOs</div>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">Security & Auth Filter Chain</div>
+        <div class="card-desc">Stateless JWT authentication filter, BCrypt password hashing, principal injection, CORS policy, public route bypassing.</div>
+        <div class="card-tags">
+          <span class="tag tag-purple">JwtAuthenticationFilter</span>
+          <span class="tag">SecurityConfig</span>
+          <span class="tag">UserPrincipal</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">18 Thin RestControllers</div>
+        <div class="card-desc">Pure presentation gateways (43 GET, 31 POST, 0 PUT/PATCH/DELETE). Zero DB calls in controllers. All logic delegated to domain services.</div>
+        <div class="card-tags">
+          <span class="tag">74 REST Routes</span>
+          <span class="tag tag-cyan">PathVariables</span>
+          <span class="tag tag-cyan">RequestParams</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Validation & Error Handling</div>
+        <div class="card-desc">16 Request DTOs with Jakarta Bean Validation (@Valid, @NotNull). Centralized GlobalExceptionHandler into standardized ApiResponse&lt;T&gt;.</div>
+        <div class="card-tags">
+          <span class="tag tag-accent">GlobalExceptionHandler</span>
+          <span class="tag">ApiResponse&lt;T&gt;</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONNECTOR 2 -->
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-pill">SERVICE DELEGATION • TRANSACTION BOUNDARY (@TRANSACTIONAL) • DTO MAPPER</div>
+  </div>
+
+  <!-- TIER 3 -->
+  <div class="tier-container">
+    <div class="tier-header">
+      <div class="tier-title-wrap">
+        <div class="tier-dot dot-emerald"></div>
+        <div class="tier-title">Tier 3: Domain Service Layer (12 Business Modules)</div>
+      </div>
+      <div class="tier-meta">18 Service Interfaces • 22 Service Implementations • Strict Module Boundaries</div>
+    </div>
+    <div class="grid-4x3">
+      <div class="mod-card">
+        <div class="mod-num">MODULE 01</div>
+        <div class="mod-name">Auth & User</div>
+        <div class="mod-text">AuthService, UserService. Registration, BCrypt login, JWT issue, profile.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 02</div>
+        <div class="mod-name">Smart Onboarding</div>
+        <div class="mod-text">OnboardingService. 4-state finite state machine guiding learner progression.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 03</div>
+        <div class="mod-name">Vocabulary Catalog</div>
+        <div class="mod-text">VocabularyService, UserWordProgressService. Word details, CEFR tiers, search.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 04</div>
+        <div class="mod-name">SRS Memory Engine</div>
+        <div class="mod-text">MemoryService. SM-2 intervals, Leitner 5-box model, forgetting curve calculation.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 05</div>
+        <div class="mod-name">Polymorphic Quiz</div>
+        <div class="mod-text">QuizService. Algorithmic generation, attempt tracking, memory engine sync.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 06</div>
+        <div class="mod-name">Assessment & CEFR</div>
+        <div class="mod-text">AssessmentService, QuestionGenerator. Calibrated 10-Q diagnostic benchmark.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 07</div>
+        <div class="mod-name">Adaptive Learning Path</div>
+        <div class="mod-text">LearningPathService. Daily 10-item balanced curriculum, stretch word mix.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 08</div>
+        <div class="mod-name">Gamification & Streaks</div>
+        <div class="mod-text">GamificationService, StreakService. Daily streak tracker, 10 badges rule engine.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 09</div>
+        <div class="mod-name">Multi-Provider AI</div>
+        <div class="mod-text">AiProviderRouter. Automated Gemini &rarr; Groq &rarr; Fallback explanation chain.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 10</div>
+        <div class="mod-name">Collegiate Dictionary</div>
+        <div class="mod-text">DictionaryService. Merriam-Webster v3 client, Caffeine in-memory TTL caching.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num">MODULE 11</div>
+        <div class="mod-name">Adaptive Insights</div>
+        <div class="mod-text">AdaptiveInsightService. Real-time cognitive load advice & retention heuristics.</div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-num" style="color: #38bdf8;">MODULE 12</div>
+        <div class="mod-name" style="color: #38bdf8;">Partners & Duels</div>
+        <div class="mod-text">PartnerService, VocabularyChallengeService, PartnerLeaderboard, ActivityService.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONNECTOR 3 -->
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-pill">ADVANCED OOP DESIGN PATTERNS • POLYMORPHIC DISPATCH • FACTORY ABSTRACTION</div>
+  </div>
+
+  <!-- TIER 4 -->
+  <div class="tier-container">
+    <div class="tier-header">
+      <div class="tier-title-wrap">
+        <div class="tier-dot dot-amber"></div>
+        <div class="tier-title">Tier 4: Advanced OOP Principles & Design Patterns Tier</div>
+      </div>
+      <div class="tier-meta">5 Strategy Interfaces • 13 Strategies • 6 Factories • 2 Provider Interfaces • Joined Table Inheritance</div>
+    </div>
+    <div class="grid-3">
+      <div class="pattern-card">
+        <h3><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 6.5v7L12 22 2 15.5v-7L12 2z"/></svg> Strategy Pattern Implementations</h3>
+        <ul>
+          <li><span class="code-token">QuestionEvaluatorStrategy</span> (MCQ, Translation, FillInBlank)</li>
+          <li><span class="code-token">MemoryAlgorithmStrategy</span> (SM-2, Leitner 5-Box)</li>
+          <li><span class="code-token">PlacementAlgorithmStrategy</span> (Default CEFR benchmark)</li>
+          <li><span class="code-token">LearningPathStrategy</span> (Adaptive daily curriculum)</li>
+          <li><span class="code-token">RewardStrategy</span> (6 distinct activity reward calculators)</li>
+        </ul>
+      </div>
+      <div class="pattern-card">
+        <h3><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Factory Pattern Implementations</h3>
+        <ul>
+          <li><span class="code-token">QuestionFactory</span> (Subtype instantiation & distractors)</li>
+          <li><span class="code-token">QuestionEvaluatorFactory</span> (Runtime dispatch by QuestionType)</li>
+          <li><span class="code-token">MemoryStrategyFactory</span> (SM-2 vs Leitner selector)</li>
+          <li><span class="code-token">PlacementStrategyFactory</span> & <span class="code-token">LearningPathStrategyFactory</span></li>
+          <li><span class="code-token">RewardStrategyFactory</span> (Maps calculators by ActivityType)</li>
+        </ul>
+      </div>
+      <div class="pattern-card">
+        <h3><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h8a2 2 0 012 2v1"/><path d="M18 8l4 4-4 4M22 12H10"/></svg> Provider & Inheritance Hierarchies</h3>
+        <ul>
+          <li><span class="code-token">AiProviderRouter</span> (Chain: Gemini &rarr; Groq &rarr; Fallback)</li>
+          <li><span class="code-token">DictionaryProvider</span> (Merriam-Webster HTTP client)</li>
+          <li><span class="code-token">BaseEntity</span> (@MappedSuperclass: id, audit, @Version)</li>
+          <li><span class="code-token">Question</span> (InheritanceType.JOINED: 3 concrete tables)</li>
+          <li><span class="code-token">AchievementRuleEngine</span> (10 open/closed milestone rules)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSISTENCE & EXTERNAL -->
+  <div class="footer-layer">
+    <div class="db-card">
+      <div class="db-header">
+        <div class="db-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Persistence Layer: Neon Serverless PostgreSQL (25 Physical Relational Tables across 6 Subsystems)
+        </div>
+        <div class="tier-meta" style="color: #a78bfa;">21 Spring Data JPA Repositories • Hibernate 6 • HikariCP Batching</div>
+      </div>
+      <div style="font-size: 11px; color: #94a3b8; line-height: 1.6;">
+        <strong style="color: #cbd5e1;">Subsystems:</strong>
+        <span class="code-token">1. User & Gamification</span> (users, user_gamification_profiles, user_achievements, achievements, xp_transactions) •
+        <span class="code-token">2. Vocabulary Retention</span> (vocabulary_words, user_word_progress) •
+        <span class="code-token">3. Curriculum</span> (learning_paths, learning_path_items) •
+        <span class="code-token">4. Diagnostic</span> (assessments, assessment_questions, assessment_answers) •
+        <span class="code-token">5. Quiz Hierarchy</span> (quizzes, quiz_questions, quiz_multiple_choice_questions, quiz_fill_in_the_blank_questions, quiz_translation_questions, quiz_mcq_options, quiz_attempts, quiz_question_attempts) •
+        <span class="code-token" style="color: #38bdf8;">6. Learning Partners & Challenges</span> (partner_relationships, vocabulary_challenges, challenge_attempts, challenge_question_attempts, partner_activities)
+      </div>
+    </div>
+    <div class="ext-card">
+      <div class="ext-title">External Providers (Backend Isolated)</div>
+      <div class="ext-list">
+        <div class="ext-item">Google Gemini <span>gemini-3.6-flash</span></div>
+        <div class="ext-item">Groq Cloud <span>openai/gpt-oss-120b</span></div>
+        <div class="ext-item">Merriam-Webster <span>Collegiate v3</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

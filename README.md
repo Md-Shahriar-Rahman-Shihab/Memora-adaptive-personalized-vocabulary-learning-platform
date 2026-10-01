@@ -32,11 +32,11 @@ Traditional language and vocabulary learning applications suffer from three crit
 3. **Passive, Unmotivated Engagement**: Lack of active recall practice, immediate pedagogical feedback, and auditable gamification incentives leads to high learner drop-off.
 
 ### The Solution: Memora
-**Memora** is an adaptive, memory-driven personalized vocabulary learning platform designed to guarantee long-term lexical retention. By fusing cognitive spaced repetition algorithms, multi-tier diagnostic CEFR placement, polymorphic quiz evaluations, multi-provider AI pedagogical assistance, and real-time gamification, Memora adapts dynamically to each learner's unique memory state.
+**Memora** is an adaptive, memory-driven personalized vocabulary learning platform designed to optimize long-term lexical retention. By fusing cognitive spaced repetition algorithms, multi-tier diagnostic CEFR placement, polymorphic quiz evaluations, multi-provider AI pedagogical assistance, and real-time gamification, Memora adapts dynamically to each learner's unique memory state.
 
 * **Adaptive Vocabulary Learning**: Dynamically assesses learner mastery, balances new lexical introductions against retention reviews, and incorporates advanced "stretch" vocabulary when high retention is demonstrated.
 * **Memory-Based Revision (Spaced Repetition)**: Implements dual algorithms—SuperMemo-2 (SM-2) with exponential interval expansion and the 5-box Leitner partition system—calculating real-time forgetting risk (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
-* **Diagnostic Placement Assessment**: A compact 10-question multi-tier CEFR diagnostic benchmark (A1–C1) placing learners at their exact learning frontier with Bayesian confidence scoring.
+* **Diagnostic Placement Assessment**: A compact 10-question multi-tier CEFR diagnostic benchmark (A1–C1) placing learners at their calibrated diagnostic proficiency tier and difficulty frontier.
 * **Personalized Daily Learning Path**: Schedules up to 10 prioritized curricular tasks per day (review items, new words, stretch vocabulary, and consolidating quizzes) dynamically regenerated from live memory metrics.
 * **Auditable Gamification**: Cumulative experience points (XP), calendar-day boundary safe daily streaks, 10 unlockable milestone badges, an immutable XP transaction ledger, and a privacy-preserving global leaderboard.
 * **Multi-Provider AI Learning Assistant**: Deep-dive contextual explanations, CEFR-calibrated examples, mnemonic memory tips, and collocation analyses powered by Google Gemini and Groq fast-inference with deterministic offline fallback.
@@ -68,7 +68,7 @@ Traditional language and vocabulary learning applications suffer from three crit
 
 ## 🏛️ System Architecture Diagram
 
-The diagram below reflects the actual multi-tier enterprise architecture implemented across the frontend, API gateway, thin controllers, domain services, design patterns, repositories, and cloud persistence:
+The diagram below reflects the actual multi-tier enterprise architecture implemented across the frontend, stateless security layer, thin presentation controllers, domain services, design patterns, repositories, and cloud persistence:
 
 ![Memora System Architecture](docs/diagrams/system-architecture.png)
 
@@ -77,11 +77,11 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
    - Responsive presentation views: Landing Page, Dashboard, Diagnostic Assessment Runner (10-Q), Word Study Modal (React Portal), Spaced Repetition Review (`/review`), Polymorphic Quiz Runner (`/quiz/:id`), Collegiate Dictionary Explorer (`/dictionary`), Gamification Leaderboard/Achievements, and Learning Partners Hub (`/partners`) with competitive duels and activity feed.
    - State management: `AuthContext` (token persistence & user profile), `OnboardingContext` (global state & feature locking), `ToastContext` (non-intrusive notifications).
    - Audio: Native HTML5 Audio integrating Merriam-Webster pronunciation audio CDN with Web Speech API fallback.
-2. **Tier 2: API Gateway, Security & Thin Controller Layer (Spring Web + Spring Security)**:
+2. **Tier 2: Security Layer & Thin Controller Gateways (Spring Web + Spring Security)**:
    - Security Filter Chain: Stateless JWT authentication filter (`JwtAuthenticationFilter`), BCrypt password encoder, CORS filter (`CORS_ALLOWED_ORIGINS`), unauthorized access handlers (`JwtAuthenticationEntryPoint`, `JwtAccessDeniedHandler`).
    - 18 `@RestController` Presentation Gateways: Strictly validate request payloads and delegate business orchestration to domain services. Zero direct database queries or algorithm logic in controllers.
    - Validation & Error Interception: 16 Request DTOs annotated with Jakarta Bean Validation (`@Valid`). Centralized `GlobalExceptionHandler` intercepting validation, resource, and authentication exceptions into standardized `ApiResponse<T>` envelopes.
-3. **Tier 3: Domain Service Layer (13 Business Modules)**:
+3. **Tier 3: Domain Service Layer (12 Bounded Business Modules)**:
    - `AuthService`, `UserService`, `OnboardingService`, `VocabularyService`, `UserWordProgressService`, `MemoryService`, `QuizService`, `AssessmentService`, `LearningPathService`, `GamificationService`, `StreakService`, `AchievementService`, `PartnerService`, `PartnerLeaderboardService`, `PartnerActivityService`, `VocabularyChallengeService`, `AIExplanationService`, `DictionaryService`, `AdaptiveInsightService`.
 4. **Tier 4: Advanced OOP Principles & Design Patterns Layer**:
    - Strategy Pattern implementations for question evaluation, memory algorithms, placement estimation, curriculum generation, XP rewards, and milestone rules.
@@ -91,7 +91,7 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
    - JPA Joined Table Inheritance for polymorphic database entities.
 5. **Tier 5: Persistence & Cloud Infrastructure Layer**:
    - 21 Spring Data JPA Repositories interacting with Neon PostgreSQL 18 via HikariCP connection pool.
-   - High-throughput JDBC batch rewriting (`reWriteBatchedInserts=true`, `hibernate.jdbc.batch_size=50`) dropping WAN round-trip latency by over 90%.
+   - High-throughput JDBC batch rewriting (`reWriteBatchedInserts=true`, `hibernate.jdbc.batch_size=50`) batching multi-row statement inserts to minimize database round-trips.
    - Isolated in-memory H2 database executing automated unit and integration tests with zero external cloud dependencies.
 
 ---
@@ -165,7 +165,7 @@ As an **Advanced Object-Oriented Programming Laboratory** project, Memora is eng
 ### 2. Abstraction
 * **Layer Supertype (`BaseEntity`)**: Defines the abstract contract for persistent entities (`@MappedSuperclass`), abstracting auto-generated primary keys, creation/modification timestamps, and optimistic locking logic (`@Version`) from child entities.
 * **Abstract Base Entity (`Question`)**: Abstract class `Question` defines the foundational contract for quiz items (`vocabularyWord`, `points`, `questionType`, `questionText`, `quiz`). It cannot be directly instantiated, enforcing concrete polymorphic specializations.
-* **Service Interfaces**: Every service layer defines a clean interface contract (`AuthService`, `MemoryService`, `QuizService`, `AssessmentService`, `LearningPathService`, `GamificationService`, `DictionaryService`, `AIExplanationService`, `OnboardingService`) completely separating callers from concrete implementation details (`*ServiceImpl`).
+* **Service Interfaces**: Across the platform, 18 clean service interface contracts (`AuthService`, `UserService`, `MemoryService`, `QuizService`, `AssessmentService`, `LearningPathService`, `GamificationService`, `DictionaryService`, `AIExplanationService`, `OnboardingService`, `PartnerService`, `VocabularyChallengeService`, etc.) separate client callers from concrete implementation details (`*ServiceImpl`).
 * **External Provider Abstractions**: `AiProvider` and `DictionaryProvider` abstract third-party cloud APIs, allowing external vendors to be swapped or mocked with zero disruption to domain services.
 
 ### 3. Inheritance
@@ -178,7 +178,7 @@ As an **Advanced Object-Oriented Programming Laboratory** project, Memora is eng
             └── FillInTheBlankQuestion (@Entity, @Table("quiz_fill_in_the_blank_questions"))
   ```
   - Subclasses inherit common properties (`points`, `questionText`, `vocabularyWord`) while declaring subtype-specific properties (`options` list, `correctOption`, `sentence`, `expectedAnswer`).
-* **Class Hierarchies**: All 19 persistent domain entities inherit from `BaseEntity`. Custom application exceptions inherit from `ApiException` which extends `RuntimeException`.
+* **Class Hierarchies**: All 24 persistent domain entities inherit from `BaseEntity`. Custom application exceptions inherit from `ApiException` which extends `RuntimeException`.
 
 ### 4. Polymorphism
 * **Runtime Polymorphic Dispatch in Evaluation**:
@@ -269,11 +269,11 @@ As an **Advanced Object-Oriented Programming Laboratory** project, Memora is eng
 
 ### 5. Layer Supertype / MappedSuperclass Pattern
 * **Where Used**: `com.memora.common.domain.BaseEntity`.
-* **Why Used**: Centralizes primary key generation (`id`), audit timestamp tracking (`createdAt`, `updatedAt`), and optimistic concurrency control (`@Version version`) across all 19 persistent domain entities without table duplication.
+* **Why Used**: Centralizes primary key generation (`id`), audit timestamp tracking (`createdAt`, `updatedAt`), and optimistic concurrency control (`@Version version`) across all 24 persistent domain entities without table duplication.
 
 ### 6. Data Transfer Object (DTO) & Mapper Pattern
-* **Where Used**: Across all 9 domain modules (`com.memora.modules.*.dto` and `mapper`).
-* **Why Used**: Decouples internal database entities from external REST API contracts. Mappers (`VocabularyWordMapper`, `UserWordProgressMapper`, `MemoryMapper`) ensure sensitive or internal state (e.g., password hashes, entity versions) is never leaked to the client.
+* **Where Used**: Across all domain modules (`com.memora.modules.*.dto` and `mapper`).
+* **Why Used**: Decouples internal database entities from external REST API contracts. Mappers (`VocabularyWordMapper`, `UserWordProgressMapper`, `MemoryMapper`, `PartnerMapper`, `ChallengeMapper`) ensure sensitive or internal state (e.g., password hashes, entity versions) is never leaked to the client.
 
 ---
 
@@ -285,21 +285,19 @@ Memora strictly follows modern enterprise Spring Boot and RESTful API standards.
 
 ### Controller Inventory Summary:
 * **Total `@RestController` Classes**: Exactly **18 controllers** across 10 modules.
-* **Total REST Endpoints**: Exactly **76 endpoints** (30 HTTP POST, 45 HTTP GET, 1 HTTP DELETE).
-* **Dedicated Request DTOs**: Exactly **16 Request DTO classes** mapped to endpoints accepting structured request bodies:
+* **Total REST Endpoints**: Exactly **74 distinct handler methods** (**75 mapped HTTP route paths**: 43 GET methods [44 mapped paths], 31 POST methods, 0 PUT, 0 PATCH, 0 DELETE).
+* **Dedicated Request DTOs**: Exactly **16 Request DTO classes** mapped directly to endpoints accepting structured request bodies (14 mandatory, 2 optional), plus 1 child item DTO (`ChallengeAnswerRequest`) making 17 total Request DTO classes:
   - **14 Mandatory Request-Body Endpoints (`required = true`)**: `RegistrationRequest`, `LoginRequest`, `VocabularyWordRequest`, `WordReviewRequest`, `AnswerSubmissionRequest`, `AssessmentAnswerRequest`, `AiExplanationRequest`, `AiExampleRequest`, `AiMemoryTipRequest`, `AiUsageRequest`, `AiWordRelationsRequest`, `SendPartnerRequestDto`, `CreateChallengeRequest`, `SubmitChallengeRequest`.
   - **2 Optional Request-Body Endpoints (`@Valid @RequestBody(required = false)`)**: `QuizGenerationRequest` (defaults to A1 with 5 questions if omitted), `LearningItemCompletionRequest` (allows simple curriculum item completion without body or optional review telemetry).
 * **No Primitive Parameter Anti-Patterns**: No endpoint accepts loose primitive arguments for data-submission endpoints.
-* **Path Variables (`@PathVariable`)**: 23 endpoints use path variables strictly for discrete resource identification (`/vocabulary/{id}`, `/dictionary/{word}`, `/partners/{partnerId}`, `/partners/challenges/{id}`) and lifecycle actions on existing entities (`/quizzes/{quizId}/start`, `/partners/challenges/{id}/accept`, etc.).
-* **Query Parameters (`@RequestParam`)**: Retained strictly on idempotent HTTP `GET` endpoints for search filtering (`/partners/search?email=...`, `/vocabulary/search?query=...`), limits (`/partners/activity?limit=20`, `/leaderboard?limit=20`), and status filters (`/partners/challenges?status=ACCEPTED`).
+* **Path Variables (`@PathVariable`)**: 23 handler methods utilize path variables strictly for discrete resource identification or lifecycle action triggers on existing entities.
+* **Query Parameters (`@RequestParam`)**: Retained strictly on idempotent HTTP `GET` endpoints for search filtering, pagination, and limits.
 * **Authentication Derived from Security Context**: All authenticated endpoints resolve learner identity strictly from Spring Security's authenticated principal (`Authentication.getName()`). Request DTOs never accept client-supplied `userId` fields, preventing identity spoofing.
 * **Thin Controller Architecture**: Controllers contain zero business algorithms, memory math, or direct database queries; they act solely as presentation gateways delegating to domain services and wrapping responses in `ApiResponse<T>`.
 
----
-
 ## 🌐 REST API Documentation
 
-Below is the concise catalog of all 76 implemented endpoints organized by domain module:
+Below is the concise catalog of all 74 implemented endpoints (75 mapped route paths) organized by domain module:
 
 ### 1. System Health
 * `GET  /api/v1/health` — Liveness diagnostic probe & service version metadata (Public)
@@ -377,19 +375,17 @@ Below is the concise catalog of all 76 implemented endpoints organized by domain
 
 ### 12. Collegiate Dictionary (`/api/v1/dictionary`)
 * `GET  /api/v1/dictionary/{word}` — Real-time Merriam-Webster lookup with phonetics and native audio CDN stream (JWT required)
-* `GET  /api/v1/dictionary/public/{word}` — Public dictionary lookup without authentication (Public)
+* `GET  /api/v1/dictionary/public/{word}` — Public dictionary lookup without authentication (alias: `/api/v1/dictionary/public-lookup/{word}`) (Public)
 
 ### 13. Learning Partners, Competitive Duels & Activity Feed (`/api/v1/partners`)
 * `GET  /api/v1/partners` — List all active accepted learning partners (JWT required)
-* `GET  /api/v1/partners/search?query=...` — Broad partner discovery by name (JWT required)
-* `GET  /api/v1/partners/search?email=...` — Exact case-insensitive partner discovery by email (JWT required)
+* `GET  /api/v1/partners/search` — Search users by query string or exact email (`query` or `email` param) (JWT required)
 * `POST /api/v1/partners/requests` — Send partner connection request (`SendPartnerRequestDto`) (JWT required)
-* `GET  /api/v1/partners/requests/incoming` — List pending incoming partner requests (JWT required)
-* `GET  /api/v1/partners/requests/outgoing` — List pending outgoing partner requests (JWT required)
+* `GET  /api/v1/partners/requests` — List incoming and outgoing partner requests (returns `PartnerRequestsSummaryResponse`) (JWT required)
 * `POST /api/v1/partners/requests/{id}/accept` — Accept partner invitation (JWT required)
 * `POST /api/v1/partners/requests/{id}/reject` — Reject partner invitation (JWT required)
 * `POST /api/v1/partners/requests/{id}/cancel` — Cancel sent partner request (JWT required)
-* `DELETE /api/v1/partners/{partnerId}` — Terminate learning partnership (JWT required)
+* `POST /api/v1/partners/{partnerId}/terminate` — Terminate an accepted learning partnership (JWT required)
 * `GET  /api/v1/partners/{partnerId}/progress` — View privacy-safe partner progress (JWT required)
 * `GET  /api/v1/partners/leaderboard` — Pair-only learning partner leaderboard ranked by Total XP (JWT required)
 * `GET  /api/v1/partners/activity` — Chronological partner activity feed with deterministic deduplication (JWT required)
@@ -402,8 +398,6 @@ Below is the concise catalog of all 76 implemented endpoints organized by domain
 * `GET  /api/v1/partners/challenges/{id}/questions` — Retrieve challenge questions with answer keys hidden (JWT required)
 * `POST /api/v1/partners/challenges/{id}/submit` — Submit duel attempt (`SubmitChallengeRequest`) (JWT required)
 * `GET  /api/v1/partners/challenges/{id}/result` — Retrieve duel outcome, winner/draw, score breakdown (JWT required)
-
----
 
 ## 🛠️ Technology Stack
 
@@ -441,36 +435,37 @@ Below is the concise catalog of all 76 implemented endpoints organized by domain
 
 ```text
 Memora/
-├── backend/ (Root Maven Project)
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/memora/
-│   │   │   │   ├── MemoraApplication.java      # Application entry point
-│   │   │   │   ├── common/                     # BaseEntity, ApiResponse, GlobalExceptionHandler
-│   │   │   │   ├── security/                   # SecurityConfig, JWT services, UserPrincipal
-│   │   │   │   └── modules/
-│   │   │   │       ├── user/                   # Identity, AuthController, UserRepository
-│   │   │   │       ├── onboarding/             # OnboardingController, OnboardingService
-│   │   │   │       ├── vocabulary/             # VocabularyWord, UserWordProgress, DataSeeder
-│   │   │   │       ├── memory/                 # SM-2 & Leitner strategies, MemoryService
-│   │   │   │       ├── quiz/                   # Polymorphic Question entities, Evaluator strategies
-│   │   │   │       ├── assessment/             # Calibrated 10-Q diagnostic assessment & placement
-│   │   │   │       ├── learningpath/           # AdaptiveLearningPathStrategy, daily curriculum
-│   │   │   │       ├── gamification/           # Streaks, AchievementRuleEngine, XP audit ledger
-│   │   │   │       ├── ai/                     # Multi-provider router (Gemini, Groq, Fallback)
-│   │   │   │       └── dictionary/             # Merriam-Webster Collegiate API client & caching
-│   │   │   └── resources/
-│   │   │       ├── application.yml             # Core config with env var placeholders
-│   │   │       └── application-dev.yml         # Dev profile settings
-│   │   └── test/                               # 51 test classes (269 automated tests, H2 DB)
-│   ├── mvnw / mvnw.cmd                         # Maven wrapper executables
-│   ├── pom.xml                                 # Maven dependencies and build plugins
-│   ├── run-backend.ps1 / run-backend.cmd       # Local development runner scripts
+├── src/                                        # Spring Boot backend source code
+│   ├── main/
+│   │   ├── java/com/memora/
+│   │   │   ├── MemoraApplication.java          # Application entry point
+│   │   │   ├── common/                         # BaseEntity, ApiResponse, GlobalExceptionHandler
+│   │   │   ├── security/                       # SecurityConfig, JWT services, UserPrincipal
+│   │   │   └── modules/
+│   │   │       ├── user/                       # Identity, AuthController, UserRepository
+│   │   │       ├── onboarding/                 # OnboardingController, OnboardingService
+│   │   │       ├── vocabulary/                 # VocabularyWord, UserWordProgress, DataSeeder
+│   │   │       ├── memory/                     # SM-2 & Leitner strategies, MemoryService
+│   │   │       ├── quiz/                       # Polymorphic Question entities, Evaluator strategies
+│   │   │       ├── assessment/                 # Calibrated 10-Q diagnostic assessment & placement
+│   │   │       ├── learningpath/               # AdaptiveLearningPathStrategy, daily curriculum
+│   │   │       ├── gamification/               # Streaks, AchievementRuleEngine, XP audit ledger
+│   │   │       ├── partner/                    # PartnerRelationship, PartnerController, Pair Leaderboard, Activity Feed
+│   │   │       │   └── challenge/              # VocabularyChallenge, Duels, Attempt Evaluation, ChallengeController
+│   │   │       ├── ai/                         # Multi-provider router (Gemini, Groq, Fallback)
+│   │   │       └── dictionary/                 # Merriam-Webster Collegiate API client & caching
+│   │   └── resources/
+│   │       ├── application.yml                 # Core config with env var placeholders
+│   │       └── application-dev.yml             # Dev profile settings
+│   └── test/                                   # 58 test classes (384 automated tests, H2 DB)
+├── pom.xml                                     # Maven dependencies and build plugins
+├── mvnw / mvnw.cmd                             # Maven wrapper executables
+├── run-backend.ps1 / run-backend.cmd           # Local development runner scripts
 │
 ├── frontend/                                   # React 19 + TypeScript + Vite Application
 │   ├── public/                                 # Static assets, hero illustrations, avatars
 │   ├── src/
-│   │   ├── api/                                # Axios client modules for all 16 controllers
+│   │   ├── api/                                # Axios client modules for API endpoints (15 API modules)
 │   │   ├── components/
 │   │   │   ├── ui/                             # Reusable Button, Card, Badge, Modal, ProgressBar
 │   │   │   ├── layout/                         # AppShell, Sidebar, TopHeader, MobileNav, Navbar
@@ -478,7 +473,7 @@ Memora/
 │   │   │   ├── dashboard/                      # LockedOnboardingView, AiLearningInsightCard
 │   │   │   └── landing/                        # HeroSection (3D ecosystem), HowItWorks, Stats
 │   │   ├── context/                            # AuthContext, OnboardingContext, ToastContext
-│   │   ├── pages/                              # Landing, Dashboard, Assessment, LearnPath, Review, Quiz
+│   │   ├── pages/                              # Landing, Dashboard, Assessment, LearnPath, Review, Quiz, Partners, Profile
 │   │   ├── routes/                             # ProtectedRoute, LearningRouteGuard, AppRoutes
 │   │   └── types/                              # TypeScript interfaces matching backend DTOs
 │   ├── index.html                              # HTML entry with font imports
@@ -489,10 +484,10 @@ Memora/
 ├── docs/
 │   └── diagrams/
 │       ├── system-architecture.png             # Rendered 2x System Architecture Diagram
-│       └── memora-erd.png                      # Rendered 2x Relational ERD Diagram (20 tables)
+│       └── memora-erd.png                      # Rendered 2x Relational ERD Diagram (25 tables across 6 subsystems)
 │
-├── CONTROLLER_REQUEST_OBJECT.md                # 16-controller, 54-endpoint request object audit
-├── ERD.md                                      # Complete data dictionary & database specification
+├── CONTROLLER_REQUEST_OBJECT.md                # 18-controller, 74-endpoint, 16-Request DTO compliance report
+├── ERD.md                                      # Complete data dictionary & database specification (25 tables across 6 subsystems)
 ├── .env.example                                # Safe environment variable template (No secrets)
 ├── .gitignore                                  # Git exclusion rules (.env, target, dist, node_modules)
 └── README.md                                   # Master project documentation
@@ -591,7 +586,7 @@ The Memora platform has undergone complete regression and end-to-end verificatio
   [INFO] BUILD SUCCESS
   [INFO] -------------------------------------------------------
   ```
-* **Coverage**: All 58 test classes across all 13 domain modules passed cleanly, including core module controller integration test suites, partner integration tests, horizontal privilege escalation isolation tests, and MockMvc controller test suites.
+* **Coverage**: All 58 test classes across all domain modules passed cleanly, including core module controller integration test suites, partner integration tests, horizontal privilege escalation isolation tests, and MockMvc controller test suites.
 * **Test Isolation**: All tests execute on embedded in-memory H2 database (`MODE=PostgreSQL`) with zero external network or database calls. External AI and dictionary HTTP clients are mocked using `MockRestServiceServer`.
 
 ### 2. Frontend TypeScript Compilation
@@ -667,6 +662,12 @@ The complete learner progression flow is illustrated below:
 │ Dictionary & AI Assist  │  Merriam-Webster native audio CDN playback,
 │ (Deep-Dive Exploration) │  Multi-provider AI mnemonics, collocations, register
 └────────────┬────────────┘
+             ▼
+┌─────────────────────────┐
+│ Learning Partners &     │  POST /api/v1/partners/requests (Email/search discovery)
+│ Synchronous Duels       │  GET  /api/v1/partners/{partnerId}/progress (Privacy-safe)
+│ (Collaborative Growth)  │  POST /api/v1/partners/challenges (Synchronized duels)
+└────────────┬────────────┘  GET  /api/v1/partners/leaderboard & /activity feed
              ▼
 ┌─────────────────────────┐
 │ Profile, Stats & Rank   │  Retention curves, CEFR distribution, paginated

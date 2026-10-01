@@ -14,6 +14,7 @@ This document provides a comprehensive Entity-Relationship Diagram (ERD) and rel
    - [3. Polymorphic Quiz Engine & Attempt Tracking](#3-polymorphic-quiz-engine--attempt-tracking-subsystem)
    - [4. Diagnostic Placement Assessment](#4-diagnostic-placement-assessment-subsystem)
    - [5. Adaptive Learning Path Curriculum](#5-adaptive-learning-path-curriculum-subsystem)
+   - [6. Learning Partner, Challenge & Social Activity](#6-learning-partner-vocabulary-challenge--social-activity-subsystem)
 4. [Relational Integrity & Foreign Key Mapping Matrix](#-relational-integrity--foreign-key-mapping-matrix)
 5. [Data Dictionary & Table Specifications](#-data-dictionary--table-specifications)
 6. [JPA Inheritance & OOP Database Patterns](#-jpa-inheritance--oop-database-patterns)
@@ -642,7 +643,7 @@ erDiagram
         timestamp started_at
         timestamp completed_at
         varchar estimated_level "Calculated CEFR band"
-        double confidence_score "Bayesian confidence 0.0 - 1.0"
+        double confidence_score "Placement diagnostic confidence 0.0 - 1.0"
         int total_questions "Default 20"
         int correct_answers
         int score
