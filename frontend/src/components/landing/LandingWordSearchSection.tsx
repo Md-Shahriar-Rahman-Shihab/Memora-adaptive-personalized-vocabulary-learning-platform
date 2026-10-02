@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -466,13 +467,21 @@ export const LandingWordSearchSection: React.FC = () => {
       </div>
 
       {/* Guest Search Limit Modal */}
-      {showLimitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/[0.08] space-y-6 animate-scale-up">
+      {showLimitModal && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowLimitModal(false);
+          }}
+        >
+          <div
+            className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/[0.08] space-y-6 my-auto animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={() => setShowLimitModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition"
+              className="absolute top-4 right-4 p-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition cursor-pointer"
               aria-label="Close modal"
             >
               <X className="w-4 h-4" />
@@ -517,7 +526,8 @@ export const LandingWordSearchSection: React.FC = () => {
               No credit card required. Instant access.
             </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );
