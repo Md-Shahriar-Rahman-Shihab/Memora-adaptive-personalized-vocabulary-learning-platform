@@ -14,6 +14,9 @@ import {
   Lock,
   X,
   CornerDownRight,
+  Brain,
+  Layers,
+  GraduationCap,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -226,20 +229,20 @@ export const LandingWordSearchSection: React.FC = () => {
       {/* Soft background ambient gradient */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-emerald-100/50 via-amber-50/40 to-emerald-100/50 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto px-6 space-y-8">
+      <div className="max-w-5xl mx-auto px-6 space-y-10">
         {/* Section Header */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EAF2DE] border border-[#D5E6BE] text-[#4D6D1A] text-xs font-bold shadow-xs">
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Instant Vocabulary Lookup</span>
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Educational Vocabulary Studio</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-memora-dark tracking-tight">
-            Explore any word
+            Explore how Memora helps you remember every word.
           </h2>
 
-          <p className="text-sm sm:text-base text-memora-text-muted max-w-xl mx-auto font-normal leading-relaxed">
-            Discover definitions, examples, pronunciation and more.
+          <p className="text-sm sm:text-base text-memora-text-muted max-w-2xl mx-auto font-normal leading-relaxed">
+            Every lookup is more than a simple definition. Memora pairs collegiate lexicons with contextual examples, phonetic audio, and cognitive spaced repetition so new words anchor permanently in your active memory.
           </p>
 
           {/* Guest Search Counter Banner */}
@@ -261,6 +264,49 @@ export const LandingWordSearchSection: React.FC = () => {
               </span>
             </div>
           )}
+        </div>
+
+        {/* 4 Learning & Retention Pillars */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-4.5 rounded-2xl border border-stone-200/80 shadow-xs hover:border-emerald-300 transition-all space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-memora-green flex items-center justify-center">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-memora-dark">Authoritative Lexicon</h4>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Curated definitions, inflections, and grammatical parts of speech powered by Merriam-Webster.
+            </p>
+          </div>
+
+          <div className="bg-white p-4.5 rounded-2xl border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+              <Layers className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-memora-dark">Contextual Sentences</h4>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Real-world usage examples showing subtle nuances and natural syntax in authentic contexts.
+            </p>
+          </div>
+
+          <div className="bg-white p-4.5 rounded-2xl border border-stone-200/80 shadow-xs hover:border-blue-300 transition-all space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Volume2 className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-memora-dark">Audio & Phonetics</h4>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Accurate pronunciation with phonetic transcriptions to build confident verbal fluency.
+            </p>
+          </div>
+
+          <div className="bg-white p-4.5 rounded-2xl border border-stone-200/80 shadow-xs hover:border-purple-300 transition-all space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <Brain className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-memora-dark">Adaptive Revision</h4>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Spaced repetition intervals schedule review sessions right before words fade from memory.
+            </p>
+          </div>
         </div>
 
         {/* Search Bar Container */}
