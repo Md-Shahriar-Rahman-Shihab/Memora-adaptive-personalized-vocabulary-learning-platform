@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  LogOut,
 } from 'lucide-react';
 import { profileApi } from '../api/profileApi';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +23,7 @@ import { Badge } from '../components/ui/Badge';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, requestLogout } = useAuth();
   const [profile, setProfile] = useState<LearnerProfileResponse | null>(null);
   const [history, setHistory] = useState<XpTransactionResponse[]>([]);
   const [page, setPage] = useState<number>(0);
@@ -82,20 +83,20 @@ export const ProfilePage: React.FC = () => {
     <AppShell title="Learner Profile" subtitle="Manage your profile, statistics, and XP ledger">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Profile Header Card */}
-        <Card variant="default" className="p-8 shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-3xl bg-memora-green text-white flex items-center justify-center font-black text-2xl shadow-glow">
+        <Card variant="default" className="p-6 sm:p-8 shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-5 min-w-0 flex-1">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-memora-green text-white flex items-center justify-center font-black text-2xl shadow-glow shrink-0">
               {name.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-extrabold text-memora-dark tracking-tight">{name}</h2>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-memora-dark tracking-tight truncate">{name}</h2>
                 <Badge variant={isCalibrated ? 'green' : 'neutral'} size="sm">
                   {level}
                 </Badge>
               </div>
-              <p className="text-xs text-memora-text-muted">{email}</p>
-              <div className="flex items-center gap-4 mt-3 text-xs text-stone-600 font-semibold">
+              <p className="text-xs text-memora-text-muted truncate">{email}</p>
+              <div className="flex items-center gap-4 mt-3 text-xs text-stone-600 font-semibold flex-wrap">
                 <span className="flex items-center gap-1">
                   <Flame className="w-4 h-4 fill-orange-500 text-orange-500" />
                   {profile?.currentStreak ?? 0} Day Streak (Best: {profile?.longestStreak ?? 0}d)
@@ -106,6 +107,19 @@ export const ProfilePage: React.FC = () => {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Account Logout Action */}
+          <div className="w-full sm:w-auto shrink-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-black/[0.06] flex items-center justify-end">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={requestLogout}
+              className="w-full sm:w-auto text-stone-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 min-h-[44px] transition-colors"
+              leftIcon={<LogOut className="w-4 h-4 text-red-500" />}
+            >
+              Log Out
+            </Button>
           </div>
         </Card>
 

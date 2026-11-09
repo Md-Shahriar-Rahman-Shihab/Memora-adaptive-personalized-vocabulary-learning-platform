@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserResponse } from '../types/auth';
 import { authApi } from '../api/authApi';
+import { resetGuestSearchCount } from '../utils/guestSearchLimit';
+import { LogoutConfirmationModal } from '../components/layout/LogoutConfirmationModal';
 
 interface AuthContextType {
   user: UserResponse | null;
@@ -10,6 +12,10 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  requestLogout: () => void;
+  confirmLogout: () => void;
+  cancelLogout: () => void;
+  isLogoutModalOpen: boolean;
   refreshUser: () => Promise<void>;
 }
 
@@ -85,10 +91,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
+
+  const requestLogout = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const cancelLogout = () => {
+    setIsLogoutModalOpen(false);
+  };
+
   const logout = () => {
-    localStorage.removeItem('memora_token');
+    try {
+      localStorage.removeItem('memora_token');
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.clear();
+      }
+      resetGuestSearchCount();
+    } catch {
+      // Non-blocking cleanup fallback
+    }
     setToken(null);
     setUser(null);
+    setIsLogoutModalOpen(false);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    if (typeof window !== 'undefined') {
+      window.location.replace('/login');
+    }
   };
 
   return (
@@ -101,10 +133,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        requestLogout,
+        confirmLogout,
+        cancelLogout,
+        isLogoutModalOpen,
         refreshUser,
       }}
     >
       {children}
+      <LogoutConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={cancelLogout}
+        onConfirm={confirmLogout}
+      />
     </AuthContext.Provider>
   );
 };

@@ -27,7 +27,7 @@ interface NavItem {
 }
 
 export const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, requestLogout } = useAuth();
   const { isLearningUnlocked } = useOnboarding();
   const { addToast } = useToast();
 
@@ -114,7 +114,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <button
-          onClick={logout}
+          onClick={requestLogout}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-stone-500 hover:text-red-600 hover:bg-red-50/80 transition-colors"
         >
           <LogOut className="w-4 h-4" />

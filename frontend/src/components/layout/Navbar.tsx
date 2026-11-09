@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, ArrowRight, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 
@@ -22,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export const Navbar: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, requestLogout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -331,16 +331,31 @@ export const Navbar: React.FC = () => {
           </nav>
           <div className="pt-4 border-t border-stone-100 flex flex-col gap-3">
             {isAuthenticated ? (
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/dashboard');
-                }}
-              >
-                Go to Dashboard
-              </Button>
+              <div className="flex flex-col gap-2.5">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/dashboard');
+                  }}
+                  className="min-h-[44px]"
+                >
+                  Go to Dashboard
+                </Button>
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    requestLogout();
+                  }}
+                  className="text-stone-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 min-h-[44px] transition-colors"
+                  leftIcon={<LogOut className="w-4 h-4 text-red-500" />}
+                >
+                  Log Out
+                </Button>
+              </div>
             ) : (
               <>
                 <Button
