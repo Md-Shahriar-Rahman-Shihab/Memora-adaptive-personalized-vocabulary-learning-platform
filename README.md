@@ -4,6 +4,16 @@
 
 ---
 
+## 🚀 Live Deployment
+
+| Component | Platform | Live URL |
+| :--- | :--- | :--- |
+| Frontend | Vercel | [Open Memora Website](https://memora-adaptive-personalized-vocabulary.vercel.app/) |
+| Backend | Render | [Open Backend](https://memora-backend-zrnb.onrender.com/) |
+| Backend Health Check | Render | [Check API Health](https://memora-backend-zrnb.onrender.com/api/v1/health) |
+
+---
+
 ## 📑 Table of Contents
 
 1. [Project Overview](#-project-overview)
