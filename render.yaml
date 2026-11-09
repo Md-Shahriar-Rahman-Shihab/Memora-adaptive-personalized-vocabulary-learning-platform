@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: memora-backend
+    runtime: docker
+    plan: free # or starter
+    region: oregon # adjust to match your Neon database region
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: "86400000"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: MEMORA_AI_PROVIDER
+        value: auto
+      - key: MEMORA_GEMINI_API_KEY
+        sync: false
+      - key: MEMORA_AI_MODEL
+        value: gemini-3.6-flash
+      - key: MEMORA_GROQ_API_KEY
+        sync: false
+      - key: MEMORA_MERRIAM_WEBSTER_API_KEY
+        sync: false
+
