@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Compass, RotateCw, HelpCircle, User, BookA, Lock } from 'lucide-react';
+import { LayoutDashboard, Compass, RotateCw, HelpCircle, User, BookA, Lock, Users } from 'lucide-react';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -20,6 +20,7 @@ export const MobileNav: React.FC = () => {
     { label: 'Learn', path: '/learn-path', icon: <Compass className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Review', path: '/review', icon: <RotateCw className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Dictionary', path: '/dictionary', icon: <BookA className="w-5 h-5" /> },
+    { label: 'Partners', path: '/partners', icon: <Users className="w-5 h-5" /> },
     { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
   ];
@@ -35,7 +36,7 @@ export const MobileNav: React.FC = () => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-black/[0.08] px-4 py-2 flex items-center justify-around">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-black/[0.08] px-1 sm:px-3 py-1.5 flex items-center justify-around">
       {items.map((item) => {
         const isLocked = item.requiresLearningUnlocked && !isLearningUnlocked;
 
@@ -45,7 +46,7 @@ export const MobileNav: React.FC = () => {
             to={isLocked ? '#' : item.path}
             onClick={isLocked ? (e) => handleLockedClick(e, item) : undefined}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-semibold transition relative ${
+              `flex flex-col items-center gap-0.5 p-1 sm:p-1.5 rounded-xl text-[9px] sm:text-[10px] font-semibold transition relative min-w-0 ${
                 isActive
                   ? 'text-memora-green font-bold'
                   : isLocked
@@ -62,7 +63,7 @@ export const MobileNav: React.FC = () => {
                 </span>
               )}
             </div>
-            <span>{item.label}</span>
+            <span className="truncate max-w-[48px] sm:max-w-none">{item.label}</span>
           </NavLink>
         );
       })}

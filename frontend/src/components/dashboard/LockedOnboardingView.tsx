@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Award,
   CheckCircle2,
+  Users,
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -108,7 +109,7 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
               size="lg"
               onClick={onStartAssessment}
               rightIcon={<ArrowRight className="w-5 h-5" />}
-              className="bg-memora-green hover:bg-[#5B7B26] text-white font-bold px-8 shadow-lg shadow-memora-green/30"
+              className="bg-memora-green hover:bg-memora-green-hover text-white font-bold px-8 shadow-lg shadow-memora-green/30"
             >
               Start Assessment
             </Button>
@@ -183,7 +184,7 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
       </div>
 
       {/* Available Now Section */}
-      <Card variant="default" className="p-6 bg-[#F8F8F5] border border-black/[0.06]">
+      <Card variant="default" className="p-6 bg-memora-card-subtle border border-black/[0.06]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-memora-green block">
@@ -193,11 +194,11 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
               Explore open features while you prepare
             </h4>
             <p className="text-xs text-memora-text-muted">
-              You can already explore words in the Collegiate Dictionary and check community rankings.
+              You can already explore words in the Collegiate Dictionary, connect with learning partners, and check community rankings.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -206,6 +207,15 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
               className="border-black/[0.08] hover:bg-white"
             >
               Dictionary
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/partners')}
+              leftIcon={<Users className="w-4 h-4 text-memora-green" />}
+              className="border-black/[0.08] hover:bg-white"
+            >
+              Partners
             </Button>
             <Button
               variant="outline"

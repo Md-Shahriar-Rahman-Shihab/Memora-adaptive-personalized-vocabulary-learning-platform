@@ -232,7 +232,7 @@ export const LandingWordSearchSection: React.FC = () => {
       <div className="max-w-5xl mx-auto px-6 space-y-10">
         {/* Section Header */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EAF2DE] border border-[#D5E6BE] text-[#4D6D1A] text-xs font-bold shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-memora-green-light border border-memora-green-border text-memora-green-dark text-xs font-bold shadow-xs">
             <GraduationCap className="w-3.5 h-3.5" />
             <span>Educational Vocabulary Studio</span>
           </div>

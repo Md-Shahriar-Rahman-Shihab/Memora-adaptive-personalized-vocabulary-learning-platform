@@ -640,7 +640,7 @@ export const ReviewPage: React.FC = () => {
           {/* Prominent Word Presentation & Pronunciation */}
           <div className="text-center py-2 space-y-2">
             <div className="inline-flex items-center justify-center gap-3">
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-stone-900 tracking-tight font-serif">
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-memora-dark tracking-tight">
                 {currentWord?.word}
               </h2>
               <button

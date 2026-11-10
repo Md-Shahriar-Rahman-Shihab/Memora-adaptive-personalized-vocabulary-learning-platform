@@ -242,7 +242,7 @@ export const HeroSection: React.FC = () => {
           {/* Left Column: Value Proposition & Hero Word Search */}
           <div className="lg:col-span-7 flex flex-col space-y-5 sm:space-y-6">
             {/* AI pill / Badge */}
-            <div className="inline-flex items-center gap-2 self-start px-3.5 py-1.5 rounded-full bg-[#EAF2DE] border border-[#D5E6BE] text-[#4D6D1A] text-xs font-bold tracking-wide shadow-xs">
+            <div className="inline-flex items-center gap-2 self-start px-3.5 py-1.5 rounded-full bg-memora-green-light border border-memora-green-border text-memora-green-dark text-xs font-bold tracking-wide shadow-xs">
               <Sparkles className="w-3.5 h-3.5 fill-current" />
               <span>AI-Powered Vocabulary Learning</span>
             </div>

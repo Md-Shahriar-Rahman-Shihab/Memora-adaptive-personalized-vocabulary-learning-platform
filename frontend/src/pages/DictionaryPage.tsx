@@ -387,7 +387,7 @@ export const DictionaryPage: React.FC = () => {
                       {entry.headword || entry.word}
                     </h2>
                     {entry.pronunciation && (
-                      <span className="text-xl md:text-2xl font-serif text-memora-text-muted">
+                      <span className="text-xl md:text-2xl font-sans text-memora-text-muted">
                         \{entry.pronunciation}\
                       </span>
                     )}

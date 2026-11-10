@@ -676,7 +676,7 @@ export const QuizPage: React.FC = () => {
           {/* Question Text Prompt */}
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-3">
-              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 leading-snug font-serif">
+              <h2 className="text-xl sm:text-2xl font-bold text-memora-dark leading-snug">
                 {currentQuestion?.questionText}
               </h2>
 

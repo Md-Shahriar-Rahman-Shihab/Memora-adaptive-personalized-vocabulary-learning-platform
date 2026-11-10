@@ -1,13 +1,30 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+:root {
+  --memora-bg: #FBFBF9;
+  --memora-card: #FFFFFF;
+  --memora-card-subtle: #F8F8F5;
+  --memora-green: #6A8D2F;
+  --memora-green-light: #EAF2DE;
+  --memora-green-border: #D5E6BE;
+  --memora-green-hover: #5B7C26;
+  --memora-green-dark: #425E16;
+  --memora-green-glow: #92C443;
+  --memora-dark: #141A14;
+  --memora-text: #141A14;
+  --memora-text-muted: #6E766D;
+  --memora-text-light: #9AA199;
+  --memora-border: rgba(20, 26, 20, 0.08);
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
   }
   body {
-    background-color: #FBFBF9;
-    color: #141A14;
+    background-color: var(--memora-bg, #FBFBF9);
+    color: var(--memora-dark, #141A14);
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }

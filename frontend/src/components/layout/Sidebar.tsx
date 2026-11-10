@@ -103,7 +103,7 @@ export const Sidebar: React.FC = () => {
 
       {/* User Footer & Logout */}
       <div className="p-4 border-t border-black/[0.06] shrink-0 bg-white space-y-2.5">
-        <div className="flex items-center gap-3 px-3 py-2.5 bg-[#F8F8F5] rounded-2xl border border-black/[0.04]">
+        <div className="flex items-center gap-3 px-3 py-2.5 bg-memora-card-subtle rounded-2xl border border-black/[0.04]">
           <div className="w-9 h-9 rounded-xl bg-memora-green text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
             {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
           </div>

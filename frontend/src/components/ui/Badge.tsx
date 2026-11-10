@@ -22,7 +22,7 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles = {
-    green: 'bg-[#EAF2DE] text-[#425E16] border border-[#D5E6BE]',
+    green: 'bg-memora-green-light text-memora-green-dark border border-memora-green-border',
     amber: 'bg-[#FEF3E2] text-[#B45309] border border-[#FDE3B7]',
     blue: 'bg-[#E6F0FA] text-[#1D4ED8] border border-[#BFDBFE]',
     purple: 'bg-[#F3E8FF] text-[#7E22CE] border border-[#E9D5FF]',

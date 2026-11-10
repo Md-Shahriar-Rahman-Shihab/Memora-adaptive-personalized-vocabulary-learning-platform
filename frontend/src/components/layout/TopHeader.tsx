@@ -34,7 +34,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, titleClas
         </div>
 
         {/* XP Pill */}
-        <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#EAF2DE] border border-[#D5E6BE] rounded-full text-[#425E16] shadow-sm shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-memora-green-light border border-memora-green-border rounded-full text-memora-green-dark shadow-sm shrink-0">
           <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-memora-green" />
           <span className="text-xs font-bold tracking-tight">{user?.xp ?? 0} XP</span>
         </div>

@@ -13,9 +13,10 @@ export default {
           'card-subtle': '#F8F8F5',
           green: {
             DEFAULT: '#6A8D2F',
-            light: '#EBF2DF',
+            light: '#EAF2DE',
+            border: '#D5E6BE',
             hover: '#5B7C26',
-            dark: '#455E1B',
+            dark: '#425E16',
             glow: '#92C443',
           },
           dark: {
@@ -35,6 +36,7 @@ export default {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         serif: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       boxShadow: {
         'soft': '0 4px 20px -2px rgba(20, 26, 20, 0.05)',

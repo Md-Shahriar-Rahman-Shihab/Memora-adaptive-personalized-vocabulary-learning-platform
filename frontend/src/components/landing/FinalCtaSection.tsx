@@ -9,7 +9,7 @@ export const FinalCtaSection: React.FC = () => {
   return (
     <section className="py-20 bg-gradient-to-b from-[#FBFBF9] to-[#F3F7ED]">
       <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EAF2DE] border border-[#D5E6BE] text-[#4D6D1A] text-xs font-bold">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-memora-green-light border border-memora-green-border text-memora-green-dark text-xs font-bold">
           <Sparkles className="w-3.5 h-3.5 fill-current" />
           <span>Personalized Adaptive Learning</span>
         </div>
