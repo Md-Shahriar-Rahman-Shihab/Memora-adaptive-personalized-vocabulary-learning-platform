@@ -62,32 +62,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const res = await authApi.login({ email, password });
-      if (res.success && res.data) {
-        const receivedToken = res.data.accessToken;
-        localStorage.setItem('memora_token', receivedToken);
-        setToken(receivedToken);
-        setUser(res.data.user);
-      }
-    } finally {
-      setIsLoading(false);
+    const res = await authApi.login({ email, password });
+    if (res.success && res.data) {
+      const receivedToken = res.data.accessToken;
+      localStorage.setItem('memora_token', receivedToken);
+      setToken(receivedToken);
+      setUser(res.data.user);
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const res = await authApi.register({ name, email, password });
-      if (res.success && res.data) {
-        const receivedToken = res.data.accessToken;
-        localStorage.setItem('memora_token', receivedToken);
-        setToken(receivedToken);
-        setUser(res.data.user);
-      }
-    } finally {
-      setIsLoading(false);
+    const res = await authApi.register({ name, email, password });
+    if (res.success && res.data) {
+      const receivedToken = res.data.accessToken;
+      localStorage.setItem('memora_token', receivedToken);
+      setToken(receivedToken);
+      setUser(res.data.user);
     }
   };
 

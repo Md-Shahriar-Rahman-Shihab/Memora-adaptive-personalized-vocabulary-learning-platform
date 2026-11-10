@@ -59,7 +59,7 @@ Traditional language and vocabulary learning applications suffer from three crit
 
 | Category | Implemented Features |
 | :--- | :--- |
-| **Authentication & Security** | Stateless JWT authentication, BCrypt password hashing, Spring Security 6 filter chain, account isolation, CORS configuration, server-derived user principal (`Authentication.getName()`). |
+| **Authentication & Security** | Stateless JWT authentication, BCrypt password hashing, Spring Security 6 filter chain, account isolation, CORS configuration, server-derived user principal (`Authentication.getName()`), accessible mobile logout confirmation dialog. Production-grade login error handling with accessible inline alerts (`role="alert"`), generic credential failure messaging (preventing account enumeration), separate validation/network/server/rate-limit error classification, dynamic "Signing in..." states with duplicate submission locking, and resilient Axios 401 interceptors protecting auth flows while evicting expired sessions. |
 | **Diagnostic Placement** | Compact 10-question assessment across calibrated CEFR tiers (`A1`, `A2`, `B1`, `B2`, `C1`), millisecond latency tracking, sequential mastery progression (100% advances, 50% frontier halts, 0% halts), explainable confidence rating (0–100), mid-session resumption resilience. |
 | **Smart Onboarding UX** | 4-state domain-driven finite state machine (`ONBOARDING_REQUIRED` → `ASSESSMENT_IN_PROGRESS` → `LEARNING_PATH_REQUIRED` → `LEARNING_ACTIVE`), locked dashboard view (`LockedOnboardingView`) with 10-Q placement preview, non-intrusive navigation locking with toast feedback, defensive route protection (`LearningRouteGuard`). |
 | **Adaptive Learning Path** | Individualized daily roadmap (max 10 items), balanced review vs new word ratio, advanced stretch words for mastery >= 90%, dynamic path regeneration (`POST /regenerate`), calendar day progression. |
@@ -425,10 +425,11 @@ Below is the concise catalog of all 74 implemented endpoints (75 mapped route pa
 * **Validation**: Jakarta Bean Validation (`@Valid`, constraints)
 
 ### Frontend
-* **Core Runtime**: React 19, TypeScript 5.5, Vite 8
+* **Core Runtime**: React 19, TypeScript 5.5 / 6.0, Vite 8
 * **Styling & Design System**: Tailwind CSS v4, PostCSS, Google Fonts (*Plus Jakarta Sans*, *JetBrains Mono*)
 * **Routing & State**: React Router DOM v7, React Context API (`AuthContext`, `OnboardingContext`, `ToastContext`)
-* **HTTP Client**: Axios (Bearer token interceptor, automated 401 handling, unified unwrap)
+* **HTTP Client**: Axios (Bearer token interceptor, automated 401 expired-session handling with auth endpoint immunity, unified unwrap)
+* **Testing**: Vitest, React Testing Library, jsdom, jest-dom
 * **Audio & Media**: HTML5 Web Audio API integrating Merriam-Webster pronunciation audio CDN
 * **Icons & Visualization**: Lucide React, Recharts (retention decay visualizations)
 * **Utilities**: clsx, tailwind-merge
@@ -467,7 +468,7 @@ Memora/
 │   │   └── resources/
 │   │       ├── application.yml                 # Core config with env var placeholders
 │   │       └── application-dev.yml             # Dev profile settings
-│   └── test/                                   # 58 test classes (384 automated tests, H2 DB)
+│   └── test/                                   # 58 test classes (388 automated tests, H2 DB)
 ├── pom.xml                                     # Maven dependencies and build plugins
 ├── mvnw / mvnw.cmd                             # Maven wrapper executables
 ├── run-backend.ps1 / run-backend.cmd           # Local development runner scripts
@@ -485,7 +486,9 @@ Memora/
 │   │   ├── context/                            # AuthContext, OnboardingContext, ToastContext
 │   │   ├── pages/                              # Landing, Dashboard, Assessment, LearnPath, Review, Quiz, Partners, Profile
 │   │   ├── routes/                             # ProtectedRoute, LearningRouteGuard, AppRoutes
-│   │   └── types/                              # TypeScript interfaces matching backend DTOs
+│   │   ├── types/                              # TypeScript interfaces matching backend DTOs
+│   │   ├── utils/                              # authError normalizer, guest search limits, formatting
+│   │   └── test/                               # Vitest setup & environment configuration
 │   ├── index.html                              # HTML entry with font imports
 │   ├── package.json                            # Dependencies & scripts
 │   ├── tsconfig.json                           # Strict TypeScript configuration
@@ -591,27 +594,50 @@ The Memora platform has undergone complete regression and end-to-end verificatio
   [INFO] -------------------------------------------------------
   [INFO]  T E S T S
   [INFO] -------------------------------------------------------
-  [INFO] Tests run: 384, Failures: 0, Errors: 0, Skipped: 0
+  [INFO] Tests run: 388, Failures: 0, Errors: 0, Skipped: 0
   [INFO] -------------------------------------------------------
   [INFO] BUILD SUCCESS
   [INFO] -------------------------------------------------------
   ```
-* **Coverage**: All 58 test classes across all domain modules passed cleanly, including core module controller integration test suites, partner integration tests, horizontal privilege escalation isolation tests, and MockMvc controller test suites.
+* **Coverage**: All 58 test classes across all domain modules passed cleanly, including public health endpoint uptime monitoring test suites (`HealthControllerTest`), core module controller integration test suites, partner integration tests, horizontal privilege escalation isolation tests, and MockMvc controller test suites.
 * **Test Isolation**: All tests execute on embedded in-memory H2 database (`MODE=PostgreSQL`) with zero external network or database calls. External AI and dictionary HTTP clients are mocked using `MockRestServiceServer`.
 
-### 2. Frontend TypeScript Compilation
+### 2. Frontend Automated Test Suite
+```bash
+npm test
+```
+* **Verified Test Results**:
+  ```text
+   RUN  v4.1.12
+   ✓ src/utils/__tests__/authError.test.ts (11 tests)
+   ✓ src/api/__tests__/axios.test.ts (4 tests)
+   ✓ src/pages/__tests__/LoginPage.test.tsx (10 tests)
+
+   Test Files  3 passed (3)
+        Tests  25 passed (25)
+  ```
+* **Coverage**: Comprehensive unit, integration, and accessibility coverage validating:
+  - Full login form submission lifecycle, valid credential authentication, and post-login routing.
+  - Unified generic invalid-credential messaging for wrong email and incorrect password (preventing account enumeration).
+  - Granular error classification for HTTP 400 validation failures, network offline state, request timeouts, 429 rate limiting, and 5xx server errors.
+  - Loading states (`"Signing in..."`), spinner rendering, and duplicate submission locking.
+  - Active error alert auto-clearing upon field modification.
+  - Accessible ARIA attributes (`role="alert"`, `aria-live="polite"`, `aria-invalid`, `aria-describedby`).
+  - Axios 401 response interceptor immunity for authentication endpoints (`/auth/login`, `/auth/register`) while ensuring expired protected sessions trigger clean token eviction and redirect.
+
+### 3. Frontend TypeScript Compilation
 ```bash
 npx tsc --noEmit
 ```
 * **Result**: **0 errors**, clean exit code 0. All frontend types strictly mirror backend DTO schemas.
 
-### 3. Production Build Validation
+### 4. Production Build Validation
 ```bash
 npm run build
 ```
-* **Result**: **2536 modules transformed**, production bundle compiled in `dist/` with exit code 0.
+* **Result**: **2538 modules transformed**, production bundle compiled in `dist/` with exit code 0.
 
-### 4. Runtime Cloud Persistence
+### 5. Runtime Cloud Persistence
 * Normal application runtime has been verified against remote cloud **Neon Serverless PostgreSQL 18** with active statement batching (`reWriteBatchedInserts=true`).
 
 ---
@@ -705,7 +731,7 @@ The following architectural and product enhancements are identified for future d
 * **Course**: Advanced Object-Oriented Programming Laboratory
 * **Platform**: Memora (Adaptive Personalized Vocabulary Learning Platform)
 * **Status**: **Fully Verified & Ready for University Submission**
-* **Verification**: 384/384 Backend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified
+* **Verification**: 388/388 Backend Tests Passed • 25/25 Frontend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified
 
 
 

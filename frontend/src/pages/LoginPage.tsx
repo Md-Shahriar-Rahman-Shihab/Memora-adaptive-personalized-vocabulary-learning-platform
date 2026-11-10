@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, Lock, Mail, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { onboardingApi, getDestinationForOnboardingState } from '../api/onboardingApi';
+import { getLoginErrorMessage } from '../utils/authError';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 
@@ -15,9 +16,22 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (error) setError(null);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (isLoading) return;
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
       setError('Please enter both email and password.');
       return;
     }
@@ -26,7 +40,7 @@ export const LoginPage: React.FC = () => {
     setError(null);
 
     try {
-      await login(email, password);
+      await login(trimmedEmail, password);
       // Smart Post-Login Routing based on real onboarding state
       try {
         const stateRes = await onboardingApi.getState();
@@ -39,9 +53,8 @@ export const LoginPage: React.FC = () => {
         // Fallback if onboarding check temporarily fails
       }
       navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message || 'Invalid email or password. Please try again.';
+    } catch (err: unknown) {
+      const msg = getLoginErrorMessage(err);
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -79,17 +92,10 @@ export const LoginPage: React.FC = () => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Card variant="default" className="p-8 shadow-card border border-black/[0.08]">
-          {error && (
-            <div className="mb-5 p-3.5 rounded-2xl bg-red-50 border border-red-100 flex items-center gap-3 text-xs text-red-700 font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email Field */}
             <div>
-              <label className="block text-xs font-bold text-memora-dark uppercase tracking-wider mb-2">
+              <label htmlFor="login-email" className="block text-xs font-bold text-memora-dark uppercase tracking-wider mb-2">
                 Email address
               </label>
               <div className="relative">
@@ -97,12 +103,16 @@ export const LoginPage: React.FC = () => {
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
+                  id="login-email"
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
+                  disabled={isLoading}
                   placeholder="e.g. learner@memora.com"
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50/70 border border-black/[0.08] rounded-2xl text-sm text-memora-dark placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-memora-green focus:bg-white transition"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? 'login-error-message' : undefined}
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50/70 border border-black/[0.08] rounded-2xl text-sm text-memora-dark placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-memora-green focus:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -110,7 +120,7 @@ export const LoginPage: React.FC = () => {
             {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-bold text-memora-dark uppercase tracking-wider">
+                <label htmlFor="login-password" className="block text-xs font-bold text-memora-dark uppercase tracking-wider">
                   Password
                 </label>
               </div>
@@ -119,15 +129,32 @@ export const LoginPage: React.FC = () => {
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
+                  id="login-password"
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
+                  disabled={isLoading}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50/70 border border-black/[0.08] rounded-2xl text-sm text-memora-dark placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-memora-green focus:bg-white transition"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? 'login-error-message' : undefined}
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50/70 border border-black/[0.08] rounded-2xl text-sm text-memora-dark placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-memora-green focus:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
+
+            {/* Inline Error Message placed directly below credentials and above submit */}
+            {error && (
+              <div
+                id="login-error-message"
+                role="alert"
+                aria-live="polite"
+                className="p-3.5 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-2.5 text-xs text-red-700 font-medium"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" aria-hidden="true" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+            )}
 
             <div className="pt-2">
               <Button
@@ -135,10 +162,11 @@ export const LoginPage: React.FC = () => {
                 variant="primary"
                 size="lg"
                 isLoading={isLoading}
+                disabled={isLoading}
                 className="w-full justify-center shadow-md"
                 rightIcon={<ArrowRight className="w-4 h-4" />}
               >
-                Sign In
+                {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </div>
           </form>

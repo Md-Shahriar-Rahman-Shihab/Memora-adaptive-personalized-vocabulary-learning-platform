@@ -30,15 +30,19 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Clear expired token
-      localStorage.removeItem('memora_token');
-      // Do not redirect if already on login or register
-      if (
-        window.location.pathname !== '/login' &&
-        window.location.pathname !== '/register' &&
-        window.location.pathname !== '/'
-      ) {
-        window.location.href = '/login';
+      const requestUrl = error.config?.url || '';
+      const isAuthEndpoint =
+        requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+
+      // Do not clear tokens or redirect on login/register failures
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('memora_token');
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname.replace(/\/+$/, '') || '/';
+          if (path !== '/login' && path !== '/register' && path !== '') {
+            window.location.href = '/login';
+          }
+        }
       }
     }
     return Promise.reject(error);
