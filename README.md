@@ -425,7 +425,7 @@ Below is the concise catalog of all 74 implemented endpoints (75 mapped route pa
 * **Validation**: Jakarta Bean Validation (`@Valid`, constraints)
 
 ### Frontend
-* **Core Runtime**: React 19, TypeScript 5.5 / 6.0, Vite 8
+* **Core Runtime**: React 19, TypeScript ~6.0, Vite 8
 * **Styling & Design System**: Tailwind CSS v4, PostCSS, Google Fonts (*Plus Jakarta Sans*, *JetBrains Mono*)
 * **Routing & State**: React Router DOM v7, React Context API (`AuthContext`, `OnboardingContext`, `ToastContext`)
 * **HTTP Client**: Axios (Bearer token interceptor, automated 401 expired-session handling with auth endpoint immunity, unified unwrap)
@@ -476,7 +476,7 @@ Memora/
 ├── frontend/                                   # React 19 + TypeScript + Vite Application
 │   ├── public/                                 # Static assets, hero illustrations, avatars
 │   ├── src/
-│   │   ├── api/                                # Axios client modules for API endpoints (15 API modules)
+│   │   ├── api/                                # Axios client modules (15 API modules, __tests__/axios.test.ts)
 │   │   ├── components/
 │   │   │   ├── ui/                             # Reusable Button, Card, Badge, Modal, ProgressBar
 │   │   │   ├── layout/                         # AppShell, Sidebar, TopHeader, MobileNav, Navbar
@@ -485,14 +485,15 @@ Memora/
 │   │   │   └── landing/                        # HeroSection (3D ecosystem), HowItWorks, Stats
 │   │   ├── context/                            # AuthContext, OnboardingContext, ToastContext
 │   │   ├── pages/                              # Landing, Dashboard, Assessment, LearnPath, Review, Quiz, Partners, Profile
+│   │   │   └── __tests__/                      # LoginPage.test.tsx UX & error-handling integration tests
 │   │   ├── routes/                             # ProtectedRoute, LearningRouteGuard, AppRoutes
+│   │   ├── test/                               # setup.ts (Vitest & jest-dom environment setup)
 │   │   ├── types/                              # TypeScript interfaces matching backend DTOs
-│   │   ├── utils/                              # authError normalizer, guest search limits, formatting
-│   │   └── test/                               # Vitest setup & environment configuration
+│   │   └── utils/                              # authError normalizer (__tests__/authError.test.ts), guest search limits
 │   ├── index.html                              # HTML entry with font imports
-│   ├── package.json                            # Dependencies & scripts
+│   ├── package.json                            # Dependencies & scripts ("test": "vitest run")
 │   ├── tsconfig.json                           # Strict TypeScript configuration
-│   └── vite.config.ts                          # Vite build & API proxy setup
+│   └── vite.config.ts                          # Vite build & Vitest test configuration
 │
 ├── docs/
 │   └── diagrams/
