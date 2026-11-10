@@ -69,7 +69,7 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
+                        .requestMatchers("/api/v1/health", "/api/v1/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/vocabulary/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/dictionary/public/**", "/api/v1/dictionary/public-lookup/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/word-relations").permitAll()

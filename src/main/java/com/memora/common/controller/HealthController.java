@@ -14,7 +14,7 @@ import java.util.Map;
  * Health check controller providing simple liveness and diagnostic status for Memora.
  */
 @RestController
-@RequestMapping("/api/v1/health")
+@RequestMapping({"/api/v1/health", "/api/v1/health/"})
 public class HealthController {
 
     @GetMapping
