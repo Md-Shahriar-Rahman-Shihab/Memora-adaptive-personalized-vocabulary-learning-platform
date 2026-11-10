@@ -64,6 +64,9 @@ class VocabularyChallengeControllerIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private com.memora.modules.assessment.repository.AssessmentRepository assessmentRepository;
+
+    @Autowired
     private VocabularyWordRepository vocabularyWordRepository;
 
     @Autowired
@@ -85,6 +88,10 @@ class VocabularyChallengeControllerIntegrationTest {
         userB = userRepository.save(new User("Bob ChallengeCtrl", EMAIL_B, "hash2", VocabularyLevel.B1, Role.LEARNER));
         userC = userRepository.save(new User("Charlie ChallengeCtrl", EMAIL_C, "hash3", VocabularyLevel.B1, Role.LEARNER));
 
+        markPlacementCompleted(userA);
+        markPlacementCompleted(userB);
+        markPlacementCompleted(userC);
+
         for (int i = 1; i <= 5; i++) {
             String wordName = "chtestword" + i;
             if (!vocabularyWordRepository.existsByWordIgnoreCase(wordName)) {
@@ -93,6 +100,13 @@ class VocabularyChallengeControllerIntegrationTest {
                 ));
             }
         }
+    }
+
+    private void markPlacementCompleted(User user) {
+        com.memora.modules.assessment.entity.Assessment assessment = new com.memora.modules.assessment.entity.Assessment(user, 10);
+        assessment.setStatus(com.memora.modules.assessment.domain.AssessmentStatus.COMPLETED);
+        assessment.setCompletedAt(java.time.Instant.now());
+        assessmentRepository.save(assessment);
     }
 
     @AfterEach
@@ -104,6 +118,7 @@ class VocabularyChallengeControllerIntegrationTest {
         challengeAttemptRepository.deleteAll();
         challengeRepository.deleteAll();
         partnerRelationshipRepository.deleteAll();
+        assessmentRepository.deleteAll();
         userRepository.findByEmail(EMAIL_A).ifPresent(userRepository::delete);
         userRepository.findByEmail(EMAIL_B).ifPresent(userRepository::delete);
         userRepository.findByEmail(EMAIL_C).ifPresent(userRepository::delete);

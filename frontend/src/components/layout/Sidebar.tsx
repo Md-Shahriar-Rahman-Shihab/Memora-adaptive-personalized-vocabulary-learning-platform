@@ -24,11 +24,12 @@ interface NavItem {
   path: string;
   icon: React.ReactNode;
   requiresLearningUnlocked?: boolean;
+  requiresPlacement?: boolean;
 }
 
 export const Sidebar: React.FC = () => {
   const { user, requestLogout } = useAuth();
-  const { isLearningUnlocked } = useOnboarding();
+  const { isLearningUnlocked, isPlacementCompleted } = useOnboarding();
   const { addToast } = useToast();
 
   const navItems: NavItem[] = [
@@ -38,7 +39,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Dictionary', path: '/dictionary', icon: <BookA className="w-5 h-5" /> },
     { label: 'Progress', path: '/progress', icon: <TrendingUp className="w-5 h-5" />, requiresLearningUnlocked: true },
-    { label: 'Partners', path: '/partners', icon: <Users className="w-5 h-5" /> },
+    { label: 'Partners', path: '/partners', icon: <Users className="w-5 h-5" />, requiresPlacement: true },
     { label: 'Achievements', path: '/achievements', icon: <Award className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Leaderboard', path: '/leaderboard', icon: <Crown className="w-5 h-5" /> },
     { label: 'Profile', path: '/profile', icon: <UserIcon className="w-5 h-5" /> },
@@ -71,7 +72,9 @@ export const Sidebar: React.FC = () => {
         {/* Navigation Items */}
         <nav className="p-4 space-y-1.5 flex-1">
           {navItems.map((item) => {
-            const isLocked = item.requiresLearningUnlocked && !isLearningUnlocked;
+            const isLocked =
+              (item.requiresLearningUnlocked && !isLearningUnlocked) ||
+              (item.requiresPlacement && !isPlacementCompleted);
 
             return (
               <NavLink

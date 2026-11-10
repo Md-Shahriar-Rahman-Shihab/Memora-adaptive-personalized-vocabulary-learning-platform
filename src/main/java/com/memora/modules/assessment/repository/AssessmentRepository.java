@@ -18,6 +18,9 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     List<Assessment> findByUserIdOrderByStartedAtDesc(Long userId);
 
+    @Query("SELECT COUNT(a) > 0 FROM Assessment a WHERE a.user.id = :userId AND a.status = com.memora.modules.assessment.domain.AssessmentStatus.COMPLETED")
+    boolean hasCompletedAssessment(@Param("userId") Long userId);
+
     @Query("SELECT a FROM Assessment a WHERE a.user.id = :userId AND a.status = 'IN_PROGRESS' ORDER BY a.startedAt DESC")
     List<Assessment> findActiveAssessmentsList(@Param("userId") Long userId);
 

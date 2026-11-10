@@ -61,7 +61,7 @@ Traditional language and vocabulary learning applications suffer from three crit
 | :--- | :--- |
 | **Authentication & Security** | Stateless JWT authentication, BCrypt password hashing, Spring Security 6 filter chain, account isolation, CORS configuration, server-derived user principal (`Authentication.getName()`), accessible mobile logout confirmation dialog. Production-grade login error handling with accessible inline alerts (`role="alert"`), generic credential failure messaging (preventing account enumeration), separate validation/network/server/rate-limit error classification, dynamic "Signing in..." states with duplicate submission locking, and resilient Axios 401 interceptors protecting auth flows while evicting expired sessions. |
 | **Diagnostic Placement** | Compact 10-question assessment across calibrated CEFR tiers (`A1`, `A2`, `B1`, `B2`, `C1`), millisecond latency tracking, sequential mastery progression (100% advances, 50% frontier halts, 0% halts), explainable confidence rating (0–100), mid-session resumption resilience. |
-| **Smart Onboarding UX** | 4-state domain-driven finite state machine (`ONBOARDING_REQUIRED` → `ASSESSMENT_IN_PROGRESS` → `LEARNING_PATH_REQUIRED` → `LEARNING_ACTIVE`), locked dashboard view (`LockedOnboardingView`) with 10-Q placement preview, non-intrusive navigation locking with toast feedback, defensive route protection (`LearningRouteGuard`). |
+| **Smart Onboarding UX** | 4-state domain-driven finite state machine (`ONBOARDING_REQUIRED` → `ASSESSMENT_IN_PROGRESS` → `LEARNING_PATH_REQUIRED` → `LEARNING_ACTIVE`), locked dashboard view (`LockedOnboardingView`) with 10-Q placement preview, non-intrusive navigation locking with toast feedback, multi-tier defensive route protection (`PlacementRouteGuard`, `LearningRouteGuard`). |
 | **Adaptive Learning Path** | Individualized daily roadmap (max 10 items), balanced review vs new word ratio, advanced stretch words for mastery >= 90%, dynamic path regeneration (`POST /regenerate`), calendar day progression. |
 | **Word Study Experience** | Focused Word Study Modal (`WordStudyModal`) mounted via React Portal (`createPortal`) to isolate stacking context, responsive viewport bounds (`100dvh`), background scroll locking, Merriam-Webster native audio CDN playback, CEFR level badge, multi-sense definitions, example sentences with audio, idempotent reward feedback (+15 XP). |
 | **Spaced Repetition Memory (SRS)** | Pluggable SM-2 (`SM2MemoryStrategy`) and Leitner 5-box (`LeitnerMemoryStrategy`), real-time forgetting risk evaluation (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), mastery probability calculation (0.0–1.0), due review scheduling (`GET /api/v1/memory/due`). |
@@ -70,7 +70,7 @@ Traditional language and vocabulary learning applications suffer from three crit
 | **Gamification & Profile** | Multi-activity XP rewards (`QuizRewardStrategy`, `LessonRewardStrategy`, etc.), calendar-day safe daily streaks (`StreakService`), 10 unlockable milestone badges (`AchievementRuleEngine`), immutable XP transaction audit ledger (`XpTransaction`), global top-20 leaderboard with podium showcase, profile stats. |
 | **Collegiate Dictionary** | Real-time Merriam-Webster Collegiate Dictionary lookup (`/dictionary`), HTTP/2 `RestClient`, written IPA/phonetics, syllabification dots, multi-sense definitions, etymology, alternate spelling suggestion chips, bounded thread-safe in-memory cache (30-min TTL). |
 | **Multi-Provider AI Assistant** | Centralized router (`AiProviderRouter`) supporting `auto`, `gemini`, `groq`, `fallback` policies, multi-model Google Gemini fallback chain (`gemini-3.6-flash`), Groq fast-inference client (`openai/gpt-oss-120b`), deterministic offline educational generator, grammatical collocation validation (`CollocationValidator`), in-memory cache (`AiResponseCache`). |
-| **Learning Partners & Social Duels** | Exact email partner search, canonical pairing state machine (`PENDING` → `ACCEPTED`/`REJECTED`/`CANCELLED`), privacy-safe progress sharing, synchronous competitive vocabulary challenges with shared question sets, pair-only partner leaderboard, and chronological partner activity feed with deterministic deduplication. |
+| **Learning Partners & Social Duels** | Placement-gated collaborative hub: locked until CEFR placement test completion (enforced by backend `PartnerPlacementInterceptor` with HTTP 403 Forbidden, `PlacementRouteGuard`, and locked sidebar/mobile navigation items). Includes exact email partner search, canonical pairing state machine (`PENDING` → `ACCEPTED`/`REJECTED`/`CANCELLED`), privacy-safe progress sharing, synchronous competitive vocabulary duels with shared question sets, pair-only partner leaderboard, and chronological activity feed with deterministic deduplication. |
 | **Adaptive Insights** | Real-time cognitive load & retention health diagnostics (`/api/v1/insights/today`), retention probability metrics, prioritized daily study recommendations. |
 | **Cloud Persistence** | Neon Serverless PostgreSQL 18 (AWS Cloud) via HikariCP, `reWriteBatchedInserts=true` multi-row statement batch rewriting, Hibernate JDBC batching (`batch_size: 50`), N+1 query elimination via JPQL `JOIN FETCH` and `@BatchSize(50)`, isolated in-memory H2 database for test execution. |
 
@@ -85,10 +85,10 @@ The diagram below reflects the actual multi-tier enterprise architecture impleme
 ### Architectural Tiers:
 1. **Tier 1: Client Application Layer (React 19 + TypeScript + Vite 8 + Tailwind CSS v4)**:
    - Responsive presentation views: Landing Page, Dashboard, Diagnostic Assessment Runner (10-Q), Word Study Modal (React Portal), Spaced Repetition Review (`/review`), Polymorphic Quiz Runner (`/quiz/:id`), Collegiate Dictionary Explorer (`/dictionary`), Gamification Leaderboard/Achievements, and Learning Partners Hub (`/partners`) with competitive duels and activity feed.
-   - State management: `AuthContext` (token persistence & user profile), `OnboardingContext` (global state & feature locking), `ToastContext` (non-intrusive notifications).
+   - State management: `AuthContext` (token persistence & user profile), `OnboardingContext` (global state & multi-tier feature locking), `ToastContext` (non-intrusive notifications). Routing guards: `ProtectedRoute`, `PlacementRouteGuard` (enforcing placement assessment completion), and `LearningRouteGuard`.
    - Audio: Native HTML5 Audio integrating Merriam-Webster pronunciation audio CDN with Web Speech API fallback.
 2. **Tier 2: Security Layer & Thin Controller Gateways (Spring Web + Spring Security)**:
-   - Security Filter Chain: Stateless JWT authentication filter (`JwtAuthenticationFilter`), BCrypt password encoder, CORS filter (`CORS_ALLOWED_ORIGINS`), unauthorized access handlers (`JwtAuthenticationEntryPoint`, `JwtAccessDeniedHandler`).
+   - Security Filter Chain & Interceptors: Stateless JWT authentication filter (`JwtAuthenticationFilter`), `PartnerPlacementInterceptor` (enforcing placement prerequisites across `/api/v1/partners/**` with HTTP 403 Forbidden), BCrypt password encoder, CORS filter (`CORS_ALLOWED_ORIGINS`), unauthorized access handlers (`JwtAuthenticationEntryPoint`, `JwtAccessDeniedHandler`).
    - 18 `@RestController` Presentation Gateways: Strictly validate request payloads and delegate business orchestration to domain services. Zero direct database queries or algorithm logic in controllers.
    - Validation & Error Interception: 16 Request DTOs annotated with Jakarta Bean Validation (`@Valid`). Centralized `GlobalExceptionHandler` intercepting validation, resource, and authentication exceptions into standardized `ApiResponse<T>` envelopes.
 3. **Tier 3: Domain Service Layer (12 Bounded Business Modules)**:
@@ -451,7 +451,7 @@ Memora/
 │   │   ├── java/com/memora/
 │   │   │   ├── MemoraApplication.java          # Application entry point
 │   │   │   ├── common/                         # BaseEntity, ApiResponse, GlobalExceptionHandler
-│   │   │   ├── security/                       # SecurityConfig, JWT services, UserPrincipal
+│   │   │   ├── security/                       # SecurityConfig, WebMvcConfig, JWT services, UserPrincipal
 │   │   │   └── modules/
 │   │   │       ├── user/                       # Identity, AuthController, UserRepository
 │   │   │       ├── onboarding/                 # OnboardingController, OnboardingService
@@ -462,13 +462,14 @@ Memora/
 │   │   │       ├── learningpath/               # AdaptiveLearningPathStrategy, daily curriculum
 │   │   │       ├── gamification/               # Streaks, AchievementRuleEngine, XP audit ledger
 │   │   │       ├── partner/                    # PartnerRelationship, PartnerController, Pair Leaderboard, Activity Feed
-│   │   │       │   └── challenge/              # VocabularyChallenge, Duels, Attempt Evaluation, ChallengeController
+│   │   │       │   ├── challenge/              # VocabularyChallenge, Duels, Attempt Evaluation, ChallengeController
+│   │   │       │   └── security/               # PartnerPlacementInterceptor (CEFR placement gateway enforcement)
 │   │   │       ├── ai/                         # Multi-provider router (Gemini, Groq, Fallback)
 │   │   │       └── dictionary/                 # Merriam-Webster Collegiate API client & caching
 │   │   └── resources/
 │   │       ├── application.yml                 # Core config with env var placeholders
 │   │       └── application-dev.yml             # Dev profile settings
-│   └── test/                                   # 58 test classes (388 automated tests, H2 DB)
+│   └── test/                                   # 59 test classes (389 automated tests, H2 DB)
 ├── pom.xml                                     # Maven dependencies and build plugins
 ├── mvnw / mvnw.cmd                             # Maven wrapper executables
 ├── run-backend.ps1 / run-backend.cmd           # Local development runner scripts
@@ -479,14 +480,14 @@ Memora/
 │   │   ├── api/                                # Axios client modules (15 API modules, __tests__/axios.test.ts)
 │   │   ├── components/
 │   │   │   ├── ui/                             # Reusable Button, Card, Badge, Modal, ProgressBar
-│   │   │   ├── layout/                         # AppShell, Sidebar, TopHeader, MobileNav, Navbar
+│   │   │   ├── layout/                         # AppShell, Sidebar, TopHeader, MobileNav, Navbar (__tests__/Sidebar.test.tsx, MobileNav.test.tsx)
 │   │   │   ├── vocabulary/                     # WordStudyModal, WordStudyAiActions
 │   │   │   ├── dashboard/                      # LockedOnboardingView, AiLearningInsightCard
 │   │   │   └── landing/                        # HeroSection (3D ecosystem), HowItWorks, Stats
 │   │   ├── context/                            # AuthContext, OnboardingContext, ToastContext
 │   │   ├── pages/                              # Landing, Dashboard, Assessment, LearnPath, Review, Quiz, Partners, Profile
-│   │   │   └── __tests__/                      # LoginPage.test.tsx UX & error-handling integration tests
-│   │   ├── routes/                             # ProtectedRoute, LearningRouteGuard, AppRoutes
+│   │   │   └── __tests__/                      # LoginPage.test.tsx, PartnersPage.test.tsx, NewUserPartnerFlow.test.tsx
+│   │   ├── routes/                             # ProtectedRoute, PlacementRouteGuard, LearningRouteGuard, AppRoutes
 │   │   ├── test/                               # setup.ts (Vitest & jest-dom environment setup)
 │   │   ├── types/                              # TypeScript interfaces matching backend DTOs
 │   │   └── utils/                              # authError normalizer (__tests__/authError.test.ts), guest search limits
@@ -595,12 +596,12 @@ The Memora platform has undergone complete regression and end-to-end verificatio
   [INFO] -------------------------------------------------------
   [INFO]  T E S T S
   [INFO] -------------------------------------------------------
-  [INFO] Tests run: 388, Failures: 0, Errors: 0, Skipped: 0
+  [INFO] Tests run: 389, Failures: 0, Errors: 0, Skipped: 0
   [INFO] -------------------------------------------------------
   [INFO] BUILD SUCCESS
   [INFO] -------------------------------------------------------
   ```
-* **Coverage**: All 58 test classes across all domain modules passed cleanly, including public health endpoint uptime monitoring test suites (`HealthControllerTest`), core module controller integration test suites, partner integration tests, horizontal privilege escalation isolation tests, and MockMvc controller test suites.
+* **Coverage**: All 59 test classes across all domain modules passed cleanly, including public health endpoint uptime monitoring test suites (`HealthControllerTest`), core module controller integration test suites, partner integration tests (`PartnerControllerIntegrationTest`, `PartnerPhaseEControllerIntegrationTest`, `VocabularyChallengeControllerIntegrationTest`), new user placement prerequisite lifecycle enforcement test (`NewUserPartnerAccessIntegrationTest`), horizontal privilege escalation isolation tests, and MockMvc controller test suites.
 * **Test Isolation**: All tests execute on embedded in-memory H2 database (`MODE=PostgreSQL`) with zero external network or database calls. External AI and dictionary HTTP clients are mocked using `MockRestServiceServer`.
 
 ### 2. Frontend Automated Test Suite
@@ -612,19 +613,26 @@ npm test
    RUN  v4.1.12
    ✓ src/utils/__tests__/authError.test.ts (11 tests)
    ✓ src/api/__tests__/axios.test.ts (4 tests)
+   ✓ src/components/layout/__tests__/MobileNav.test.tsx (2 tests)
+   ✓ src/components/layout/__tests__/Sidebar.test.tsx (2 tests)
+   ✓ src/pages/__tests__/PartnersPage.test.tsx (2 tests)
    ✓ src/pages/__tests__/LoginPage.test.tsx (10 tests)
+   ✓ src/pages/__tests__/NewUserPartnerFlow.test.tsx (7 tests)
 
-   Test Files  3 passed (3)
-        Tests  25 passed (25)
+   Test Files  7 passed (7)
+        Tests  38 passed (38)
   ```
 * **Coverage**: Comprehensive unit, integration, and accessibility coverage validating:
-  - Full login form submission lifecycle, valid credential authentication, and post-login routing.
-  - Unified generic invalid-credential messaging for wrong email and incorrect password (preventing account enumeration).
-  - Granular error classification for HTTP 400 validation failures, network offline state, request timeouts, 429 rate limiting, and 5xx server errors.
-  - Loading states (`"Signing in..."`), spinner rendering, and duplicate submission locking.
-  - Active error alert auto-clearing upon field modification.
-  - Accessible ARIA attributes (`role="alert"`, `aria-live="polite"`, `aria-invalid`, `aria-describedby`).
-  - Axios 401 response interceptor immunity for authentication endpoints (`/auth/login`, `/auth/register`) while ensuring expired protected sessions trigger clean token eviction and redirect.
+  - **Login UX & Credential Protection**: Full login form submission lifecycle, unified generic invalid-credential messaging for wrong email and incorrect password (preventing account enumeration), granular error classification (HTTP 400 validation, offline network state, request timeout, 429 rate limiting, 5xx server errors), dynamic `"Signing in..."` loading states with duplicate submission locking, accessible ARIA attributes (`role="alert"`, `aria-live="polite"`), and auto-clearing alerts upon field edits (`LoginPage.test.tsx`, `authError.test.ts`).
+  - **Axios Interceptor Resiliency**: 401 response interceptor immunity for authentication endpoints (`/auth/login`, `/auth/register`) while ensuring genuine expired protected sessions trigger clean token eviction and redirect (`axios.test.ts`).
+  - **Navigation & Mobile Placement Locking**: Desktop `Sidebar` and `MobileNav` navigation item locking for unplaced learners (`isPlacementCompleted: false`), displaying lock icons, setting fallback targets (`href="#"`), and emitting descriptive alert toasts upon interaction (`Sidebar.test.tsx`, `MobileNav.test.tsx`).
+  - **Component-Level Placement Fallback**: Standalone defense-in-depth in `PartnersPage` displaying diagnostic calibration requirement cards and preventing unauthorized API invocation if accessed directly (`PartnersPage.test.tsx`).
+  - **End-to-End Onboarding & Partner Access Lifecycle**: Multi-phase user journey validation in `NewUserPartnerFlow.test.tsx` verifying:
+    1. Brand-new registration and login session bootstrap (`ONBOARDING_REQUIRED`, A1 level, 0 XP).
+    2. Locked dashboard state displaying Partners under `Core Learning Features (Locked)` rather than `Available Now`.
+    3. Desktop Sidebar and MobileNav navigation item locking with lock icons and alert toasts.
+    4. Guarded route protection blocking direct `/partners` access for unplaced learners.
+    5. CEFR diagnostic placement test completion transitioning state to `LEARNING_ACTIVE`, immediately unlocking Desktop Sidebar, MobileNav, and granting access to the `/partners` Hub.
 
 ### 3. Frontend TypeScript Compilation
 ```bash
@@ -654,7 +662,8 @@ The complete learner progression flow is illustrated below:
              ▼
 ┌─────────────────────────┐
 │ Locked Onboarding View  │  GET /api/v1/onboarding/state -> ONBOARDING_REQUIRED
-│ (Editorial Hero + CTA)  │  Features locked (🔒) with toast notifications
+│ (Editorial Hero + CTA)  │  Dictionary & Leaderboard open; Core learning modules
+│                         │  and Learning Partners & Duels are LOCKED (🔒)
 └────────────┬────────────┘
              ▼
 ┌─────────────────────────┐
@@ -669,7 +678,8 @@ The complete learner progression flow is illustrated below:
              ▼
 ┌─────────────────────────┐
 │ "Build My Learning Path"│  POST /api/v1/learning-path/start
-│ (Platform Full Unlock)  │  Unlocks dashboard, sidebar, and all learning routes
+│ (Platform Full Unlock)  │  Unlocks dashboard, sidebar, core learning routes,
+│                         │  and Learning Partners Hub & Duels (/partners)
 └────────────┬────────────┘
              ▼
 ┌─────────────────────────┐
@@ -732,7 +742,7 @@ The following architectural and product enhancements are identified for future d
 * **Course**: Advanced Object-Oriented Programming Laboratory
 * **Platform**: Memora (Adaptive Personalized Vocabulary Learning Platform)
 * **Status**: **Fully Verified & Ready for University Submission**
-* **Verification**: 388/388 Backend Tests Passed • 25/25 Frontend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified
+* **Verification**: 389/389 Backend Tests Passed • 38/38 Frontend Tests Passed • TypeScript 0 Errors • Production Build Passed • Neon PostgreSQL Runtime Verified
 
 
 

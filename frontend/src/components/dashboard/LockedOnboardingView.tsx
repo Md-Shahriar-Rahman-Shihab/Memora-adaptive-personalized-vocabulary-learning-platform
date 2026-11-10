@@ -53,6 +53,11 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
       icon: <TrendingUp className="w-5 h-5" />,
     },
     {
+      title: 'Learning Partners & Duels',
+      desc: 'Connect with study partners, challenge each other to retention duels, and share milestones.',
+      icon: <Users className="w-5 h-5" />,
+    },
+    {
       title: 'Gamification & Badges',
       desc: 'Calendar-day streaks, auditable XP transaction ledger, and 10 unlockable milestone achievements.',
       icon: <Award className="w-5 h-5" />,
@@ -194,7 +199,7 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
               Explore open features while you prepare
             </h4>
             <p className="text-xs text-memora-text-muted">
-              You can already explore words in the Collegiate Dictionary, connect with learning partners, and check community rankings.
+              You can already explore words in the Collegiate Dictionary and check community rankings.
             </p>
           </div>
 
@@ -207,15 +212,6 @@ export const LockedOnboardingView: React.FC<LockedOnboardingViewProps> = ({
               className="border-black/[0.08] hover:bg-white"
             >
               Dictionary
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/partners')}
-              leftIcon={<Users className="w-4 h-4 text-memora-green" />}
-              className="border-black/[0.08] hover:bg-white"
-            >
-              Partners
             </Button>
             <Button
               variant="outline"

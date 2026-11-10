@@ -38,6 +38,9 @@ class PartnerControllerIntegrationTest {
     private PartnerRelationshipRepository partnerRelationshipRepository;
 
     @Autowired
+    private com.memora.modules.assessment.repository.AssessmentRepository assessmentRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -58,6 +61,17 @@ class PartnerControllerIntegrationTest {
         userA = userRepository.save(new User("Alice PartnerController", EMAIL_A, "hash1", VocabularyLevel.B1, Role.LEARNER));
         userB = userRepository.save(new User("Bob PartnerController", EMAIL_B, "hash2", VocabularyLevel.B2, Role.LEARNER));
         userC = userRepository.save(new User("Charlie PartnerController", EMAIL_C, "hash3", VocabularyLevel.C1, Role.LEARNER));
+
+        markPlacementCompleted(userA);
+        markPlacementCompleted(userB);
+        markPlacementCompleted(userC);
+    }
+
+    private void markPlacementCompleted(User user) {
+        com.memora.modules.assessment.entity.Assessment assessment = new com.memora.modules.assessment.entity.Assessment(user, 10);
+        assessment.setStatus(com.memora.modules.assessment.domain.AssessmentStatus.COMPLETED);
+        assessment.setCompletedAt(java.time.Instant.now());
+        assessmentRepository.save(assessment);
     }
 
     @AfterEach
@@ -67,6 +81,7 @@ class PartnerControllerIntegrationTest {
 
     private void cleanTestData() {
         partnerRelationshipRepository.deleteAll();
+        assessmentRepository.deleteAll();
         userRepository.findByEmail(EMAIL_A).ifPresent(userRepository::delete);
         userRepository.findByEmail(EMAIL_B).ifPresent(userRepository::delete);
         userRepository.findByEmail(EMAIL_C).ifPresent(userRepository::delete);

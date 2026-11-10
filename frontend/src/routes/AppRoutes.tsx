@@ -33,6 +33,29 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 };
 
+// Route guard preventing access to Partner features before CEFR placement test is completed
+const PlacementRouteGuard: React.FC = () => {
+  const { onboardingState, isLoading, isPlacementCompleted } = useOnboarding();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FBFBF9] flex items-center justify-center">
+        <LoadingSpinner size="lg" label="Checking placement authorization..." />
+      </div>
+    );
+  }
+
+  if (!isPlacementCompleted) {
+    if (onboardingState?.state === 'ASSESSMENT_IN_PROGRESS') {
+      const dest = onboardingState.assessmentId ? `/assessment/${onboardingState.assessmentId}` : '/assessment';
+      return <Navigate to={dest} replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
+};
+
 // Route guard preventing access to core learning features before assessment and learning path are active
 const LearningRouteGuard: React.FC = () => {
   const { onboardingState, isLoading, isLearningUnlocked } = useOnboarding();
@@ -96,7 +119,12 @@ export const AppRoutes: React.FC = () => {
           <Route path="/assessment/result" element={<AssessmentResultPage />} />
           <Route path="/dictionary" element={<DictionaryPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/partners" element={<PartnersPage />} />
+
+          {/* Partner Features Guarded by Placement Completion */}
+          <Route element={<PlacementRouteGuard />}>
+            <Route path="/partners" element={<PartnersPage />} />
+            <Route path="/partner" element={<PartnersPage />} />
+          </Route>
 
           {/* Locked Core Learning Routes Guard */}
           <Route element={<LearningRouteGuard />}>

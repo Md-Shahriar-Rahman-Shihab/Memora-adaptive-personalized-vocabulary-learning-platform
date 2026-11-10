@@ -45,6 +45,9 @@ class PartnerPhaseEControllerIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.memora.modules.assessment.repository.AssessmentRepository assessmentRepository;
+
     private User userA;
     private User userB;
 
@@ -62,6 +65,16 @@ class PartnerPhaseEControllerIntegrationTest {
         userB = userRepository.save(new User("Bob PhaseE", EMAIL_B, "hash2", VocabularyLevel.B2, Role.LEARNER));
         userB.setXp(1500);
         userB = userRepository.save(userB);
+
+        markPlacementCompleted(userA);
+        markPlacementCompleted(userB);
+    }
+
+    private void markPlacementCompleted(User user) {
+        com.memora.modules.assessment.entity.Assessment assessment = new com.memora.modules.assessment.entity.Assessment(user, 10);
+        assessment.setStatus(com.memora.modules.assessment.domain.AssessmentStatus.COMPLETED);
+        assessment.setCompletedAt(java.time.Instant.now());
+        assessmentRepository.save(assessment);
     }
 
     @AfterEach
@@ -72,6 +85,7 @@ class PartnerPhaseEControllerIntegrationTest {
     private void cleanTestData() {
         partnerActivityRepository.deleteAll();
         partnerRelationshipRepository.deleteAll();
+        assessmentRepository.deleteAll();
         userRepository.findByEmail(EMAIL_A).ifPresent(userRepository::delete);
         userRepository.findByEmail(EMAIL_B).ifPresent(userRepository::delete);
     }

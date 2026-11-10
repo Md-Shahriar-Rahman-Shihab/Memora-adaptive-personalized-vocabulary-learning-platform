@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   UserPlus,
@@ -26,6 +27,7 @@ import {
   ChevronRight,
   RotateCcw,
   Mail,
+  Lock,
 } from 'lucide-react';
 import { partnerApi } from '../api/partnerApi';
 import {
@@ -47,10 +49,13 @@ import { Modal } from '../components/ui/Modal';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useToast } from '../context/ToastContext';
+import { useOnboarding } from '../context/OnboardingContext';
 
 
 export const PartnersPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
+  const { isPlacementCompleted, isLoading: isOnboardingLoading, onboardingState } = useOnboarding();
   const { addToast } = useToast();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -190,8 +195,14 @@ export const PartnersPage: React.FC = () => {
 
 
   useEffect(() => {
-    fetchPartnersAndRequests();
-  }, [fetchPartnersAndRequests]);
+    if (!isOnboardingLoading && !isPlacementCompleted) {
+      setIsLoading(false);
+      return;
+    }
+    if (!isOnboardingLoading && isPlacementCompleted) {
+      fetchPartnersAndRequests();
+    }
+  }, [fetchPartnersAndRequests, isOnboardingLoading, isPlacementCompleted]);
 
   // Load progress when selected partner changes
   useEffect(() => {
@@ -684,6 +695,59 @@ export const PartnersPage: React.FC = () => {
   const pastPartnerChallenges = partnerChallenges.filter(
     (c) => c.status === 'COMPLETED' || c.status === 'DECLINED' || c.status === 'CANCELLED'
   );
+
+  if (isOnboardingLoading) {
+    return (
+      <AppShell
+        title="Learning Partners"
+        subtitle="Study together, compete in vocabulary duels, and share privacy-safe milestones."
+      >
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <LoadingSpinner size="lg" label="Checking placement authorization..." />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!isPlacementCompleted) {
+    return (
+      <AppShell
+        title="Learning Partners"
+        subtitle="Study together, compete in vocabulary duels, and share privacy-safe milestones."
+      >
+        <div className="max-w-xl mx-auto py-12 px-4 text-center">
+          <Card variant="default" className="p-8 sm:p-10 space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-memora-dark">
+                Diagnostic Placement Test Required
+              </h2>
+              <p className="text-sm text-memora-text-muted leading-relaxed">
+                Learning Partners and vocabulary duels remain locked until you complete your CEFR placement assessment.
+                This ensures balanced vocabulary duels and appropriate matchmaking.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (onboardingState?.state === 'ASSESSMENT_IN_PROGRESS') {
+                    navigate(onboardingState.assessmentId ? `/assessment/${onboardingState.assessmentId}` : '/assessment');
+                  } else {
+                    navigate('/dashboard');
+                  }
+                }}
+              >
+                Go to Placement Assessment
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

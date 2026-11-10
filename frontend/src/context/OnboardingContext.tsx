@@ -7,6 +7,7 @@ export interface OnboardingContextType {
   onboardingState: OnboardingStateResponse | null;
   isLoading: boolean;
   isLearningUnlocked: boolean;
+  isPlacementCompleted: boolean;
   refreshOnboardingState: () => Promise<OnboardingStateResponse | null>;
 }
 
@@ -63,6 +64,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [isAuthenticated, authLoading, fetchState]);
 
   const isLearningUnlocked = onboardingState?.state === 'LEARNING_ACTIVE';
+  const isPlacementCompleted =
+    onboardingState?.state === 'LEARNING_PATH_REQUIRED' ||
+    onboardingState?.state === 'LEARNING_ACTIVE';
 
   return (
     <OnboardingContext.Provider
@@ -70,6 +74,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         onboardingState,
         isLoading: authLoading || isLoading,
         isLearningUnlocked,
+        isPlacementCompleted,
         refreshOnboardingState,
       }}
     >

@@ -9,10 +9,11 @@ interface MobileNavItem {
   path: string;
   icon: React.ReactNode;
   requiresLearningUnlocked?: boolean;
+  requiresPlacement?: boolean;
 }
 
 export const MobileNav: React.FC = () => {
-  const { isLearningUnlocked } = useOnboarding();
+  const { isLearningUnlocked, isPlacementCompleted } = useOnboarding();
   const { addToast } = useToast();
 
   const items: MobileNavItem[] = [
@@ -20,7 +21,7 @@ export const MobileNav: React.FC = () => {
     { label: 'Learn', path: '/learn-path', icon: <Compass className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Review', path: '/review', icon: <RotateCw className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Dictionary', path: '/dictionary', icon: <BookA className="w-5 h-5" /> },
-    { label: 'Partners', path: '/partners', icon: <Users className="w-5 h-5" /> },
+    { label: 'Partners', path: '/partners', icon: <Users className="w-5 h-5" />, requiresPlacement: true },
     { label: 'Quiz', path: '/quiz', icon: <HelpCircle className="w-5 h-5" />, requiresLearningUnlocked: true },
     { label: 'Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
   ];
@@ -38,7 +39,9 @@ export const MobileNav: React.FC = () => {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-black/[0.08] px-1 sm:px-3 py-1.5 flex items-center justify-around">
       {items.map((item) => {
-        const isLocked = item.requiresLearningUnlocked && !isLearningUnlocked;
+        const isLocked =
+          (item.requiresLearningUnlocked && !isLearningUnlocked) ||
+          (item.requiresPlacement && !isPlacementCompleted);
 
         return (
           <NavLink
